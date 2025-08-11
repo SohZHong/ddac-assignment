@@ -39,3 +39,19 @@ test('users can logout', function () {
     $this->assertGuest();
     $response->assertRedirect('/');
 });
+
+test('authenticated users are redirected from login page', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->get('/login');
+
+    $response->assertRedirect(route('dashboard'));
+});
+
+test('authenticated users are redirected from register page', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->get('/register');
+
+    $response->assertRedirect(route('dashboard'));
+});
