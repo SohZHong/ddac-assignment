@@ -33,6 +33,13 @@ export interface User {
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;
+    role: string;
+    role_label: string;
+    can_manage_roles?: boolean;
+    assignable_roles?: Array<{
+        value: string;
+        label: string;
+    }>;
 }
 
 export type BreadcrumbItemType = BreadcrumbItem;

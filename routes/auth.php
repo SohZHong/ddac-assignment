@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\Admin\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -54,4 +55,18 @@ Route::middleware('auth')->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
+});
+
+// Role-Based Access Control (RBAC) API Routes (POST/PATCH/DELETE with RedirectResponse)
+Route::middleware(['auth', 'role:health_campaign_manager,system_admin'])->group(function () {
+    // Role Management API - Update user roles
+    Route::patch('/admin/users/{user}/role', [UserManagementController::class, 'updateRole'])
+        ->name('admin.users.update-role');
+});
+
+// System Admin Only RBAC API Routes
+Route::middleware(['auth', 'role:system_admin'])->group(function () {
+    // User Management API - Delete users
+    Route::delete('/admin/users/{user}', [UserManagementController::class, 'destroy'])
+        ->name('admin.users.destroy');
 });

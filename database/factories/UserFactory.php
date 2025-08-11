@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\UserRole;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -29,6 +30,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'role' => UserRole::PUBLIC_USER, // Default role
         ];
     }
 
@@ -39,6 +41,36 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * Create a user with healthcare professional role.
+     */
+    public function healthcareProfessional(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => UserRole::HEALTHCARE_PROFESSIONAL,
+        ]);
+    }
+
+    /**
+     * Create a user with health campaign manager role.
+     */
+    public function healthCampaignManager(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => UserRole::HEALTH_CAMPAIGN_MANAGER,
+        ]);
+    }
+
+    /**
+     * Create a user with system admin role.
+     */
+    public function systemAdmin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => UserRole::SYSTEM_ADMIN,
         ]);
     }
 }
