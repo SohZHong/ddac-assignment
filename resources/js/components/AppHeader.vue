@@ -10,9 +10,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { getInitials } from '@/composables/useInitials';
-import type { BreadcrumbItem, NavItem } from '@/types';
+import type { BreadcrumbItem, NavItem, User } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-vue-next';
+import { BookOpen, Folder, LayoutGrid, Menu, Search, Heart, Megaphone, Shield, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 interface Props {
@@ -25,6 +25,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const page = usePage();
 const auth = computed(() => page.props.auth);
+const user = computed(() => page.props.auth.user as User);
 
 const isCurrentRoute = computed(() => (url: string) => page.url === url);
 
@@ -32,13 +33,47 @@ const activeItemStyles = computed(
     () => (url: string) => (isCurrentRoute.value(url) ? 'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100' : ''),
 );
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: '/dashboard',
-        icon: LayoutGrid,
-    },
-];
+const mainNavItems = computed((): NavItem[] => {
+    const items: NavItem[] = [
+        {
+            title: 'Dashboard',
+            href: '/dashboard',
+            icon: LayoutGrid,
+        },
+    ];
+
+    // Add healthcare routes for healthcare professionals and above
+    if (user.value.role === 'healthcare_professional' || 
+        user.value.role === 'health_campaign_manager' || 
+        user.value.role === 'system_admin') {
+        items.push({
+            title: 'Healthcare',
+            href: '/healthcare',
+            icon: Heart,
+        });
+    }
+
+    // Add campaign routes for campaign managers and above
+    if (user.value.role === 'health_campaign_manager' || 
+        user.value.role === 'system_admin') {
+        items.push({
+            title: 'Campaigns',
+            href: '/campaigns',
+            icon: Megaphone,
+        });
+    }
+
+    // Add admin routes for system admins only
+    if (user.value.role === 'system_admin') {
+        items.push({
+            title: 'Admin',
+            href: '/admin',
+            icon: Shield,
+        });
+    }
+
+    return items;
+});
 
 const rightNavItems: NavItem[] = [
     {
