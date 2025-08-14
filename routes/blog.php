@@ -6,12 +6,13 @@ use App\Http\Controllers\Blog\BlogController;
 Route::prefix('blogs')->group(function () {
     // Public routes
     Route::get('/', [BlogController::class, 'index'])->name('blog.index');
-    Route::get('/{blog}', [BlogController::class, 'show'])->name('blog.show');
 
     // Authenticated routes — create, update, delete, restore
     Route::middleware('auth')->group(function () {
+        Route::get('/create', [BlogController::class, 'create'])
+            ->name('blog.create');      // Page to display create form
         Route::post('/', [BlogController::class, 'store'])
-            ->name('blog.create');       // Create blog
+            ->name('blog.store');       // Create blog
         Route::put('/{blog}', [BlogController::class, 'update'])
             ->name('blog.update');       // Update blog
         Route::delete('/{blog}', [BlogController::class, 'destroy'])
@@ -21,4 +22,7 @@ Route::prefix('blogs')->group(function () {
         Route::delete('/hard/{blog}', [BlogController::class, 'hardDestroy'])
             ->name('blog.harddelete');      // Hard delete blog
     });
+
+    Route::get('/{blog}', [BlogController::class, 'show'])->name('blog.show');
+
 });

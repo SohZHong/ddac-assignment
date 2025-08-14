@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type User } from '@/types';
+import { User } from '@/types';
+// import { type User } from '@/types';
 import type { BlogList } from '@/types/blog';
+import { UserRole } from '@/types/role';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { Plus } from 'lucide-vue-next';
 
@@ -24,10 +26,16 @@ const user = page.props.auth.user as User;
                     <h1 class="text-3xl font-bold tracking-tight">Educational Resources</h1>
                     <p class="text-muted-foreground">Enrich yourself with knowledge</p>
                 </div>
-                <Button disabled>
-                    <Plus class="mr-2 h-4 w-4" />
-                    Publish Your Blog
-                </Button>
+                <Link
+                    v-if="user.role === UserRole.HEALTHCARE_PROFESSIONAL || user.role === UserRole.HEALTH_CAMPAIGN_MANAGER"
+                    :href="route('blog.create')"
+                    class="inline-flex items-center"
+                >
+                    <Button>
+                        <Plus class="mr-2 h-4 w-4" />
+                        Publish Your Blog
+                    </Button>
+                </Link>
             </div>
 
             <!-- Blog List -->

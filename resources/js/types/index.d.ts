@@ -1,6 +1,5 @@
 import type { LucideIcon } from 'lucide-vue-next';
 import type { Config } from 'ziggy-js';
-
 export interface Auth {
     user: User;
 }
@@ -33,7 +32,7 @@ export interface User {
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;
-    role: string;
+    role: UserRole;
     role_label: string;
     can_manage_roles?: boolean;
     assignable_roles?: Array<{

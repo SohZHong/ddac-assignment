@@ -1,9 +1,10 @@
-<script setup>
+<script setup lang="ts">
+import { Blog } from '@/types/blog';
 import { defineProps } from 'vue';
 
-const props = defineProps({
-    blog: Object,
-});
+defineProps<{
+    blog: Blog;
+}>();
 </script>
 
 <template>

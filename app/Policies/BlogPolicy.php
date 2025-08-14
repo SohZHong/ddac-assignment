@@ -22,7 +22,8 @@ class BlogPolicy
      */
     public function view(User $user, Blog $blog): bool
     {
-        return false;
+        // Only professionals and campaign masters can create
+        return $user->role === UserRole::HEALTHCARE_PROFESSIONAL || $user->role === UserRole::HEALTH_CAMPAIGN_MANAGER;
     }
 
     /**
@@ -44,7 +45,6 @@ class BlogPolicy
     /**
      * Owner or system_admin can soft delete
      */
-    // Owner or system_admin can delete (soft delete)
     public function delete(User $user, Blog $blog): bool
     {
         return $user->id === $blog->author_id || $user->role === UserRole::SYSTEM_ADMIN;

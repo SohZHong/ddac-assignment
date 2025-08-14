@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Str;
 
 
 class BlogController extends Controller
@@ -42,13 +43,21 @@ class BlogController extends Controller
     }
 
     /**
+     * Page for creating a new blog
+     */
+    public function create()
+    {
+        return Inertia::render('Blog/Create');
+    }
+
+    /**
      * Store a newly created blog in storage.
      */
     public function store(Request $request): Response
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'content' => 'required',
+            'content' => 'required|string',
             'cover_image' => 'nullable|image|max:2048',
             'status' => 'in:' . implode(',', [
                 Blog::STATUS_DRAFT,
@@ -68,7 +77,11 @@ class BlogController extends Controller
             $validated['published_at'] = now();
         }
 
-        return Blog::create($validated);    
+        $blog = Blog::create($validated);
+
+        return Inertia::render('Blog/Show', [
+            'blog' => $blog->load('author:id,name'),
+        ]);
     }
 
     /**
@@ -76,7 +89,7 @@ class BlogController extends Controller
      */
     public function show(string $id): Response
     {
-        $blog = Blog::with('author')
+        $blog = Blog::with('author:id,name')
             ->where('status', Blog::STATUS_PUBLISHED)
             ->findOrFail($id);
 
