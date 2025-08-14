@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Blog;
 
 use App\Http\Controllers\Controller;
 use App\Models\Blog;
@@ -20,20 +20,20 @@ class BlogController extends Controller
      */
     public function index(): Response
     {
-        $blogs = Blog::with('author')
+        $blogs = Blog::with('author:id,name')
             ->where('status', Blog::STATUS_PUBLISHED)
-            ->orderBy('published_at', 'desc')
+            ->orderByDesc('published_at')
             ->paginate(15)
             ->through(fn ($blog) => [
-                'id' => $blog->id,
-                'title' => $blog->title,
-                'slug' => $blog->slug,
-                'cover_image' => $blog->cover_image,
-                'author' => [
-                    'id' => $blog->author->id,
-                    'name' => $blog->author->name,
+                'id'            => $blog->id,
+                'title'         => $blog->title,
+                'slug'          => $blog->slug,
+                'cover_image'   => $blog->cover_image,
+                'author'        => [
+                    'id'   => optional($blog->author)->id   ?? 1,
+                    'name' => optional($blog->author)->name ?? 'Anonymous',
                 ],
-                'published_at' => $blog->published_at,
+                'published_at'  => $blog->published_at,
             ]);
 
         return Inertia::render('Blog/Index', [
@@ -74,9 +74,26 @@ class BlogController extends Controller
     /**
      * Display the specified blog.
      */
-    public function show(string $id)
+    public function show(string $id): Response
     {
-        return Blog::with('author')->findOrFail($id);
+        $blog = Blog::with('author')
+            ->where('status', Blog::STATUS_PUBLISHED)
+            ->findOrFail($id);
+
+        return \Inertia\Inertia::render('Blog/Show', [
+            'blog' => [
+                'id'           => $blog->id,
+                'title'        => $blog->title,
+                'slug'         => $blog->slug,
+                'cover_image'  => $blog->cover_image,
+                'content'      => $blog->content,
+                'author'       => [
+                    'id'   => $blog->author?->id ?? 0,
+                    'name' => $blog->author?->name ?? 'Anonymous',
+                ],
+                'published_at' => $blog->published_at,
+            ],
+        ]);
     }
 
     /**
