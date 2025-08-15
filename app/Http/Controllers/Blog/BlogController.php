@@ -105,6 +105,33 @@ class BlogController extends Controller
                     'name' => $blog->author?->name ?? 'Anonymous',
                 ],
                 'published_at' => $blog->published_at,
+                'status'       => $blog->status,
+            ],
+        ]);
+    }
+
+    /**
+     * Show the form for editing the specified blog.
+     */
+    public function edit(string $id)
+    {
+        $blog = Blog::findOrFail($id);
+        // Check authorization
+        $this->authorize('update', $blog);
+
+        return \Inertia\Inertia::render('Blog/Edit', [
+            'blog' => [
+                'id'           => $blog->id,
+                'title'        => $blog->title,
+                'slug'         => $blog->slug,
+                'cover_image'  => $blog->cover_image,
+                'content'      => $blog->content,
+                'author'       => [
+                    'id'   => $blog->author?->id ?? 0,
+                    'name' => $blog->author?->name ?? 'Anonymous',
+                ],
+                'published_at' => $blog->published_at,
+                'status'       => $blog->status,
             ],
         ]);
     }
@@ -145,7 +172,9 @@ class BlogController extends Controller
 
         $blog->update($validated);
 
-        return $blog;
+        return Inertia::render('Blog/Show', [
+            'blog' => $blog->load('author:id,name'),
+        ]);    
     }
 
     /**

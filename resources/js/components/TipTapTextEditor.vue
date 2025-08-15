@@ -16,12 +16,18 @@ import { Button } from './ui/button';
 
 interface Props {
     onUpdate?: (content: string) => void;
+    content?: string;
 }
 
 const props = defineProps<Props>();
 
 // Editor Setup
 const editor = useEditor({
+    editorProps: {
+        attributes: {
+            class: 'prose prose-sm dark:prose-invert focus:outline-none min-h-[300px]',
+        },
+    },
     extensions: [
         StarterKit,
         Link.configure({
@@ -36,7 +42,7 @@ const editor = useEditor({
         Bold,
         Heading.configure({ levels: [1, 2, 3] }),
     ],
-    content: '',
+    content: props.content || '',
     onUpdate({ editor }) {
         const html = editor.getHTML();
         if (props.onUpdate) props.onUpdate(html);
@@ -87,6 +93,21 @@ onBeforeUnmount(() => {
 button {
     padding: 4px 6px;
     border-radius: 4px;
+}
+
+h1 {
+    font-size: 2rem; /* 32px */
+    font-weight: bold;
+}
+
+h2 {
+    font-size: 1.5rem; /* 24px */
+    font-weight: bold;
+}
+
+h3 {
+    font-size: 1.25rem; /* 20px */
+    font-weight: bold;
 }
 </style>
 

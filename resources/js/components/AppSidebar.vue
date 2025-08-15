@@ -4,8 +4,9 @@ import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type User } from '@/types';
+import { UserRole } from '@/types/role';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Heart, Megaphone, Shield, Users } from 'lucide-vue-next';
+import { BookHeartIcon, BookOpen, Folder, Heart, LayoutGrid, Megaphone, Shield, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
@@ -19,12 +20,15 @@ const mainNavItems = computed((): NavItem[] => {
             href: '/dashboard',
             icon: LayoutGrid,
         },
+        {
+            title: 'Blog',
+            href: '/blogs',
+            icon: BookHeartIcon,
+        },
     ];
 
     // Add healthcare routes for healthcare professionals and above
-    if (user.value.role === 'healthcare_professional' || 
-        user.value.role === 'health_campaign_manager' || 
-        user.value.role === 'system_admin') {
+    if (user.value.role === UserRole.HEALTHCARE_PROFESSIONAL || UserRole.HEALTH_CAMPAIGN_MANAGER || user.value.role === UserRole.SYSTEM_ADMIN) {
         items.push({
             title: 'Healthcare',
             href: '/healthcare',
@@ -33,8 +37,7 @@ const mainNavItems = computed((): NavItem[] => {
     }
 
     // Add campaign routes for campaign managers and above
-    if (user.value.role === 'health_campaign_manager' || 
-        user.value.role === 'system_admin') {
+    if (user.value.role === UserRole.HEALTH_CAMPAIGN_MANAGER || user.value.role === UserRole.SYSTEM_ADMIN) {
         items.push({
             title: 'Campaigns',
             href: '/campaigns',
@@ -43,7 +46,7 @@ const mainNavItems = computed((): NavItem[] => {
     }
 
     // Add admin routes for system admins only
-    if (user.value.role === 'system_admin') {
+    if (user.value.role === UserRole.SYSTEM_ADMIN) {
         items.push({
             title: 'Admin',
             href: '/admin',

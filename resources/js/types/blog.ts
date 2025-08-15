@@ -16,6 +16,7 @@ export interface Blog {
     content?: string;
     author: Author;
     published_at: string;
+    status: BlogStatus;
 }
 
 export type BlogList = {
