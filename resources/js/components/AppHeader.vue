@@ -12,7 +12,7 @@ import UserMenuContent from '@/components/UserMenuContent.vue';
 import { getInitials } from '@/composables/useInitials';
 import type { BreadcrumbItem, NavItem, User } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Menu, Search, Heart, Megaphone, Shield, Users } from 'lucide-vue-next';
+import { BookOpen, Folder, Heart, LayoutGrid, Megaphone, Menu, Search, Shield } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 interface Props {
@@ -43,9 +43,7 @@ const mainNavItems = computed((): NavItem[] => {
     ];
 
     // Add healthcare routes for healthcare professionals and above
-    if (user.value.role === 'healthcare_professional' || 
-        user.value.role === 'health_campaign_manager' || 
-        user.value.role === 'system_admin') {
+    if (user.value.role === 'healthcare_professional' || user.value.role === 'health_campaign_manager' || user.value.role === 'system_admin') {
         items.push({
             title: 'Healthcare',
             href: '/healthcare',
@@ -54,8 +52,7 @@ const mainNavItems = computed((): NavItem[] => {
     }
 
     // Add campaign routes for campaign managers and above
-    if (user.value.role === 'health_campaign_manager' || 
-        user.value.role === 'system_admin') {
+    if (user.value.role === 'health_campaign_manager' || user.value.role === 'system_admin') {
         items.push({
             title: 'Campaigns',
             href: '/campaigns',

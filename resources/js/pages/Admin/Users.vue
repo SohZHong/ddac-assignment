@@ -1,31 +1,23 @@
 <script setup lang="ts">
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type User } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { 
-    DropdownMenu, 
-    DropdownMenuContent, 
-    DropdownMenuItem, 
-    DropdownMenuLabel, 
-    DropdownMenuSeparator, 
-    DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { 
-    Dialog, 
-    DialogContent, 
-    DialogDescription, 
-    DialogFooter, 
-    DialogHeader, 
-    DialogTitle, 
-    DialogTrigger 
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { ChevronDown, MoreHorizontal, Trash2, UserCog, Check, X } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { Check, MoreHorizontal, Trash2, UserCog, X } from 'lucide-vue-next';
+import { ref } from 'vue';
 
 interface UserData {
     id: number;
@@ -81,7 +73,7 @@ const openRoleDialog = (user: UserData) => {
 
 const updateUserRole = () => {
     if (!selectedUser.value) return;
-    
+
     roleUpdateForm.patch(route('admin.users.update-role', selectedUser.value.id), {
         onSuccess: () => {
             isRoleDialogOpen.value = false;
@@ -102,7 +94,12 @@ const deleteUser = (user: UserData) => {
 
 // Helper functions
 const getUserInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    return name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
 };
 
 const getRoleBadgeVariant = (role: string) => {
@@ -121,15 +118,15 @@ const getRoleBadgeVariant = (role: string) => {
 const canManageUser = (user: UserData) => {
     // Users can't manage themselves
     if (user.id === currentUser.id) return false;
-    
+
     // System admins can manage everyone
     if (currentUser.role === 'system_admin') return true;
-    
+
     // Health campaign managers can manage public users and healthcare professionals
     if (currentUser.role === 'health_campaign_manager') {
         return user.role === 'public_user' || user.role === 'healthcare_professional';
     }
-    
+
     return false;
 };
 </script>
@@ -149,29 +146,23 @@ const canManageUser = (user: UserData) => {
             <Card>
                 <CardHeader>
                     <CardTitle>All Users</CardTitle>
-                    <CardDescription>
-                        A list of all users in the system. You can update roles and manage user accounts.
-                    </CardDescription>
+                    <CardDescription> A list of all users in the system. You can update roles and manage user accounts. </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div class="overflow-x-auto">
                         <table class="w-full">
                             <thead>
                                 <tr class="border-b">
-                                    <th class="text-left py-3 px-4 font-medium">User</th>
-                                    <th class="text-left py-3 px-4 font-medium">Role</th>
-                                    <th class="text-left py-3 px-4 font-medium">Status</th>
-                                    <th class="text-left py-3 px-4 font-medium">Joined</th>
-                                    <th class="text-right py-3 px-4 font-medium">Actions</th>
+                                    <th class="px-4 py-3 text-left font-medium">User</th>
+                                    <th class="px-4 py-3 text-left font-medium">Role</th>
+                                    <th class="px-4 py-3 text-left font-medium">Status</th>
+                                    <th class="px-4 py-3 text-left font-medium">Joined</th>
+                                    <th class="px-4 py-3 text-right font-medium">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr 
-                                    v-for="user in props.users.data" 
-                                    :key="user.id"
-                                    class="border-b hover:bg-muted/50"
-                                >
-                                    <td class="py-3 px-4">
+                                <tr v-for="user in props.users.data" :key="user.id" class="border-b hover:bg-muted/50">
+                                    <td class="px-4 py-3">
                                         <div class="flex items-center gap-3">
                                             <Avatar class="h-8 w-8">
                                                 <AvatarFallback class="text-xs">
@@ -184,12 +175,12 @@ const canManageUser = (user: UserData) => {
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="py-3 px-4">
+                                    <td class="px-4 py-3">
                                         <Badge :variant="getRoleBadgeVariant(user.role)">
                                             {{ user.role_label }}
                                         </Badge>
                                     </td>
-                                    <td class="py-3 px-4">
+                                    <td class="px-4 py-3">
                                         <div class="flex items-center gap-2">
                                             <Check v-if="user.email_verified_at" class="h-4 w-4 text-green-600" />
                                             <X v-else class="h-4 w-4 text-red-600" />
@@ -198,10 +189,10 @@ const canManageUser = (user: UserData) => {
                                             </span>
                                         </div>
                                     </td>
-                                    <td class="py-3 px-4 text-sm text-muted-foreground">
+                                    <td class="px-4 py-3 text-sm text-muted-foreground">
                                         {{ user.created_at }}
                                     </td>
-                                    <td class="py-3 px-4 text-right">
+                                    <td class="px-4 py-3 text-right">
                                         <DropdownMenu v-if="canManageUser(user)">
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="ghost" size="sm">
@@ -216,7 +207,7 @@ const canManageUser = (user: UserData) => {
                                                     Change Role
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator v-if="currentUser.role === 'system_admin'" />
-                                                <DropdownMenuItem 
+                                                <DropdownMenuItem
                                                     v-if="currentUser.role === 'system_admin'"
                                                     @click="deleteUser(user)"
                                                     class="text-red-600"
@@ -236,8 +227,7 @@ const canManageUser = (user: UserData) => {
                     <!-- Pagination would go here if needed -->
                     <div v-if="props.users.meta" class="mt-4 flex items-center justify-between">
                         <div class="text-sm text-muted-foreground">
-                            Showing {{ props.users.meta.from || 0 }} to {{ props.users.meta.to || 0 }} 
-                            of {{ props.users.meta.total || 0 }} users
+                            Showing {{ props.users.meta.from || 0 }} to {{ props.users.meta.to || 0 }} of {{ props.users.meta.total || 0 }} users
                         </div>
                     </div>
                 </CardContent>
@@ -249,23 +239,17 @@ const canManageUser = (user: UserData) => {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Change User Role</DialogTitle>
-                    <DialogDescription>
-                        Update the role for {{ selectedUser?.name }}. This will change their access permissions.
-                    </DialogDescription>
+                    <DialogDescription> Update the role for {{ selectedUser?.name }}. This will change their access permissions. </DialogDescription>
                 </DialogHeader>
                 <div class="grid gap-4 py-4">
                     <div class="grid gap-2">
                         <Label for="role">New Role</Label>
-                        <select 
-                            id="role" 
+                        <select
+                            id="role"
                             v-model="roleUpdateForm.role"
-                            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                            <option 
-                                v-for="role in props.available_roles" 
-                                :key="role.value" 
-                                :value="role.value"
-                            >
+                            <option v-for="role in props.available_roles" :key="role.value" :value="role.value">
                                 {{ role.label }}
                             </option>
                         </select>

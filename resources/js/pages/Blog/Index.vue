@@ -83,7 +83,9 @@ const user = page.props.auth.user as User;
             </div>
             <div>
                 <template v-for="link in blogs.links" :key="link.label">
-                    <Link v-if="link.url" :href="link.url" v-html="link.label" :class="{ 'font-bold': link.active }" />
+                    <Link v-if="link.url" :href="link.url" :class="{ 'font-bold': link.active }">
+                        {{ link.label }}
+                    </Link>
                     <span v-else v-html="link.label" class="text-gray-400" />
                 </template>
             </div>
