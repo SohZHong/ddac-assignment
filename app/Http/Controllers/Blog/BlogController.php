@@ -174,7 +174,7 @@ class BlogController extends Controller
 
         return Inertia::render('Blog/Show', [
             'blog' => $blog->load('author:id,name'),
-        ]);    
+        ]);
     }
 
     /**
@@ -188,7 +188,11 @@ class BlogController extends Controller
         $this->authorize('delete', $blog);
 
         $blog->delete();
-        return response()->json(['message' => 'Soft Deleted successfully']);
+        
+
+        return redirect()
+        ->route('blog.index')
+        ->with('success', 'Blog soft deleted successfully.');    
     }
 
     /**
