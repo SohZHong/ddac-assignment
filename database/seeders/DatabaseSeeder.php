@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             BlogSeeder::class,
             ScheduleSeeder::class,
+            BookingSeeder::class,
         ]);
     }
 }

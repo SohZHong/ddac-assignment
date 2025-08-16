@@ -22,8 +22,18 @@ class Schedule extends Model
         'healthcare_id', 'day_of_week', 'start_time', 'end_time'
     ];
 
+    protected $casts = [
+        'start_time' => 'datetime',
+        'end_time'   => 'datetime',
+    ];
+
     public function healthcare()
     {
         return $this->belongsTo(User::class, 'healthcare_id');
+    }
+
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
     }
 }
