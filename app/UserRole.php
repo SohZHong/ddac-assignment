@@ -4,10 +4,10 @@ namespace App;
 
 enum UserRole: string
 {
-    case PUBLIC_USER = 'public_user';
-    case HEALTHCARE_PROFESSIONAL = 'healthcare_professional';
-    case HEALTH_CAMPAIGN_MANAGER = 'health_campaign_manager';
-    case SYSTEM_ADMIN = 'system_admin';
+    case PUBLIC_USER = '1';
+    case HEALTHCARE_PROFESSIONAL = '2';
+    case HEALTH_CAMPAIGN_MANAGER = '3';
+    case SYSTEM_ADMIN = '4';
 
     /**
      * Get the human-readable label for the role

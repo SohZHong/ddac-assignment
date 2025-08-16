@@ -43,7 +43,6 @@ const submit = () => {
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
         <Head title="Profile settings" />
-
         <SettingsLayout>
             <div class="flex flex-col space-y-6">
                 <HeadingSmall title="Profile information" description="Update your name and email address" />
