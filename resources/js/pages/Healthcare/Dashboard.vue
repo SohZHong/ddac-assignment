@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type User } from '@/types';
 import { Schedule } from '@/types/schedule';
-import type { DateSelectArg, EventDropArg } from '@fullcalendar/core';
+import { CalendarOptions, type DateSelectArg, type EventClickArg, type EventDropArg } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { EventResizeDoneArg } from '@fullcalendar/interaction';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -33,7 +33,7 @@ const events = ref<Schedule[]>(props.schedules);
 
 function handleSelect(info: DateSelectArg) {
     tempSelection.value = { start: info.startStr, end: info.endStr };
-    dialogOpen.value = true;
+    createDialogOpen.value = true;
 }
 
 async function updateSchedule({ event, revert }: EventDropArg | EventResizeDoneArg) {
@@ -56,8 +56,13 @@ async function updateSchedule({ event, revert }: EventDropArg | EventResizeDoneA
     }
 }
 
+async function handleClick({ event }: EventClickArg) {
+    tempSelection.value = { id: event.id };
+    deleteDialogOpen.value = true;
+}
+
 async function confirmSchedule() {
-    if (!tempSelection.value) return;
+    if (!tempSelection.value || !tempSelection.value.start || !tempSelection.value.end) return;
 
     const newSchedule: Schedule = {
         start: tempSelection.value.start,
@@ -78,10 +83,31 @@ async function confirmSchedule() {
         })
         .catch((err) => console.error(err));
 
-    dialogOpen.value = false;
+    tempSelection.value = null;
+    createDialogOpen.value = false;
 }
 
-const calendarOptions = ref({
+async function deleteSchedule() {
+    if (!tempSelection.value || !tempSelection.value.id) return;
+
+    try {
+        await axios.delete(`/api/schedule/${tempSelection.value.id}`);
+
+        // remove from local events array
+        const calendarApi = calendarRef.value!.getApi();
+        const event = calendarApi.getEventById(tempSelection.value.id);
+        if (event) {
+            event.remove();
+        }
+        console.log(`Deleted schedule with id ${tempSelection.value.id}`);
+    } catch (err) {
+        console.error(err);
+    }
+    tempSelection.value = null;
+    deleteDialogOpen.value = false;
+}
+
+const calendarOptions = ref<CalendarOptions>({
     plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
     initialView: 'timeGridWeek',
     timeZone: 'local',
@@ -110,10 +136,15 @@ const calendarOptions = ref({
     eventResize: async (info: EventResizeDoneArg) => {
         await updateSchedule(info);
     },
+
+    // When event is clicked to delete
+    eventClick: handleClick,
 });
 
-const dialogOpen = ref(false);
-const tempSelection = ref<{ start: string; end: string } | null>(null);
+const createDialogOpen = ref(false);
+const deleteDialogOpen = ref(false);
+const tempSelection = ref<{ id?: string; start?: string; end?: string } | null>(null);
+const calendarRef = ref<InstanceType<typeof FullCalendar>>();
 </script>
 <style scoped>
 :deep(.fc button),
@@ -132,7 +163,7 @@ const tempSelection = ref<{ start: string; end: string } | null>(null);
 }
 </style>
 <template>
-    <DialogRoot v-model:open="dialogOpen">
+    <DialogRoot v-model:open="createDialogOpen">
         <DialogPortal>
             <DialogOverlay class="bg-opacity-50 fixed inset-0" />
             <DialogContent class="fixed top-1/3 left-1/2 w-96 -translate-x-1/2 transform rounded-lg bg-black p-6 shadow-lg">
@@ -143,6 +174,21 @@ const tempSelection = ref<{ start: string; end: string } | null>(null);
                         <Button class="rounded border px-4 py-2">Cancel</Button>
                     </DialogClose>
                     <Button class="rounded bg-blue-600 px-4 py-2" @click="confirmSchedule">Confirm</Button>
+                </div>
+            </DialogContent>
+        </DialogPortal>
+    </DialogRoot>
+    <DialogRoot v-model:open="deleteDialogOpen">
+        <DialogPortal>
+            <DialogOverlay class="bg-opacity-50 fixed inset-0" />
+            <DialogContent class="fixed top-1/3 left-1/2 w-96 -translate-x-1/2 transform rounded-lg bg-black p-6 shadow-lg">
+                <DialogTitle class="text-lg font-semibold">Remove Slot</DialogTitle>
+                <DialogDescription class="mt-2">Do you wish to remove this slot?</DialogDescription>
+                <div class="mt-4 flex justify-end space-x-2">
+                    <DialogClose asChild>
+                        <Button class="rounded border px-4 py-2">Cancel</Button>
+                    </DialogClose>
+                    <Button class="rounded bg-red-600 px-4 py-2" @click="deleteSchedule">Confirm</Button>
                 </div>
             </DialogContent>
         </DialogPortal>
@@ -260,7 +306,7 @@ const tempSelection = ref<{ start: string; end: string } | null>(null);
                     <CardDescription> Click and Drag to Add Availability Slots </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <FullCalendar :options="calendarOptions" />
+                    <FullCalendar ref="calendarRef" :options="calendarOptions" />
                 </CardContent>
             </Card>
 

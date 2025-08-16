@@ -107,14 +107,16 @@ class ScheduleController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Schedule $schedule)
+    public function destroy(string $id)
     {
+        $schedule = Schedule::findOrFail($id);
+
         $this->authorize('delete', $schedule);
 
         $schedule->delete();
 
         return response()->json([
             'message' => 'Schedule deleted successfully!',
-            'schedule' => $schedule,
-        ], 201);    }
+        ], 201);   
+    }
 }
