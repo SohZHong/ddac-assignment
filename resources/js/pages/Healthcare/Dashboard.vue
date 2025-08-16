@@ -2,13 +2,12 @@
 import axios from '@/axios';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type User } from '@/types';
 import { Schedule } from '@/types/schedule';
-import type { DateSelectArg } from '@fullcalendar/core';
+import type { DateSelectArg, EventDropArg } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
-import interactionPlugin from '@fullcalendar/interaction';
+import interactionPlugin, { EventResizeDoneArg } from '@fullcalendar/interaction';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import FullCalendar from '@fullcalendar/vue3';
 import { Head, usePage } from '@inertiajs/vue3';
@@ -34,27 +33,48 @@ const events = ref<Schedule[]>(props.schedules);
 
 function handleSelect(info: DateSelectArg) {
     tempSelection.value = { start: info.startStr, end: info.endStr };
-    titleInput.value = '';
     dialogOpen.value = true;
 }
 
+async function updateSchedule({ event, revert }: EventDropArg | EventResizeDoneArg) {
+    try {
+        const payload = {
+            id: event.id,
+            start_time: event.startStr,
+            end_time: event.endStr,
+            day_of_week: event.start!.getUTCDay(),
+        };
+
+        await axios.put(`/api/schedule/${event.id}`, payload, {
+            withCredentials: true,
+        });
+
+        console.log('Updated schedule:', payload);
+    } catch (error) {
+        console.error('Failed to update schedule', error);
+        revert();
+    }
+}
+
 async function confirmSchedule() {
-    if (!tempSelection.value || !titleInput.value.trim()) return;
+    if (!tempSelection.value) return;
 
     const newSchedule: Schedule = {
-        title: titleInput.value.trim(),
         start: tempSelection.value.start,
         end: tempSelection.value.end,
         day_of_week: new Date(tempSelection.value.start).getDay(),
     };
 
-    events.value.push(newSchedule);
-
     axios
         .post('/api/schedule', newSchedule)
         .then((res) => {
-            events.value.push(res.data.schedule);
-            console.log(res);
+            const s = res.data.schedule;
+            events.value.push({
+                id: s.id,
+                start: s.start_time,
+                end: s.end_time,
+                day_of_week: s.day_of_week,
+            });
         })
         .catch((err) => console.error(err));
 
@@ -64,6 +84,7 @@ async function confirmSchedule() {
 const calendarOptions = ref({
     plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
     initialView: 'timeGridWeek',
+    timeZone: 'local',
     height: 450, // total calendar height
     contentHeight: 250, // just the event area height
     events: events.value,
@@ -79,11 +100,20 @@ const calendarOptions = ref({
 
     // Triggered when a range is selected
     select: handleSelect,
+
+    // When event is dragged to a new time
+    eventDrop: async (info: EventDropArg) => {
+        await updateSchedule(info);
+    },
+
+    // When event is resized to change duration
+    eventResize: async (info: EventResizeDoneArg) => {
+        await updateSchedule(info);
+    },
 });
 
 const dialogOpen = ref(false);
 const tempSelection = ref<{ start: string; end: string } | null>(null);
-const titleInput = ref('');
 </script>
 <style scoped>
 :deep(.fc button),
@@ -107,10 +137,7 @@ const titleInput = ref('');
             <DialogOverlay class="bg-opacity-50 fixed inset-0" />
             <DialogContent class="fixed top-1/3 left-1/2 w-96 -translate-x-1/2 transform rounded-lg bg-black p-6 shadow-lg">
                 <DialogTitle class="text-lg font-semibold">Add Availability Slot</DialogTitle>
-                <DialogDescription class="mt-2">Enter a title for this slot:</DialogDescription>
-
-                <Input v-model="titleInput" type="text" placeholder="e.g. Morning Shift" class="mt-4 w-full rounded border px-2 py-1" />
-
+                <DialogDescription class="mt-2">Do you wish to add a slot here?</DialogDescription>
                 <div class="mt-4 flex justify-end space-x-2">
                     <DialogClose asChild>
                         <Button class="rounded border px-4 py-2">Cancel</Button>

@@ -50,7 +50,6 @@ class ScheduleController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'title'        => 'required|string|max:255',
             'start'        => 'required|date',
             'end'          => 'required|date|after:start',
             'day_of_week'  => 'required|integer|min:0|max:6',
@@ -58,7 +57,6 @@ class ScheduleController extends Controller
         $validated['healthcare_id'] = auth()->id();
 
         $schedule = Schedule::create([
-            'title'         => $validated['title'],
             'start_time'    => $validated['start'],
             'end_time'      => $validated['end'],
             'day_of_week'   => $validated['day_of_week'],
@@ -94,10 +92,9 @@ class ScheduleController extends Controller
         $this->authorize('update', $schedule);
 
         $validated = $request->validate([
-            'title'        => 'required|string|max:255',
-            'start'        => 'required|date',
-            'end'          => 'required|date|after:start',
-            'day_of_week'  => 'required|integer|min:0|max:6',
+            'start_time'        => 'required|date',
+            'end_time'          => 'required|date|after:start',
+            'day_of_week'       => 'required|integer|min:0|max:6',
         ]);
 
         $schedule->update($validated);
