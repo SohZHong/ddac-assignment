@@ -3,17 +3,17 @@ import UserInfo from '@/components/UserInfo.vue';
 import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import type { User } from '@/types';
 import { Link, router } from '@inertiajs/vue3';
-import { LogOut, Settings } from 'lucide-vue-next';
+import { LogOut, Settings, UserPlus } from 'lucide-vue-next';
 
 interface Props {
     user: User;
 }
 
-const handleLogout = () => {
-    router.flushAll();
-};
-
 defineProps<Props>();
+
+const handleLogout = () => {
+    router.post(route('logout'));
+};
 </script>
 
 <template>
@@ -24,18 +24,31 @@ defineProps<Props>();
     </DropdownMenuLabel>
     <DropdownMenuSeparator />
     <DropdownMenuGroup>
-        <DropdownMenuItem :as-child="true">
-            <Link class="block w-full" :href="route('profile.edit')" prefetch as="button">
-                <Settings class="mr-2 h-4 w-4" />
-                Settings
-            </Link>
+        <DropdownMenuItem>
+            <div class="w-full">
+                <Link :href="route('profile.edit')" class="flex w-full items-center">
+                    <Settings class="mr-2 h-4 w-4" />
+                    Settings
+                </Link>
+            </div>
+        </DropdownMenuItem>
+        <!-- Show Professional Application link only for public users -->
+        <DropdownMenuItem v-if="user.role === 'public_user'">
+            <div class="w-full">
+                <Link :href="route('professional-application.create')" class="flex w-full items-center">
+                    <UserPlus class="mr-2 h-4 w-4" />
+                    Apply as Professional
+                </Link>
+            </div>
         </DropdownMenuItem>
     </DropdownMenuGroup>
     <DropdownMenuSeparator />
-    <DropdownMenuItem :as-child="true">
-        <Link class="block w-full" method="post" :href="route('logout')" @click="handleLogout" as="button">
-            <LogOut class="mr-2 h-4 w-4" />
-            Log out
-        </Link>
+    <DropdownMenuItem>
+        <div class="w-full">
+            <button @click="handleLogout" class="flex w-full items-center">
+                <LogOut class="mr-2 h-4 w-4" />
+                Log out
+            </button>
+        </div>
     </DropdownMenuItem>
 </template>

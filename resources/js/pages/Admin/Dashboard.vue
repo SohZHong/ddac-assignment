@@ -46,18 +46,18 @@ const user = page.props.auth.user as User;
                     </CardContent>
                 </Card>
 
-                <!-- Role Management Card -->
+                <!-- Approvals Card -->
                 <Card>
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">Role Management</CardTitle>
+                        <CardTitle class="text-sm font-medium">Professional Approvals</CardTitle>
                         <Shield class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <CardDescription class="mb-4">
-                            Configure user roles and permissions for different access levels
+                            Review and manage professional account applications
                         </CardDescription>
-                        <Button variant="outline" class="w-full" disabled>
-                            Coming Soon
+                        <Button asChild class="w-full">
+                            <a href="/admin/approvals">Manage Approvals</a>
                         </Button>
                     </CardContent>
                 </Card>

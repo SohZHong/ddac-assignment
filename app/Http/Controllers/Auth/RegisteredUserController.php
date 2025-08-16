@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\ProfessionalCredential;
+use App\UserRole;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,7 +24,12 @@ class RegisteredUserController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('auth/Register');
+        return Inertia::render('auth/Register', [
+            'available_roles' => collect(UserRole::all())->map(fn($role) => [
+                'value' => $role->value,
+                'label' => $role->label(),
+            ]),
+        ]);
     }
 
     /**
@@ -40,7 +49,12 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => UserRole::PUBLIC_USER,
+            'approval_status' => 'approved',
+            'approved_at' => now(),
         ]);
+
+        // All users start as public users, no credentials needed
 
         event(new Registered($user));
 
