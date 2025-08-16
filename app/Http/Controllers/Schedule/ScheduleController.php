@@ -21,7 +21,7 @@ class ScheduleController extends Controller
     public function publicIndex(): Response
     {
         $schedules = Schedule::with('healthcare:id,name')
-            ->where('start_time', '>=', now()) // from today onwards
+            // ->where('start_time', '>=', now()) // from today onwards
             ->orderBy('start_time', 'asc')
             ->get()
             ->map(fn ($schedule) => [

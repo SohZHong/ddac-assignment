@@ -146,22 +146,6 @@ const deleteDialogOpen = ref(false);
 const tempSelection = ref<{ id?: string; start?: string; end?: string } | null>(null);
 const calendarRef = ref<InstanceType<typeof FullCalendar>>();
 </script>
-<style scoped>
-:deep(.fc button),
-:deep(.fc h2),
-:deep(.fc td),
-:deep(.fc thead) {
-    font-size: 0.875rem !important;
-    font-weight: 600;
-    line-height: calc(1.25 / 0.875) !important;
-}
-
-:deep(.fc .fc-event-title) {
-    font-size: 0.875rem !important;
-    font-weight: 600;
-    line-height: calc(1.25 / 0.875) !important;
-}
-</style>
 <template>
     <DialogRoot v-model:open="createDialogOpen">
         <DialogPortal>
