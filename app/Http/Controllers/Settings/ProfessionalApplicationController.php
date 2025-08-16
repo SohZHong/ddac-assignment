@@ -19,6 +19,16 @@ class ProfessionalApplicationController extends Controller
      */
     public function create(): Response
     {
+        $user = Auth::user();
+        $requestedRoleLabel = null;
+        if ($user->requested_role) {
+            try {
+                $requestedRoleLabel = UserRole::from($user->requested_role)->label();
+            } catch (\Throwable $e) {
+                $requestedRoleLabel = $user->requested_role;
+            }
+        }
+
         return Inertia::render('settings/ProfessionalApplication', [
             'available_roles' => [
                 [
@@ -29,6 +39,11 @@ class ProfessionalApplicationController extends Controller
                     'value' => UserRole::HEALTH_CAMPAIGN_MANAGER->value,
                     'label' => UserRole::HEALTH_CAMPAIGN_MANAGER->label(),
                 ],
+            ],
+            'pending_application' => [
+                'is_pending' => $user->isPending(),
+                'requested_role' => $user->requested_role,
+                'requested_role_label' => $requestedRoleLabel,
             ],
         ]);
     }

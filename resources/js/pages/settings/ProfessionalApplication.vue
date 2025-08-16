@@ -17,6 +17,17 @@
     </template>
 
     <div class="space-y-6">
+      <!-- Pending banner -->
+      <Card v-if="pending_application?.is_pending" class="border-yellow-400 bg-yellow-50 text-yellow-900">
+        <CardContent class="py-4">
+          <p class="text-sm">
+            Your application to become
+            <strong>{{ pending_application.requested_role_label || pending_application.requested_role }}</strong>
+            is currently pending review by an administrator.
+          </p>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Professional Role Application</CardTitle>
@@ -174,7 +185,7 @@
       </Card>
     </div>
   </AppLayout>
-</template>
+ </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
@@ -208,6 +219,11 @@ interface Props {
     value: string
     label: string
   }[]
+  pending_application?: {
+    is_pending: boolean
+    requested_role: string | null
+    requested_role_label: string | null
+  }
 }
 
 defineProps<Props>()

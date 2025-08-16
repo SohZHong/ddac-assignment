@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\ApprovalController;
+use App\Models\User;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -36,7 +37,10 @@ Route::middleware(['auth', 'role:health_campaign_manager,system_admin'])->group(
 // System Admin Only Routes - UI (GET routes with Inertia::render)
 Route::middleware(['auth', 'role:system_admin'])->group(function () {
     Route::get('/admin', function () {
-        return Inertia::render('Admin/Dashboard');
+        $pendingApprovalsCount = User::where('approval_status', 'pending')->count();
+        return Inertia::render('Admin/Dashboard', [
+            'pendingApprovalsCount' => $pendingApprovalsCount,
+        ]);
     })->name('admin.index');
     
     Route::get('/admin/users', [UserManagementController::class, 'index'])

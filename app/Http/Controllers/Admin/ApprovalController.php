@@ -26,6 +26,8 @@ class ApprovalController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
+        $pendingApprovalsCount = User::where('approval_status', 'pending')->count();
+
         return Inertia::render('Admin/Approvals/Index', [
             'pendingUsers' => $pendingUsers->through(fn ($user) => [
                 'id' => $user->id,
@@ -47,6 +49,7 @@ class ApprovalController extends Controller
                     'is_expiring_soon' => $credential->isExpiringSoon(),
                 ]),
             ]),
+            'pendingApprovalsCount' => $pendingApprovalsCount,
         ]);
     }
 
