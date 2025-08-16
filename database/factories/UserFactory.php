@@ -75,4 +75,19 @@ class UserFactory extends Factory
             'role' => UserRole::SYSTEM_ADMIN,
         ]);
     }
+
+    /**
+     * Create a user with random role
+     */
+    public function randomRole(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => fake()->randomElement([
+                UserRole::PUBLIC_USER,
+                UserRole::HEALTHCARE_PROFESSIONAL,
+                UserRole::HEALTH_CAMPAIGN_MANAGER,
+                UserRole::SYSTEM_ADMIN,
+            ]),
+        ]);
+    }
 }
