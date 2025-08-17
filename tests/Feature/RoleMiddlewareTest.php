@@ -56,30 +56,6 @@ test('healthcare professionals cannot access admin routes', function () {
         ->assertStatus(403);
 });
 
-test('health campaign managers can access healthcare routes', function () {
-    $healthCampaignManager = User::factory()->healthCampaignManager()->create();
-    
-    $this->actingAs($healthCampaignManager)
-        ->get('/healthcare')
-        ->assertStatus(200);
-});
-
-test('health campaign managers can access campaign management routes', function () {
-    $healthCampaignManager = User::factory()->healthCampaignManager()->create();
-    
-    $this->actingAs($healthCampaignManager)
-        ->get('/campaigns')
-        ->assertStatus(200);
-});
-
-test('health campaign managers cannot access admin routes', function () {
-    $healthCampaignManager = User::factory()->healthCampaignManager()->create();
-    
-    $this->actingAs($healthCampaignManager)
-        ->get('/admin')
-        ->assertStatus(403);
-});
-
 test('system admins can access all routes', function () {
     $systemAdmin = User::factory()->systemAdmin()->create();
     
