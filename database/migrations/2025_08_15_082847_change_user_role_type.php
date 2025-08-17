@@ -12,6 +12,16 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Check if role column exists, if not add it first
+        if (!Schema::hasColumn('users', 'role')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->enum('role', ['public_user', 'healthcare_professional', 'health_campaign_manager', 'system_admin'])
+                      ->default('public_user')
+                      ->after('email_verified_at');
+            });
+        }
+
+        // Now convert from enum to integer
         Schema::table('users', function (Blueprint $table) {
             $table->unsignedInteger('role_temp')->nullable();
         });
@@ -38,7 +48,10 @@ return new class extends Migration
             $table->unsignedInteger('role')->default(1)->change();
         });
 
-        DB::statement("ALTER TABLE users ADD CONSTRAINT role_check CHECK (role IN (1, 2, 3, 4));");
+        // Skip CHECK constraint for SQLite compatibility
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE users ADD CONSTRAINT role_check CHECK (role IN (1, 2, 3, 4));");
+        }
     }
 
     /**
@@ -46,18 +59,21 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("ALTER TABLE users DROP CONSTRAINT IF EXISTS role_check;");
+        // Skip CHECK constraint for SQLite
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE users DROP CONSTRAINT IF EXISTS role_check;");
+        }
         
         Schema::table('users', function (Blueprint $table) {
-            $table->enum('role_temp', ['public_user', 'healthcare_professional', 'health_campaign_manager', 'system_admin'])->nullable();
+            $table->string('role_temp')->nullable();
         });
 
         DB::statement("
             UPDATE users SET role_temp = CASE 
-                WHEN role = 1 THEN 'public_user'
-                WHEN role = 2 THEN 'healthcare_professional'
-                WHEN role = 3 THEN 'health_campaign_manager'
-                WHEN role = 4 THEN 'system_admin'
+                WHEN CAST(role AS TEXT) = '1' THEN 'public_user'
+                WHEN CAST(role AS TEXT) = '2' THEN 'healthcare_professional'
+                WHEN CAST(role AS TEXT) = '3' THEN 'health_campaign_manager'
+                WHEN CAST(role AS TEXT) = '4' THEN 'system_admin'
                 ELSE 'public_user'
             END
         ");

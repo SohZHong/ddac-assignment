@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type User } from '@/types';
 import { Head, usePage } from '@inertiajs/vue3';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Users, Shield, Activity, Settings } from 'lucide-vue-next';
+import { Activity, Settings, Shield, Users } from 'lucide-vue-next';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -37,9 +37,7 @@ const user = page.props.auth.user as User;
                         <Users class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <CardDescription class="mb-4">
-                            Manage user accounts, assign roles, and view user activity
-                        </CardDescription>
+                        <CardDescription class="mb-4"> Manage user accounts, verify professionals, and view user activity </CardDescription>
                         <Button asChild class="w-full">
                             <a href="/admin/users">Manage Users</a>
                         </Button>
@@ -53,12 +51,8 @@ const user = page.props.auth.user as User;
                         <Shield class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <CardDescription class="mb-4">
-                            Configure user roles and permissions for different access levels
-                        </CardDescription>
-                        <Button variant="outline" class="w-full" disabled>
-                            Coming Soon
-                        </Button>
+                        <CardDescription class="mb-4"> Configure user roles and permissions for different access levels </CardDescription>
+                        <Button variant="outline" class="w-full" disabled> Coming Soon </Button>
                     </CardContent>
                 </Card>
 
@@ -69,12 +63,8 @@ const user = page.props.auth.user as User;
                         <Activity class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <CardDescription class="mb-4">
-                            Monitor system usage, logs, and administrative activities
-                        </CardDescription>
-                        <Button variant="outline" class="w-full" disabled>
-                            Coming Soon
-                        </Button>
+                        <CardDescription class="mb-4"> Monitor system usage, logs, and administrative activities </CardDescription>
+                        <Button variant="outline" class="w-full" disabled> Coming Soon </Button>
                     </CardContent>
                 </Card>
 
@@ -85,9 +75,7 @@ const user = page.props.auth.user as User;
                             <Settings class="h-5 w-5" />
                             Quick Actions
                         </CardTitle>
-                        <CardDescription>
-                            Common administrative tasks and system management
-                        </CardDescription>
+                        <CardDescription> Common administrative tasks and system management </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

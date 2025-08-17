@@ -19,7 +19,12 @@ class UserManagementController extends Controller
      */
     public function index(): Response
     {
-        $users = User::select(['id', 'name', 'email', 'role', 'email_verified_at', 'created_at'])
+        $users = User::select([
+                'id', 'name', 'email', 'role', 'email_verified_at', 'created_at',
+                'is_verified', 'verified_at', 'license_number', 'medical_specialty',
+                'institution_name', 'organization_name', 'job_title', 'work_email',
+                'organization_type', 'focus_areas','registration_body'
+            ])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
@@ -28,10 +33,23 @@ class UserManagementController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'work_email' => $user->work_email,
                 'role' => $user->role->value,
                 'role_label' => $user->role->label(),
                 'email_verified_at' => $user->email_verified_at,
+                'is_verified' => $user->is_verified,
+                'verified_at' => $user->verified_at?->format('M j, Y'),
                 'created_at' => $user->created_at->format('M j, Y'),
+                'needs_verification' => $user->requiresVerification(),
+                // Professional details
+                'license_number' => $user->license_number,
+                'medical_specialty' => $user->medical_specialty,
+                'institution_name' => $user->institution_name,
+                'organization_name' => $user->organization_name,
+                'job_title' => $user->job_title,
+                'organization_type' => $user->organization_type,
+                'focus_areas' => $user->focus_areas,
+                'registration_body' => $user->registration_body,
             ];
         });
 
@@ -78,6 +96,52 @@ class UserManagementController extends Controller
         $user->save();
 
         return back()->with('success', "User role updated to {$newRole->label()} successfully.");
+    }
+
+    /**
+     * Verify a user (approve their professional credentials).
+     */
+    public function verify(Request $request, User $user): RedirectResponse
+    {
+        /** @var User $currentUser */
+        $currentUser = Auth::user();
+
+        // Only system admins can verify users
+        if (!$currentUser->isSystemAdmin()) {
+            abort(403, 'You do not have permission to verify users.');
+        }
+
+        $request->validate([]);
+
+        $user->update([
+            'is_verified' => true,
+            'verified_at' => now(),
+        ]);
+
+        return back()->with('success', "{$user->name} has been verified successfully.");
+    }
+
+    /**
+     * Unverify a user (revoke their verification).
+     */
+    public function unverify(Request $request, User $user): RedirectResponse
+    {
+        /** @var User $currentUser */
+        $currentUser = Auth::user();
+
+        // Only system admins can unverify users
+        if (!$currentUser->isSystemAdmin()) {
+            abort(403, 'You do not have permission to unverify users.');
+        }
+
+        $request->validate([]);
+
+        $user->update([
+            'is_verified' => false,
+            'verified_at' => null,
+        ]);
+
+        return back()->with('success', "{$user->name}'s verification has been revoked.");
     }
 
     /**

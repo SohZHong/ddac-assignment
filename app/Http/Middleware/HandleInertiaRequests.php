@@ -46,8 +46,8 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user() ? [
                     ...$request->user()->toArray(),
-                    'role' => $request->user()->role?->label() ?? 'Unknown Role',
-                    'role_value' => $request->user()->role?->value ?? '1', 
+                    'role' => $request->user()->role?->value ?? '1',
+                    'role_label' => $request->user()->role?->label() ?? 'Unknown Role',
                     'can_manage_roles' => $request->user()->canManageRoles(),
                     'assignable_roles' => $request->user()->getAssignableRoles(),
                 ] : null,

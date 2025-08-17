@@ -58,14 +58,14 @@ Route::middleware('auth')->group(function () {
 });
 
 // Role-Based Access Control (RBAC) API Routes (POST/PATCH/DELETE with RedirectResponse)
-Route::middleware(['auth', 'role:health_campaign_manager,system_admin'])->group(function () {
+Route::middleware(['auth', 'verified', 'role:health_campaign_manager,system_admin'])->group(function () {
     // Role Management API - Update user roles
     Route::patch('/admin/users/{user}/role', [UserManagementController::class, 'updateRole'])
         ->name('admin.users.update-role');
 });
 
 // System Admin Only RBAC API Routes
-Route::middleware(['auth', 'role:system_admin'])->group(function () {
+Route::middleware(['auth', 'verified', 'role:system_admin'])->group(function () {
     // User Management API - Delete users
     Route::delete('/admin/users/{user}', [UserManagementController::class, 'destroy'])
         ->name('admin.users.destroy');
