@@ -218,6 +218,7 @@ interface Props {
     email: string
     role: UserRole
     role_label: string
+    requested_role: string | null
     created_at: string
     credentials: Credential[]
   }
