@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Booking;
 
+use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use Illuminate\Http\Request;
 
@@ -28,7 +29,55 @@ class BookingController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'schedule_id'  => 'required|exists:schedules,id',
+            'start_time'   => 'required|date',
+            'end_time'     => 'required|date|after:start_time',
+        ]);
+
+        // Get the corresponding schedule
+        $schedule = Schedule::findOrFail($validated['schedule_id']);
+
+        $this->authorize('store', $schedule);
+
+        $validated['patient_id'] = auth()->id();
+
+        $booking = Booking::create([
+            'schedule_id'   => $validated['schedule_id'],
+            'patient_id'    => $validated['patient_id'],
+            'start_time'    => $validated['start_time'],
+            'end_time'      => $validated['end_time'],
+            'status'        => Booking::PENDING,
+        ]);
+        return response()->json([
+            'message' => 'Booking created successfully!',
+            'booking' => $booking,
+        ], 201);
+    }
+
+    /**
+     * Update the booking status only.
+     */
+    public function reviewBooking(Request $request, string $id)
+    {
+        $booking = Booking::findOrFail($id);
+
+        $this->authorize('reviewBooking', $booking);
+
+        $validated = $request->validate([
+            'status' => 'in:' . implode(',', [
+                Booking::PENDING,
+                Booking::CONFIRMED,
+                Booking::CANCELLED,
+            ]),
+        ]);
+
+        $booking->update($validated);
+
+        return response()->json([
+            'message' => 'Booking updated successfully!',
+            'booking' => $booking,
+        ], 201);
     }
 
     /**
@@ -50,9 +99,23 @@ class BookingController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Booking $booking)
+    public function update(Request $request, string $id)
     {
-        //
+        $booking = Booking::findOrFail($id);
+
+        $this->authorize('update', $booking);
+
+        $validated = $request->validate([
+            'start_time'   => 'required|date',
+            'end_time'     => 'required|date|after:start_time',
+        ]);
+
+        $booking->update($validated);
+
+        return response()->json([
+            'message' => 'Booking updated successfully!',
+            'booking' => $booking,
+        ], 201);
     }
 
     /**

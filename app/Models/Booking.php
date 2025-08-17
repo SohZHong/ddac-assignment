@@ -47,7 +47,13 @@ class Booking extends Model
      */
     public function healthcare()
     {
-        return $this->schedule->healthcare();
+        return $this->hasOneThrough(
+            User::class,
+            Schedule::class,
+            'id',           // Foreign key on schedules table
+            'id',           // Foreign key on users table
+            'schedule_id',  // Local key on bookings table
+            'healthcare_id' // Local key on schedules table
+        );
     }
-
 }
