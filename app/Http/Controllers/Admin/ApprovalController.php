@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\ProfessionalCredential;
 use App\Notifications\ApprovalStatusChanged;
+use App\Models\AdminLog;
 use App\UserRole;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Http\RedirectResponse;
@@ -111,6 +112,15 @@ class ApprovalController extends Controller
         }
 
         $user->approve();
+
+        AdminLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'approval.approved',
+            'target_type' => User::class,
+            'target_id' => $user->id,
+            'metadata' => ['approved_role' => $user->role->value],
+            'ip_address' => request()->ip(),
+        ]);
         
         // Notify the user
         $user->notify(new ApprovalStatusChanged('approved'));
@@ -140,6 +150,15 @@ class ApprovalController extends Controller
             'requested_role' => null,
         ]);
         $user->reject($request->reason);
+
+        AdminLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'approval.rejected',
+            'target_type' => User::class,
+            'target_id' => $user->id,
+            'metadata' => ['reason' => $request->reason],
+            'ip_address' => request()->ip(),
+        ]);
         
         // Notify the user
         $user->notify(new ApprovalStatusChanged('rejected', $request->reason));

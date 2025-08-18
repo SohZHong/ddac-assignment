@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\ApprovalController;
+use App\Http\Controllers\Admin\SystemActivityController;
 use App\Models\User;
 
 Route::get('/', function () {
@@ -55,6 +56,16 @@ Route::middleware(['auth', 'role:system_admin'])->group(function () {
         ->name('admin.approvals.approve');
     Route::post('/admin/approvals/{user}/reject', [ApprovalController::class, 'reject'])
         ->name('admin.approvals.reject');
+
+    // System Activity
+    Route::get('/admin/system-activity', [SystemActivityController::class, 'index'])
+        ->name('admin.system.index');
+    Route::post('/admin/system-activity/incidents/{incident}/resolve', [SystemActivityController::class, 'resolveIncident'])
+        ->name('admin.system.resolve-incident');
+    Route::post('/admin/system-activity/incidents', [SystemActivityController::class, 'storeIncident'])
+        ->name('admin.system.store-incident');
+    Route::post('/admin/system-activity/incidents/{incident}/reopen', [SystemActivityController::class, 'reopenIncident'])
+        ->name('admin.system.reopen-incident');
 });
 
 require __DIR__.'/settings.php';

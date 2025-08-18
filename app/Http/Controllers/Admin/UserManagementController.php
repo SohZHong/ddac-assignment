@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Models\AdminLog;
 
 class UserManagementController extends Controller
 {
@@ -80,6 +81,16 @@ class UserManagementController extends Controller
         $user->role = $newRole;
         $user->save();
 
+        // Log role change
+        AdminLog::create([
+            'user_id' => $currentUser->id,
+            'action' => 'user.role_changed',
+            'target_type' => User::class,
+            'target_id' => $user->id,
+            'metadata' => ['new_role' => $newRole->value],
+            'ip_address' => $request->ip(),
+        ]);
+
         return back()->with('success', "User role updated to {$newRole->label()} successfully.");
     }
 
@@ -102,6 +113,16 @@ class UserManagementController extends Controller
         }
 
         $user->delete();
+
+        // Log deletion
+        AdminLog::create([
+            'user_id' => $currentUser->id,
+            'action' => 'user.deleted',
+            'target_type' => User::class,
+            'target_id' => $user->id,
+            'metadata' => ['email' => $user->email],
+            'ip_address' => request()->ip(),
+        ]);
 
         return back()->with('success', 'User deleted successfully.');
     }

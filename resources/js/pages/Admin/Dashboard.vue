@@ -80,8 +80,8 @@ const pendingApprovalsCount = computed(() => Number((page.props as any).pendingA
                         <CardDescription class="mb-4">
                             Monitor system usage, logs, and administrative activities
                         </CardDescription>
-                        <Button variant="outline" class="w-full" disabled>
-                            Coming Soon
+                        <Button asChild class="w-full">
+                            <a href="/admin/system-activity">Open System Activity</a>
                         </Button>
                     </CardContent>
                 </Card>
