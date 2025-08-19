@@ -5,24 +5,24 @@ export enum QuestionType {
 }
 
 export interface Quiz {
-    id: number;
-    healthcare_id: number;
+    id: string;
+    healthcare_id: string;
     title: string;
     description?: string;
     questions?: QuizQuestion[];
 }
 
 export interface QuizQuestion {
-    id: number;
-    quiz_id: number;
+    id: string;
+    quiz_id: string;
     question_text: string;
-    question_type: QuestionType;
+    type: QuestionType;
     options?: string[]; // only used for MCQ questions
 }
 
 export interface QuizResponse {
-    id: number;
-    quiz_id: number;
+    id: string;
+    quiz_id: string;
     booking_id: string;
     // key = question_id, value = answer
     answers: Record<number, string | boolean>;
@@ -30,7 +30,7 @@ export interface QuizResponse {
     booking?: {
         id: string;
         patient: {
-            id: number;
+            id: string;
             name: string;
             email: string;
         };

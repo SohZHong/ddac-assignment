@@ -14,7 +14,6 @@ const isOpen = ref(false);
 function togglePanel() {
     isOpen.value = !isOpen.value;
 }
-console.log(page.props.auth.user);
 
 async function handleButtonClick() {
     await axios

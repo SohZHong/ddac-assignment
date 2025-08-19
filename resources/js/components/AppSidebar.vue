@@ -6,7 +6,19 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, Sid
 import { type NavItem, type User } from '@/types';
 import { UserRole } from '@/types/role';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookHeartIcon, BookOpen, Calendar, ClipboardEdit, Folder, Heart, LayoutGrid, Megaphone, Shield, Users } from 'lucide-vue-next';
+import {
+    BookHeartIcon,
+    BookOpen,
+    Calendar,
+    ClipboardEdit,
+    Folder,
+    Heart,
+    LayoutGrid,
+    Megaphone,
+    MessageCircleQuestion,
+    Shield,
+    Users,
+} from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 import NavNotifications from './NavNotifications.vue';
@@ -45,6 +57,11 @@ const mainNavItems = computed((): NavItem[] => {
                 title: 'Appointments',
                 href: '/appointments',
                 icon: ClipboardEdit,
+            },
+            {
+                title: 'Assessment Quizzes',
+                href: '/quizzes',
+                icon: MessageCircleQuestion,
             },
         );
     }

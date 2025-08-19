@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import axios from '@/axios';
+import Icon from '@/components/Icon.vue';
 import Toast from '@/components/Toast.vue';
 import Badge from '@/components/ui/badge/Badge.vue';
 import Button from '@/components/ui/button/Button.vue';
@@ -101,13 +102,19 @@ async function updateBooking(id: string, status: BookingStatus) {
             toastRef.value?.showToast();
         })
         .catch((err) => {
+            toastMessage.value = {
+                title: `Failed to update booking`,
+                description: err.message,
+                variant: 'destructive',
+            };
             console.error('Failed to update booking', err);
+            toastRef.value?.showToast();
         });
 }
 </script>
 
 <template>
-    <Head title="Healthcare Dashboard" />
+    <Head title="Manage Bookings" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <Toast ref="toastRef" :title="toastMessage.title" :description="toastMessage.description" :variant="toastMessage.variant" />
         <div class="flex flex-col gap-6 p-6">
@@ -135,7 +142,7 @@ async function updateBooking(id: string, status: BookingStatus) {
                                 :side-offset="5"
                             >
                                 <SelectScrollUpButton class="text-violet11 flex h-[25px] cursor-default items-center justify-center bg-white">
-                                    <Icon icon="radix-icons:chevron-up" />
+                                    <Icon name="chevron up" icon="radix-icons:chevron-up" />
                                 </SelectScrollUpButton>
                                 <SelectViewport class="p-[5px]">
                                     <SelectLabel class="text-mauve11 px-[25px] text-xs leading-[25px]"> All Status </SelectLabel>
@@ -147,7 +154,7 @@ async function updateBooking(id: string, status: BookingStatus) {
                                             :value="option.value"
                                         >
                                             <SelectItemIndicator class="absolute left-0 inline-flex w-[25px] items-center justify-center">
-                                                <Icon icon="radix-icons:check" />
+                                                <Icon name="check" icon="radix-icons:check" />
                                             </SelectItemIndicator>
                                             <SelectItemText>
                                                 {{ option.title }}
@@ -156,7 +163,7 @@ async function updateBooking(id: string, status: BookingStatus) {
                                     </SelectGroup>
                                 </SelectViewport>
                                 <SelectScrollDownButton class="text-violet11 flex h-[25px] cursor-default items-center justify-center bg-white">
-                                    <Icon icon="radix-icons:chevron-down" />
+                                    <Icon name="chevron down" icon="radix-icons:chevron-down" />
                                 </SelectScrollDownButton>
                             </SelectContent>
                         </SelectPortal>
