@@ -24,6 +24,10 @@ class Blog extends Model
         return $this->belongsTo(User::class, 'author_id');
     }
 
+    protected $casts = [
+        'published_at' => 'datetime',
+    ];
+
     // Auto-generate slug if not set
     protected static function booted()
     {

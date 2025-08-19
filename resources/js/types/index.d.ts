@@ -4,6 +4,17 @@ export interface Auth {
     user: User;
 }
 
+export interface Notification {
+    id: string;
+    type: string;
+    notifiable_type: string;
+    notifiable_id: number;
+    data: any;
+    read_at: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface BreadcrumbItem {
     title: string;
     href: string;
@@ -39,6 +50,7 @@ export interface User {
         value: string;
         label: string;
     }>;
+    notifications: Array<Notification>;
 }
 
 export type BreadcrumbItemType = BreadcrumbItem;

@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\UserRole;
+use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -12,7 +13,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -186,4 +187,37 @@ class User extends Authenticatable
     {
         return $this->role->canAssignRoles();
     }
+
+    /**
+     * Get their blogs
+     */
+    public function blogs()
+    {
+        return $this->hasMany(Blog::class, 'author_id');
+    }
+
+    /**
+     * Get their bookings
+     */
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class, 'patient_id');
+    }
+
+    /**
+     * If this user is a healthcare professional, get their bookings
+     */
+    public function healthcareBookings()
+    {
+        return $this->hasMany(Booking::class, 'healthcare_id');
+    }
+
+    /**
+     *  Get all quizzes created by a healthcare professional
+     */
+    public function quizzes()
+    {
+        return $this->hasMany(Quiz::class, 'healthcare_id');
+    }
+
 }
