@@ -49,6 +49,7 @@ class HandleInertiaRequests extends Middleware
                     'role_label' => $request->user()->role->label(),
                     'can_manage_roles' => $request->user()->canManageRoles(),
                     'assignable_roles' => $request->user()->getAssignableRoles(),
+                    'notifications'    => $request->user()->unreadNotifications,
                 ] : null,
             ],
             'ziggy' => [

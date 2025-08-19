@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Booking;
 
 use App\Http\Controllers\Controller;
+use App\Notifications\BookingNotification;
 use App\Models\Booking;
 use App\Models\Schedule;
 use Illuminate\Http\Request;
@@ -50,6 +51,10 @@ class BookingController extends Controller
             'end_time'    => $validated['end_time'],
             'status'      => Booking::PENDING,
         ]);
+
+        // Notify healthcare professional
+        $healthcare = $schedule->healthcare;
+        $healthcare->notify(new BookingNotification($booking));
 
         return response()->json([
             'message' => 'Booking created successfully!',

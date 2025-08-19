@@ -9,6 +9,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { BookHeartIcon, BookOpen, Calendar, Folder, Heart, LayoutGrid, Megaphone, Shield, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
+import NavNotifications from './NavNotifications.vue';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user as User);
@@ -101,6 +102,7 @@ const footerNavItems: NavItem[] = [
 
         <SidebarFooter>
             <NavFooter :items="footerNavItems" />
+            <NavNotifications />
             <NavUser />
         </SidebarFooter>
     </Sidebar>
