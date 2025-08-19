@@ -1,0 +1,39 @@
+<script setup lang="ts">
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
+const props = defineProps<{
+    open: boolean;
+    start?: string;
+    end?: string;
+}>();
+const emit = defineEmits<{
+    (e: 'update:open', value: boolean): void;
+    (e: 'confirm'): void;
+}>();
+
+function handleConfirm() {
+    emit('confirm');
+    emit('update:open', false);
+}
+</script>
+
+<template>
+    <Dialog v-model:open="props.open">
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Create Availability Slot</DialogTitle>
+                <DialogDescription class="mt-2"> Are you sure you want to create this slot? </DialogDescription>
+            </DialogHeader>
+
+            <div v-if="start && end">
+                <p class="text-sm text-gray-600">{{ new Date(start).toLocaleString() }} — {{ new Date(end).toLocaleString() }}</p>
+            </div>
+
+            <DialogFooter>
+                <Button variant="secondary" @click="emit('update:open', false)">Cancel</Button>
+                <Button @click="handleConfirm">Confirm</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+</template>

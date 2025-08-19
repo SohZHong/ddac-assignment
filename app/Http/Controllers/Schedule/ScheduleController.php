@@ -11,6 +11,7 @@ use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Str;
+use Illuminate\Support\Carbon;
 
 class ScheduleController extends Controller
 {
@@ -18,18 +19,43 @@ class ScheduleController extends Controller
     /**
      * Public page for viewing schedules
      */
-    public function publicIndex(): Response
+    public function index(): Response
     {
-        $schedules = Schedule::with('healthcare:id,name')
-            // ->where('start_time', '>=', now()) // from today onwards
+        $schedules = Schedule::with(['healthcare:id,name', 'bookings'])
+            ->where('start_time', '>=', now())
             ->orderBy('start_time', 'asc')
             ->get()
-            ->map(fn ($schedule) => [
-                'id'    => $schedule->id,
-                'title' => $schedule->healthcare->name,
-                'start' => $schedule->start_time->toDateTimeString(),
-                'end'   => $schedule->end_time->toDateTimeString(),
-            ]);
+            ->flatMap(function ($schedule) {
+                // keep them as Carbon
+                $bookedTimes = $schedule->bookings
+                    ->pluck('start_time')
+                    ->map(fn (Carbon $time) => $time->copy()->utc()->seconds(0)->micro(0));
+
+                $slots = [];
+                $current = $schedule->start_time->copy()->utc()->seconds(0)->micro(0);
+                $endTime = $schedule->end_time->copy()->utc()->seconds(0)->micro(0);
+
+                while ($current->lt($endTime)) {
+                    $end = $current->copy()->addHour();
+
+                    // compare as Carbon
+                    if ($bookedTimes->contains(fn (Carbon $bt) => $bt->equalTo($current))) {
+                        $current->addHour();
+                        continue;
+                    }
+
+                    $slots[] = [
+                        'id'          => $schedule->id . '-' . $current->format('H'),
+                        'schedule_id' => $schedule->id,
+                        'title'       => $schedule->healthcare->name,
+                        'start'       => $current->toIso8601String(), // important for frontend
+                        'end'         => $end->toIso8601String(),
+                    ];
+
+                    $current->addHour();
+                }
+                return $slots;
+            });
 
         return Inertia::render('Schedule/Index', [
             'schedules' => $schedules

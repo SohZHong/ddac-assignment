@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Booking;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\Schedule;
 use Illuminate\Http\Request;
 
 class BookingController extends Controller
@@ -38,17 +39,18 @@ class BookingController extends Controller
         // Get the corresponding schedule
         $schedule = Schedule::findOrFail($validated['schedule_id']);
 
-        $this->authorize('store', $schedule);
+        $this->authorize('store', [Booking::class, $schedule, $validated['start_time']]);
 
-        $validated['patient_id'] = auth()->id();
+        $user = auth()->user();
 
         $booking = Booking::create([
-            'schedule_id'   => $validated['schedule_id'],
-            'patient_id'    => $validated['patient_id'],
-            'start_time'    => $validated['start_time'],
-            'end_time'      => $validated['end_time'],
-            'status'        => Booking::PENDING,
+            'schedule_id' => $validated['schedule_id'],
+            'patient_id'  => $user->id,
+            'start_time'  => $validated['start_time'],
+            'end_time'    => $validated['end_time'],
+            'status'      => Booking::PENDING,
         ]);
+
         return response()->json([
             'message' => 'Booking created successfully!',
             'booking' => $booking,

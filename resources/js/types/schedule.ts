@@ -15,3 +15,7 @@ export interface Schedule {
     end: string;
     day_of_week: number;
 }
+
+export interface FreeSchedule extends Schedule {
+    schedule_id: string;
+}

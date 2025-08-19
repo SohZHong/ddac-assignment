@@ -6,9 +6,13 @@ use App\Models\Booking;
 use App\Models\Schedule;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
+use Illuminate\Auth\Access\HandlesAuthorization;
+use Carbon\Carbon;
 
 class BookingPolicy
 {
+    use HandlesAuthorization;
+
     /**
      * Determine whether the user can view any models.
      */
@@ -28,17 +32,26 @@ class BookingPolicy
     /**
      * Determine if the user can create a booking for a given schedule.
      */
-    public function store(User $user, Schedule $schedule): bool
+    public function store(User $user, Schedule $schedule, string $startTime)
     {
         // Patient can create booking if not healthcare owner and hasn’t booked same schedule already
-        if ($schedule->healthcare_id === $user->id) return false;
+        if ($schedule->healthcare_id === $user->id) {
+            return $this->deny('You cannot book your own schedule.');
+        }
 
+            $requestDate = Carbon::parse($startTime)->toDateString();
+
+        // Prevent double booking for today
         $alreadyBooked = $schedule->bookings()
             ->where('patient_id', $user->id)
-            ->whereDate('start_time', now()->toDateString())
+            ->whereDate('start_time', $requestDate)
             ->exists();
 
-        return !$alreadyBooked;
+        if ($alreadyBooked) {
+            return $this->deny('You already booked this schedule today.');
+        }
+
+        return $this->allow();    
     }
 
     /**

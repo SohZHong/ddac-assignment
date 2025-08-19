@@ -1,24 +1,80 @@
 <script setup lang="ts">
+import axios from '@/axios';
+import BookingDialog from '@/components/BookingDialog.vue';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Schedule } from '@/types/schedule';
-import type { CalendarOptions } from '@fullcalendar/core';
+import { FreeSchedule } from '@/types/schedule';
+import type { CalendarOptions, EventClickArg } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import FullCalendar from '@fullcalendar/vue3';
 import { Head } from '@inertiajs/vue3';
-import { Calendar1 } from 'lucide-vue-next';
+import { Calendar, Calendar1 } from 'lucide-vue-next';
+import { ref } from 'vue';
 
 const props = defineProps<{
-    schedules: Schedule[];
+    schedules: FreeSchedule[];
 }>();
+console.log(props.schedules);
+const selectedSchedule = ref<FreeSchedule | null>(null);
+const dialogOpen = ref(false);
+const events = ref<FreeSchedule[]>(props.schedules);
+const calendarRef = ref<InstanceType<typeof FullCalendar>>();
+
+function handleCalendarClick({ event }: EventClickArg) {
+    selectedSchedule.value = {
+        id: event.id,
+        schedule_id: event.extendedProps.schedule_id as string,
+        start: event.start!.toISOString(), // keep ISO, not UTC string
+        end: event.end!.toISOString(),
+        day_of_week: event.start!.getDay(),
+    };
+    dialogOpen.value = true;
+}
+
+function handleButtonClick(e: MouseEvent, schedule: FreeSchedule) {
+    e.preventDefault;
+
+    selectedSchedule.value = schedule;
+    dialogOpen.value = true;
+}
+
+async function handleConfirmBooking(e: { eventId: string; scheduleId: string; startTime: string; endTime: string }) {
+    const payload = {
+        schedule_id: e.scheduleId,
+        start_time: e.startTime,
+        end_time: e.endTime,
+    };
+
+    await axios
+        .post('/api/bookings', payload)
+        .then((res) => {
+            dialogOpen.value = false;
+            console.log('Booking created:', res.data);
+
+            // Remove from events
+            events.value = events.value.filter((data) => data.id !== e.eventId);
+
+            // remove from local events array
+            const calendarApi = calendarRef.value!.getApi();
+            const calendarEvent = calendarApi.getEventById(e.eventId);
+            if (calendarEvent) {
+                calendarEvent.remove();
+            }
+        })
+        .catch((err) => {
+            console.error('Booking failed:', err);
+        });
+}
 
 const calendarOptions: CalendarOptions = {
     plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
     initialView: 'timeGridWeek',
     timeZone: 'local',
     height: 600,
-    events: props.schedules,
+    events: events.value,
     headerToolbar: {
         left: 'prev,next today',
         center: 'title',
@@ -26,6 +82,9 @@ const calendarOptions: CalendarOptions = {
     },
     editable: false,
     selectable: false,
+
+    // When event is clicked to book
+    eventClick: handleCalendarClick,
 };
 </script>
 <style scoped>
@@ -48,6 +107,8 @@ const calendarOptions: CalendarOptions = {
     <Head title="Available Schedules" />
 
     <AppLayout>
+        <!-- Booking Dialog -->
+        <BookingDialog :open="dialogOpen" :schedule="selectedSchedule" @close="dialogOpen = false" @confirm="handleConfirmBooking" />
         <div class="flex flex-col gap-6 rounded-xl p-6">
             <div class="flex items-center justify-between">
                 <div>
@@ -65,24 +126,27 @@ const calendarOptions: CalendarOptions = {
                     </div>
                 </div>
                 <div class="p-4">
-                    <FullCalendar :options="calendarOptions" />
+                    <FullCalendar ref="calendarRef" :options="calendarOptions" />
                 </div>
             </div>
 
             <!-- List View -->
-            <div class="mt-8">
-                <h2 class="mb-4 text-xl font-bold">List of Schedules</h2>
-                <div class="grid gap-4 md:grid-cols-2">
-                    <div v-for="schedule in schedules" :key="schedule.id" class="rounded-lg border p-4 hover:bg-muted/50">
-                        <h3 class="font-semibold">{{ schedule.title }}</h3>
-                        <p class="text-sm text-gray-600">
+            <h2 class="mt-8 text-xl font-bold">List of Schedules</h2>
+            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <Card v-for="schedule in events" :key="schedule.id">
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle class="text-sm font-medium">{{ schedule.title }}</CardTitle>
+                        <Calendar class="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div class="text- xl font-bold">
                             {{ new Date(schedule.start).toLocaleString() }}
                             —
                             {{ new Date(schedule.end).toLocaleString() }}
-                        </p>
-                        <p class="text-sm text-gray-500">Consultant: {{ schedule.title }}</p>
-                    </div>
-                </div>
+                        </div>
+                        <Button variant="outline" class="mt-4 w-full" @click="(e: MouseEvent) => handleButtonClick(e, schedule)"> Book Now </Button>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     </AppLayout>

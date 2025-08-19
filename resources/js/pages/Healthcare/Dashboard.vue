@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import axios from '@/axios';
+import ScheduleCreateDialog from '@/components/ScheduleCreateDialog.vue';
+import ScheduleDeleteDialog from '@/components/ScheduleDeleteDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -12,7 +14,6 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import FullCalendar from '@fullcalendar/vue3';
 import { Head, usePage } from '@inertiajs/vue3';
 import { Calendar, Calendar1, Clock, FileText, Heart, TrendingUp, Users } from 'lucide-vue-next';
-import { DialogClose, DialogContent, DialogDescription, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui';
 import { ref } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -32,7 +33,9 @@ const props = defineProps<{
 const events = ref<Schedule[]>(props.schedules);
 
 function handleSelect(info: DateSelectArg) {
-    tempSelection.value = { start: info.startStr, end: info.endStr };
+    if (createDialogOpen.value) return; // prevent re-opening
+
+    tempSelection.value = { start: info.start.toISOString(), end: info.end.toISOString() };
     createDialogOpen.value = true;
 }
 
@@ -40,8 +43,8 @@ async function updateSchedule({ event, revert }: EventDropArg | EventResizeDoneA
     try {
         const payload = {
             id: event.id,
-            start_time: event.startStr,
-            end_time: event.endStr,
+            start_time: event.start?.toISOString(),
+            end_time: event.end?.toISOString(),
             day_of_week: event.start!.getUTCDay(),
         };
 
@@ -57,6 +60,8 @@ async function updateSchedule({ event, revert }: EventDropArg | EventResizeDoneA
 }
 
 async function handleClick({ event }: EventClickArg) {
+    if (deleteDialogOpen.value) return; // prevent re-opening
+
     tempSelection.value = { id: event.id };
     deleteDialogOpen.value = true;
 }
@@ -65,15 +70,15 @@ async function confirmSchedule() {
     if (!tempSelection.value || !tempSelection.value.start || !tempSelection.value.end) return;
 
     const newSchedule: Schedule = {
-        start: tempSelection.value.start,
-        end: tempSelection.value.end,
-        day_of_week: new Date(tempSelection.value.start).getDay(),
+        start: new Date(tempSelection.value.start).toISOString(),
+        end: new Date(tempSelection.value.end).toISOString(),
+        day_of_week: new Date(tempSelection.value.start).getUTCDay(),
     };
-
     axios
         .post('/api/schedule', newSchedule)
         .then((res) => {
             const s = res.data.schedule;
+            console.log(s);
             events.value.push({
                 id: s.id,
                 start: s.start_time,
@@ -84,7 +89,6 @@ async function confirmSchedule() {
         .catch((err) => console.error(err));
 
     tempSelection.value = null;
-    createDialogOpen.value = false;
 }
 
 async function deleteSchedule() {
@@ -104,7 +108,6 @@ async function deleteSchedule() {
         console.error(err);
     }
     tempSelection.value = null;
-    deleteDialogOpen.value = false;
 }
 
 const calendarOptions = ref<CalendarOptions>({
@@ -146,39 +149,27 @@ const deleteDialogOpen = ref(false);
 const tempSelection = ref<{ id?: string; start?: string; end?: string } | null>(null);
 const calendarRef = ref<InstanceType<typeof FullCalendar>>();
 </script>
+<style scoped>
+:deep(.fc button),
+:deep(.fc h2),
+:deep(.fc td),
+:deep(.fc thead) {
+    font-size: 0.875rem !important;
+    font-weight: 600;
+    line-height: calc(1.25 / 0.875) !important;
+}
+
+:deep(.fc .fc-event-title) {
+    font-size: 0.875rem !important;
+    font-weight: 600;
+    line-height: calc(1.25 / 0.875) !important;
+}
+</style>
 <template>
-    <DialogRoot v-model:open="createDialogOpen">
-        <DialogPortal>
-            <DialogOverlay class="bg-opacity-50 fixed inset-0" />
-            <DialogContent class="fixed top-1/3 left-1/2 w-96 -translate-x-1/2 transform rounded-lg bg-black p-6 shadow-lg">
-                <DialogTitle class="text-lg font-semibold">Add Availability Slot</DialogTitle>
-                <DialogDescription class="mt-2">Do you wish to add a slot here?</DialogDescription>
-                <div class="mt-4 flex justify-end space-x-2">
-                    <DialogClose asChild>
-                        <Button class="rounded border px-4 py-2">Cancel</Button>
-                    </DialogClose>
-                    <Button class="rounded bg-blue-600 px-4 py-2" @click="confirmSchedule">Confirm</Button>
-                </div>
-            </DialogContent>
-        </DialogPortal>
-    </DialogRoot>
-    <DialogRoot v-model:open="deleteDialogOpen">
-        <DialogPortal>
-            <DialogOverlay class="bg-opacity-50 fixed inset-0" />
-            <DialogContent class="fixed top-1/3 left-1/2 w-96 -translate-x-1/2 transform rounded-lg bg-black p-6 shadow-lg">
-                <DialogTitle class="text-lg font-semibold">Remove Slot</DialogTitle>
-                <DialogDescription class="mt-2">Do you wish to remove this slot?</DialogDescription>
-                <div class="mt-4 flex justify-end space-x-2">
-                    <DialogClose asChild>
-                        <Button class="rounded border px-4 py-2">Cancel</Button>
-                    </DialogClose>
-                    <Button class="rounded bg-red-600 px-4 py-2" @click="deleteSchedule">Confirm</Button>
-                </div>
-            </DialogContent>
-        </DialogPortal>
-    </DialogRoot>
     <Head title="Healthcare Dashboard" />
 
+    <ScheduleCreateDialog v-model:open="createDialogOpen" :start="tempSelection?.start" :end="tempSelection?.end" @confirm="confirmSchedule" />
+    <ScheduleDeleteDialog v-model:open="deleteDialogOpen" :start="tempSelection?.start" :end="tempSelection?.end" @confirm="deleteSchedule" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-6 rounded-xl p-6">
             <div class="flex items-center justify-between">
