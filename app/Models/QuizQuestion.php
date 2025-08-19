@@ -9,10 +9,14 @@ class QuizQuestion extends Model
 {
     use HasFactory;
 
+    const MCQ   = 0;
+    const TRUE_FALSE = 1;
+    const TEXT = 2;
+
     protected $fillable = [
         'quiz_id',
         'question_text',
-        'question_type',
+        'type',
         'options', // JSON for multiple choice
     ];
 
