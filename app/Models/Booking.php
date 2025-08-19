@@ -56,4 +56,12 @@ class Booking extends Model
             'healthcare_id' // Local key on schedules table
         );
     }
+
+    /**
+     * Get the quiz responses associated with this booking
+     */
+    public function quizResponses()
+    {
+        return $this->hasMany(QuizResponse::class);
+    }
 }

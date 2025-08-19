@@ -113,4 +113,37 @@ class User extends Authenticatable
     {
         return $this->role->canAssignRoles();
     }
+
+    /**
+     * Get their blogs
+     */
+    public function blogs()
+    {
+        return $this->hasMany(Blog::class, 'author_id');
+    }
+
+    /**
+     * Get their bookings
+     */
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class, 'patient_id');
+    }
+
+    /**
+     * If this user is a healthcare professional, get their bookings
+     */
+    public function healthcareBookings()
+    {
+        return $this->hasMany(Booking::class, 'healthcare_id');
+    }
+
+    /**
+     *  Get all quizzes created by a healthcare professional
+     */
+    public function quizzes()
+    {
+        return $this->hasMany(Quiz::class, 'healthcare_id');
+    }
+
 }
