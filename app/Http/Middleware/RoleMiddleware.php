@@ -41,6 +41,17 @@ class RoleMiddleware
             abort(403, 'Access denied. You do not have permission to access this resource.');
         }
 
+        // Check approval status for professional roles
+        if ($user->needsApproval() && !$user->isApproved()) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Your professional account is pending approval.',
+                ], 403);
+            }
+
+            return redirect()->route('approval.pending');
+        }
+
         return $next($request);
     }
 }
