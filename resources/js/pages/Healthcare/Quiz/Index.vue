@@ -77,9 +77,9 @@ async function updateQuiz(payload: { id: string; title: string; description?: st
         .then(() => {
             const quiz = quizzes.value.find((q) => String(q.id) === String(payload.id));
             if (quiz) {
-                ((quiz.title = payload.title), (quiz.description = payload.description));
+                quiz.title = payload.title;
+                quiz.description = payload.description;
             }
-
             toastMessage.value = {
                 title: `Quiz Updated`,
                 description: `Quiz: "${payload.title}" has been updated`,

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ref, watch } from 'vue';
 
 const props = defineProps<{
     open: boolean;
@@ -12,14 +13,22 @@ const emit = defineEmits<{
     (e: 'confirm'): void;
 }>();
 
+const localOpen = ref(props.open);
+
+watch(
+    () => props.open,
+    (val) => (localOpen.value = val),
+);
+
 function handleConfirm() {
     emit('confirm');
+    localOpen.value = false;
     emit('update:open', false);
 }
 </script>
 
 <template>
-    <Dialog v-model:open="props.open">
+    <Dialog v-model:open="localOpen">
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>Delete Availability Slot</DialogTitle>

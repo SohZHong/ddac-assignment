@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ref, watch } from 'vue';
 
 const props = defineProps<{
     open: boolean;
@@ -12,16 +13,22 @@ const emit = defineEmits<{
     (e: 'confirm', payload: { id: string }): void;
 }>();
 
+const localOpen = ref(props.open);
+
+watch(
+    () => props.open,
+    (val) => (localOpen.value = val),
+);
+
 function handleConfirm() {
-    emit('confirm', {
-        id: props.id,
-    });
+    emit('confirm', { id: props.id });
+    localOpen.value = false;
     emit('update:open', false);
 }
 </script>
 
 <template>
-    <Dialog v-model:open="props.open">
+    <Dialog v-model:open="localOpen">
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>Delete Question</DialogTitle>

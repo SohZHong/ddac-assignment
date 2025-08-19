@@ -35,7 +35,7 @@ function handleCalendarClick({ event }: EventClickArg) {
 }
 
 function handleButtonClick(e: MouseEvent, schedule: FreeSchedule) {
-    e.preventDefault;
+    e.preventDefault();
 
     selectedSchedule.value = schedule;
     dialogOpen.value = true;

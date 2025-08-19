@@ -21,7 +21,12 @@ const emit = defineEmits<{
 const localText = ref(props.text);
 const localType = ref(props.type);
 const localOption = ref<string | undefined>(props.optionText);
+const localOpen = ref(props.open);
 
+watch(
+    () => props.open,
+    (val) => (localOpen.value = val),
+);
 // Keep local values in sync when parent changes
 watch(
     () => props.text,
@@ -47,12 +52,13 @@ function handleConfirm() {
         text: localText.value,
         optionText: localOption.value,
     });
+    localOpen.value = false;
     emit('update:open', false);
 }
 </script>
 
 <template>
-    <Dialog v-model:open="props.open">
+    <Dialog v-model:open="localOpen">
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>Edit Question</DialogTitle>
