@@ -2,9 +2,11 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type User } from '@/types';
 import { Head, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, Shield, Activity, Settings } from 'lucide-vue-next';
+// removed duplicate usePage import and unused Badge
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -15,6 +17,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const page = usePage();
 const user = page.props.auth.user as User;
+const pendingApprovalsCount = computed(() => Number((page.props as any).pendingApprovalsCount || 0))
 </script>
 
 <template>
@@ -46,18 +49,23 @@ const user = page.props.auth.user as User;
                     </CardContent>
                 </Card>
 
-                <!-- Role Management Card -->
+                <!-- Approvals Card -->
                 <Card>
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">Role Management</CardTitle>
-                        <Shield class="h-4 w-4 text-muted-foreground" />
+                        <CardTitle class="text-sm font-medium">Professional Approvals</CardTitle>
+                        <div class="relative">
+                            <Shield class="h-4 w-4 text-muted-foreground" />
+                            <span v-if="pendingApprovalsCount > 0" class="absolute -right-2 -top-2 inline-flex items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-medium text-white">
+                                {{ pendingApprovalsCount }}
+                            </span>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <CardDescription class="mb-4">
-                            Configure user roles and permissions for different access levels
+                            Review and manage professional account applications
                         </CardDescription>
-                        <Button variant="outline" class="w-full" disabled>
-                            Coming Soon
+                        <Button asChild class="w-full">
+                            <a href="/admin/approvals">Manage Approvals</a>
                         </Button>
                     </CardContent>
                 </Card>

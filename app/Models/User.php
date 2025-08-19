@@ -6,6 +6,7 @@ namespace App\Models;
 use App\UserRole;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -24,6 +25,10 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'requested_role',
+        'approval_status',
+        'rejection_reason',
+        'approved_at',
     ];
 
     /**
@@ -47,6 +52,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'role' => UserRole::class,
+            'requested_role' => 'string',
+            'approved_at' => 'datetime',
         ];
     }
 
@@ -96,6 +103,73 @@ class User extends Authenticatable
     public function isSystemAdmin(): bool
     {
         return $this->hasRole(UserRole::SYSTEM_ADMIN);
+    }
+
+    /**
+     * Get the user's professional credentials.
+     */
+    public function professionalCredentials(): HasMany
+    {
+        return $this->hasMany(ProfessionalCredential::class);
+    }
+
+    /**
+     * Check if the user needs approval
+     */
+    public function needsApproval(): bool
+    {
+        return in_array($this->role, [
+            UserRole::HEALTHCARE_PROFESSIONAL,
+            UserRole::HEALTH_CAMPAIGN_MANAGER,
+        ]);
+    }
+
+    /**
+     * Check if the user is approved
+     */
+    public function isApproved(): bool
+    {
+        return $this->approval_status === 'approved';
+    }
+
+    /**
+     * Check if the user is pending approval
+     */
+    public function isPending(): bool
+    {
+        return $this->approval_status === 'pending';
+    }
+
+    /**
+     * Check if the user is rejected
+     */
+    public function isRejected(): bool
+    {
+        return $this->approval_status === 'rejected';
+    }
+
+    /**
+     * Approve the user
+     */
+    public function approve(): void
+    {
+        $this->update([
+            'approval_status' => 'approved',
+            'approved_at' => now(),
+            'rejection_reason' => null,
+        ]);
+    }
+
+    /**
+     * Reject the user
+     */
+    public function reject(string $reason): void
+    {
+        $this->update([
+            'approval_status' => 'rejected',
+            'rejection_reason' => $reason,
+            'approved_at' => null,
+        ]);
     }
 
     /**
