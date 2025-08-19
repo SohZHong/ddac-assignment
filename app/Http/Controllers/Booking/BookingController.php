@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Notifications\BookingNotification;
 use App\Models\Booking;
 use App\Models\Schedule;
+use App\Notifications\BookingReviewNotification;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class BookingController extends Controller
 {
@@ -65,11 +67,11 @@ class BookingController extends Controller
     /**
      * Update the booking status only.
      */
-    public function reviewBooking(Request $request, string $id)
+    public function review(Request $request, string $id)
     {
         $booking = Booking::findOrFail($id);
 
-        $this->authorize('reviewBooking', $booking);
+        $this->authorize('review', $booking);
 
         $validated = $request->validate([
             'status' => 'in:' . implode(',', [
@@ -78,6 +80,10 @@ class BookingController extends Controller
                 Booking::CANCELLED,
             ]),
         ]);
+
+        // Notify user of confirmed / cancelled booking
+        $patient = $booking->patient;
+        $patient->notify(new BookingReviewNotification($booking));
 
         $booking->update($validated);
 

@@ -66,7 +66,7 @@ class BookingPolicy
     /**
      * Determine if the user can update the booking status.
      */
-    public function reviewBooking(User $user, Booking $booking): bool
+    public function review(User $user, Booking $booking): bool
     {
         // Only the healthcare professional who owns the schedule can manage the booking
         return $booking->healthcare->id === $user->id;

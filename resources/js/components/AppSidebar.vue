@@ -6,7 +6,7 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, Sid
 import { type NavItem, type User } from '@/types';
 import { UserRole } from '@/types/role';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookHeartIcon, BookOpen, Calendar, Folder, Heart, LayoutGrid, Megaphone, Shield, Users } from 'lucide-vue-next';
+import { BookHeartIcon, BookOpen, Calendar, ClipboardEdit, Folder, Heart, LayoutGrid, Megaphone, Shield, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 import NavNotifications from './NavNotifications.vue';
@@ -35,11 +35,18 @@ const mainNavItems = computed((): NavItem[] => {
 
     // Add healthcare routes for healthcare professionals and above
     if (user.value.role === UserRole.HEALTHCARE_PROFESSIONAL || UserRole.HEALTH_CAMPAIGN_MANAGER || user.value.role === UserRole.SYSTEM_ADMIN) {
-        items.push({
-            title: 'Healthcare',
-            href: '/healthcare',
-            icon: Heart,
-        });
+        items.push(
+            {
+                title: 'Healthcare',
+                href: '/healthcare',
+                icon: Heart,
+            },
+            {
+                title: 'Appointments',
+                href: '/appointments',
+                icon: ClipboardEdit,
+            },
+        );
     }
 
     // Add campaign routes for campaign managers and above
@@ -53,16 +60,18 @@ const mainNavItems = computed((): NavItem[] => {
 
     // Add admin routes for system admins only
     if (user.value.role === UserRole.SYSTEM_ADMIN) {
-        items.push({
-            title: 'Admin',
-            href: '/admin',
-            icon: Shield,
-        });
-        items.push({
-            title: 'User Management',
-            href: '/admin/users',
-            icon: Users,
-        });
+        items.push(
+            {
+                title: 'Admin',
+                href: '/admin',
+                icon: Shield,
+            },
+            {
+                title: 'User Management',
+                href: '/admin/users',
+                icon: Users,
+            },
+        );
     }
 
     return items;

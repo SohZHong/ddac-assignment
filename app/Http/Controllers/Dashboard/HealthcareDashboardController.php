@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\Schedule;
+use App\Models\Booking;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +15,7 @@ use Illuminate\Support\Str;
 
 class HealthcareDashboardController extends Controller
 {
-    public function index(): \Inertia\Response
+    public function index(): Response
     {
         $schedules = Schedule::where('healthcare_id', auth()->id())
                 ->where('start_time', '>=', now())
@@ -34,6 +35,29 @@ class HealthcareDashboardController extends Controller
             //     ->with('patient:id,name')
             //     ->orderBy('start_time', 'asc')
             //     ->get(),
+        ]);
+    }
+
+    public function appointment(): Response
+    {
+        $bookings = Booking::with('patient:id,name,email')
+            ->orderBy('start_time', 'asc')
+            ->get()
+            ->map(fn ($booking) => [
+                'id'          => $booking->id,
+                'schedule_id' => $booking->schedule_id,
+                'patient'     => [
+                    'id'    => $booking->patient->id,
+                    'name'  => $booking->patient->name,
+                    'email' => $booking->patient->email,
+                ],
+                'start_time'  => $booking->start_time,
+                'end_time'    => $booking->end_time,
+                'status'      => $booking->status,
+            ]);
+
+        return Inertia::render('Healthcare/Booking', [
+            'bookings' => $bookings
         ]);
     }
 }

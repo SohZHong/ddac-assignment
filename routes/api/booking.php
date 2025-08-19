@@ -7,7 +7,7 @@ Route::prefix('bookings')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
     Route::post('/', [BookingController::class, 'store'])
         ->name('api.booking.store');
-    Route::put('/review/{booking}', [BookingController::class, 'reviewBooking'])
+    Route::patch('/review/{booking}', [BookingController::class, 'review'])
         ->name('api.booking.review');
     Route::put('/{booking}', [BookingController::class, 'update'])
         ->name('api.booking.update');
