@@ -142,7 +142,6 @@ async function handleActiveChange(quiz: Quiz) {
             // Activating this quiz
             await axios.patch(`/api/quizzes/${quiz.id}/activate`).then((res) => {
                 // Deactivate all others in the frontend
-                console.log(res.data.quiz);
                 quizzes.value.forEach((q) => {
                     q.active = q.id === res.data.quiz.id;
                 });
@@ -189,6 +188,7 @@ function handleDeleteClick(id: string) {
 
     deleteDialogOpen.value = true;
 }
+console.log(props.quizzes);
 </script>
 
 <template>

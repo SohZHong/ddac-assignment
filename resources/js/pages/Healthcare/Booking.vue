@@ -82,9 +82,10 @@ const filteredBookings = computed(() => {
         .filter((b) => !statusFilter.value || b.status === statusFilter.value);
 });
 
-async function updateBooking(id: string, status: BookingStatus) {
+async function approveBooking(id: string) {
+    const status = BookingStatus.CONFIRMED;
     await axios
-        .patch(`/api/bookings/review/${id}`, { status })
+        .patch(`/api/bookings/approve/${id}`, { status })
         .then(() => {
             // Update the local booking status
             const booking = bookings.value.find((b) => b.id === id);
@@ -93,9 +94,9 @@ async function updateBooking(id: string, status: BookingStatus) {
             }
 
             toastMessage.value = {
-                title: `Booking ${status === BookingStatus.CONFIRMED ? 'Confirmed' : 'Cancelled'}`,
-                description: `${booking?.patient.name}'s appointment has been ${status === BookingStatus.CONFIRMED ? 'confirmed' : 'cancelled'}.`,
-                variant: status === BookingStatus.CONFIRMED ? 'success' : 'destructive',
+                title: `Booking Confirmed`,
+                description: `${booking?.patient.name}'s appointment has been confirmed`,
+                variant: 'success',
             };
 
             // Show toast
@@ -103,11 +104,42 @@ async function updateBooking(id: string, status: BookingStatus) {
         })
         .catch((err) => {
             toastMessage.value = {
-                title: `Failed to update booking`,
+                title: `Failed to approve booking`,
                 description: err.message,
                 variant: 'destructive',
             };
-            console.error('Failed to update booking', err);
+            console.error('Failed to approve booking', err);
+            toastRef.value?.showToast();
+        });
+}
+
+async function declineBooking(id: string) {
+    const status = BookingStatus.CANCELLED;
+    await axios
+        .patch(`/api/bookings/decline/${id}`, { status })
+        .then(() => {
+            // Update the local booking status
+            const booking = bookings.value.find((b) => b.id === id);
+            if (booking) {
+                booking.status = status;
+            }
+
+            toastMessage.value = {
+                title: `Booking Cancelled`,
+                description: `${booking?.patient.name}'s appointment has been cancelled.`,
+                variant: 'destructive',
+            };
+
+            // Show toast
+            toastRef.value?.showToast();
+        })
+        .catch((err) => {
+            toastMessage.value = {
+                title: `Failed to decline booking`,
+                description: err.message,
+                variant: 'destructive',
+            };
+            console.error('Failed to decline booking', err);
             toastRef.value?.showToast();
         });
 }
@@ -186,12 +218,12 @@ async function updateBooking(id: string, status: BookingStatus) {
                             <Button
                                 size="sm"
                                 variant="default"
-                                @click="updateBooking(booking.id!, BookingStatus.CONFIRMED)"
+                                @click="approveBooking(booking.id!)"
                                 :disabled="booking.status === BookingStatus.CONFIRMED"
                             >
                                 Confirm
                             </Button>
-                            <Button size="sm" variant="destructive" @click="updateBooking(booking.id!, BookingStatus.CANCELLED)">Cancel</Button>
+                            <Button size="sm" variant="destructive" @click="declineBooking(booking.id!)">Cancel</Button>
                         </div>
                         <Badge :variant="statusMap[booking.status].variant">{{ statusMap[booking.status].text }}</Badge>
                     </CardContent>

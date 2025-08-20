@@ -26,7 +26,7 @@ export interface QuizResponse {
     quiz_id: string;
     booking_id: string;
     // key = question_id, value = answer
-    answers: Record<number, string | boolean>;
+    answers: { question_id: string | number; answer: string }[];
     completed_at: string;
     booking?: {
         id: string;

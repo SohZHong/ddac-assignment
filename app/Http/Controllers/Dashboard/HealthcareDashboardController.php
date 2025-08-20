@@ -79,6 +79,7 @@ class HealthcareDashboardController extends Controller
                     'type'          => $q->type,
                     'options'       => $q->options,
             ]),
+                'active'        => $quiz->active,
         ]);
 
        return Inertia::render('Healthcare/Quiz/Index', [

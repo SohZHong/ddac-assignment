@@ -24,9 +24,3 @@ export interface Booking {
     end_time: string;
     status: BookingStatus;
 }
-
-export type BookingList = {
-    data: Booking[];
-    links: any;
-    meta: any;
-};

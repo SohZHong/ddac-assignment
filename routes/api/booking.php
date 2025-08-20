@@ -7,8 +7,14 @@ Route::prefix('bookings')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
     Route::post('/', [BookingController::class, 'store'])
         ->name('api.booking.store');
-    Route::patch('/review/{booking}', [BookingController::class, 'review'])
-        ->name('api.booking.review');
+
+    Route::patch('/approve/{booking}', [BookingController::class, 'approve'])
+        ->name('api.booking.approve');
+    Route::patch('/decline/{booking}', [BookingController::class, 'decline'])
+        ->name('api.booking.decline');
+    Route::patch('/cancel/{booking}', [BookingController::class, 'cancelByPatient'])
+        ->name('api.booking.cancel');
+    
     Route::put('/{booking}', [BookingController::class, 'update'])
         ->name('api.booking.update');
     Route::delete('/{booking}', [BookingController::class, 'destroy'])
