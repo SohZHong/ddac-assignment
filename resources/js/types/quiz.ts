@@ -10,6 +10,7 @@ export interface Quiz {
     title: string;
     description?: string;
     questions?: QuizQuestion[];
+    active: boolean;
 }
 
 export interface QuizQuestion {

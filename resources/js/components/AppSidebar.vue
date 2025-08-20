@@ -14,6 +14,7 @@ import {
     Folder,
     Heart,
     LayoutGrid,
+    List,
     Megaphone,
     MessageCircleQuestion,
     Shield,
@@ -42,6 +43,11 @@ const mainNavItems = computed((): NavItem[] => {
             title: 'Appointment Booking',
             href: '/schedules',
             icon: Calendar,
+        },
+        {
+            title: 'Appointments',
+            href: '/bookings',
+            icon: List,
         },
     ];
 

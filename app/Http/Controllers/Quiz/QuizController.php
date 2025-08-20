@@ -27,7 +27,8 @@ class QuizController extends Controller
                     'question_text' => $q->question_text,
                     'type'          => $q->type,
                     'options'       => $q->options,
-            ]),
+                ]),
+                'active'        => $quiz->active,
         ]);
         return response()->json([
             'quizzes' => $quizzes,
@@ -92,6 +93,46 @@ class QuizController extends Controller
             'message'   => 'Quiz updated successfully',
             'quiz'      => $quiz
         ], 201);    
+    }
+
+    /**
+     * Activate a quiz and deactivate all others for the same healthcare provider.
+     */
+    public function activate(Request $request, string $id)
+    {
+        $quiz = Quiz::findOrFail($id);
+
+        $this->authorize('update', $quiz);
+
+        // Deactivate other quizzes for this healthcare provider
+        Quiz::where('healthcare_id', $quiz->healthcare_id)
+            ->where('id', '!=', $quiz->id)
+            ->update(['active' => false]);
+
+        // Activate this quiz
+        $quiz->update(['active' => true]);
+
+        return response()->json([
+            'message' => 'Quiz activated successfully',
+            'quiz'    => $quiz
+        ]);
+    }
+
+    /**
+     * Deactivate a quiz.
+     */
+    public function deactivate(Request $request, string $id)
+    {
+        $quiz = Quiz::findOrFail($id);
+
+        $this->authorize('update', $quiz);
+
+        $quiz->update(['active' => false]);
+
+        return response()->json([
+            'message' => 'Quiz deactivated successfully',
+            'quiz'    => $quiz
+        ]);
     }
 
     /**

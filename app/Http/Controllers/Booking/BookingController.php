@@ -13,11 +13,64 @@ use Inertia\Inertia;
 class BookingController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Public page for a patient to view bookings.
      */
     public function index()
     {
-        //
+        $patientId = auth()->id(); // assuming logged in as patient
+
+        $now = now();
+
+        $upcoming = Booking::with(['schedule.healthcare:id,name'])
+            ->where('patient_id', $patientId)
+            ->where('start_time', '>=', $now)
+            // Show confirmed or pending ones
+            ->whereIn('status', [Booking::CONFIRMED, Booking::CANCELLED])
+            ->orderBy('start_time', 'asc')
+            ->get()
+            ->map(fn ($up) => [
+                'id'            => $up->id,
+                'schedule_id'   => $up->schedule_id,
+                'patient_id'    => $up->patient_id,
+                'start_time'    => $up->start_time,
+                'end_time'      => $up->end_time,
+                'status'        => $up->status,
+                'healthcare'    => [
+                    'id'   => $up->schedule->healthcare->id,
+                    'name' => $up->schedule->healthcare->name,
+                ],
+            ]);
+
+        $past = Booking::with(['schedule.healthcare:id,name'])
+            ->where('patient_id', $patientId)
+            ->where(function ($q) use ($now) {
+                // include confirmed or pending ones that have already passed
+                $q->where('start_time', '<', $now)
+                ->whereIn('status', [Booking::CONFIRMED, Booking::PENDING]); 
+            })
+            ->orWhere(function ($q) {
+                // include all cancelled, regardless of time
+                $q->where('status', Booking::CANCELLED); 
+            })
+            ->orderBy('start_time', 'desc')
+            ->paginate(10)
+            ->through(fn ($p) => [
+                'id'            => $p->id,
+                'schedule_id'   => $p->schedule_id,
+                'patient_id'    => $p->patient_id,
+                'start_time'    => $p->start_time,
+                'end_time'      => $p->end_time,
+                'status'        => $p->status,
+                'healthcare'    => [
+                    'id'   => $p->schedule->healthcare->id,
+                    'name' => $p->schedule->healthcare->name,
+                ],
+            ]);
+
+        return Inertia::render('Booking/Index', [
+            'upcoming' => $upcoming,
+            'past'     => $past,
+        ]);
     }
 
     /**

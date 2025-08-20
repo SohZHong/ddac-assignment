@@ -171,6 +171,7 @@ async function updateBooking(id: string, status: BookingStatus) {
                 </div>
             </div>
             <div class="flex flex-col gap-4">
+                <div v-if="filteredBookings.length === 0" class="text-center text-muted-foreground">No appointments found.</div>
                 <Card v-for="booking in filteredBookings" :key="booking.id" class="w-full transition-shadow duration-200 hover:shadow-lg">
                     <CardContent class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div class="flex flex-1 flex-col gap-4 md:flex-row md:items-center">

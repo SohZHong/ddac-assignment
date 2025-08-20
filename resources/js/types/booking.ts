@@ -9,8 +9,14 @@ export interface BookingPatient {
     name: string;
     email: string;
 }
+
+export interface BookingHealthcare {
+    id: string;
+    name: string;
+}
 export interface Booking {
     id?: string;
+    healthcare?: BookingHealthcare;
     schedule_id: string;
     patient_id?: string;
     patient: BookingPatient;
@@ -18,3 +24,9 @@ export interface Booking {
     end_time: string;
     status: BookingStatus;
 }
+
+export type BookingList = {
+    data: Booking[];
+    links: any;
+    meta: any;
+};

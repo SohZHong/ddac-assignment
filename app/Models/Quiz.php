@@ -13,8 +13,12 @@ class Quiz extends Model
         'healthcare_id',
         'title',
         'description',
+        'active'
     ];
 
+    protected $casts = [
+        'active' => 'boolean',
+    ];
     /**
      * Quiz belongs to a healthcare professional
     */

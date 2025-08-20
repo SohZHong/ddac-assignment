@@ -6,6 +6,7 @@ import Toast from '@/components/Toast.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import Label from '@/components/ui/label/Label.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { BreadcrumbItem } from '@/types';
 import { Quiz } from '@/types/quiz';
@@ -135,6 +136,46 @@ async function deleteQuiz(payload: { id: string }) {
         });
 }
 
+async function handleActiveChange(quiz: Quiz) {
+    try {
+        if (!quiz.active) {
+            // Activating this quiz
+            await axios.patch(`/api/quizzes/${quiz.id}/activate`).then((res) => {
+                // Deactivate all others in the frontend
+                console.log(res.data.quiz);
+                quizzes.value.forEach((q) => {
+                    q.active = q.id === res.data.quiz.id;
+                });
+                toastMessage.value = {
+                    title: `Quiz Activated`,
+                    description: `"${quiz.title}" is now active.`,
+                    variant: 'success',
+                };
+            });
+        } else {
+            // Deactivating this quiz
+            await axios.patch(`/api/quizzes/${quiz.id}/deactivate`).then(() => {
+                quiz.active = false;
+                toastMessage.value = {
+                    title: `Quiz Deactivated`,
+                    description: `"${quiz.title}" has been deactivated.`,
+                    variant: 'success',
+                };
+            });
+        }
+
+        toastRef.value?.showToast();
+    } catch (err) {
+        toastMessage.value = {
+            title: `Failed to update quiz`,
+            description: (err as unknown as Error).message,
+            variant: 'destructive',
+        };
+        toastRef.value?.showToast();
+        console.error('Failed to update active state', err);
+    }
+}
+
 function handleEditClick(id: string, title: string, description?: string) {
     quizId.value = String(id);
     updateQuizTitle.value = title;
@@ -182,7 +223,7 @@ function handleDeleteClick(id: string) {
                 <Input v-model="searchQuery" placeholder="Search by quiz title" icon="search" class="min-w-[200px]" />
             </div>
             <!-- Existing Quizzes -->
-            <div class="grid gap-4 md:grid-cols-3">
+            <div class="grid grid-cols-2 gap-4 md:grid-cols-3">
                 <Card v-for="quiz in filteredQuizzes" :key="quiz.id">
                     <CardHeader>
                         <CardTitle>{{ quiz.title }}</CardTitle>
@@ -190,6 +231,11 @@ function handleDeleteClick(id: string) {
                     </CardHeader>
                     <CardContent class="space-y-2">
                         <p>Questions: {{ quiz.questions?.length || 0 }}</p>
+                        <!-- Active Checkbox -->
+                        <Label class="flex items-center gap-2">
+                            <input type="checkbox" :checked="quiz.active" @change="() => handleActiveChange(quiz)" />
+                            <span>Active</span>
+                        </Label>
                         <div class="flex gap-2">
                             <Button variant="default">
                                 <Link :href="route('healthcare.quizzes.show', quiz.id)">View</Link>
