@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Facades\Log;
 
 class ProfileController extends Controller
 {
@@ -29,15 +30,36 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
+        $user = $request->user();  
+        $changes = [];
+        $originalData = $user->only(['name', 'email']);
         $request->user()->fill($request->validated());
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+            $changes['email'] = [
+                'old' => $originalData['email'],
+                'new' => $user->email
+            ];
         }
 
-        $request->user()->save();
+        if ($user->isDirty('name')) {
+            $changes['name'] = [
+                'old' => $originalData['name'],
+                'new' => $user->name
+            ];
+        }
 
-        return to_route('profile.edit');
+        $user->save();
+
+        if (!empty($changes)) {
+            Log::info('User profile updated', [
+                'user_id' => $user->id,
+                'changes' => $changes
+            ]);
+        }
+
+        return to_route('profile.edit')->with('status', 'profile-updated');
     }
 
     /**
@@ -51,8 +73,11 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        Auth::logout();
+        $user->tokens()->delete(); 
+        $user->currentAccessToken()?->delete(); 
+        $user->sessions()->delete();
 
+        Auth::logout();
         $user->delete();
 
         $request->session()->invalidate();

@@ -25,12 +25,34 @@ class PasswordController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
+        $user = $request->user();
         $validated = $request->validate([
-            'current_password' => ['required', 'current_password'],
-            'password' => ['required', Password::defaults(), 'confirmed'],
+            'current_password' => [
+                'required', 
+                'current_password',
+                function ($attribute, $value, $fail) use ($user) {
+                    if (!Hash::check($value, $user->password)) {
+                        $fail('The current password is incorrect.');
+                    }
+                }
+            ],
+            'password' => [
+                'required', 
+                Password::min(8)
+                    ->letters()
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols(),
+                'confirmed',
+                'different:current_password',
+            ],
+        ], [
+            'current_password.current_password' => 'The current password is incorrect.',
+            'password.different' => 'The new password must be different from the current password.',
+            'password.uncompromised' => 'The new password has been compromised in a data breach. Please choose a different password.',
         ]);
 
-        $request->user()->update([
+        $user->update([
             'password' => Hash::make($validated['password']),
         ]);
 

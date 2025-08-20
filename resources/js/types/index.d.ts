@@ -43,7 +43,7 @@ export interface User {
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;
-    role: UserRole;
+    role: string; // The backend sends enum values like '1', '2', '3', '4'
     role_label: string;
     can_manage_roles?: boolean;
     assignable_roles?: Array<{

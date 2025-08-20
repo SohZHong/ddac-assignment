@@ -35,7 +35,6 @@ const forwardedProps = useForwardProps(delegatedProps)
         <Check class="size-4" />
       </SelectItemIndicator>
     </span>
-
     <SelectItemText>
       <slot />
     </SelectItemText>

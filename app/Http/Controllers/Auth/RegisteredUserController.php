@@ -42,7 +42,24 @@ class RegisteredUserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => [
+                'required', 
+                'confirmed',                 
+                Password::min(8)
+                    ->letters()
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols(),
+            ],
+            'role' => [
+                'required',
+                'string',
+                Rule::in(['1', '2', '3']), // Only allow specific roles during registration
+            ],
+            'work_email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+        ], [
+            'role.required' => 'Please select a user role.',
+            'role.in' => 'Invalid role selected.',
         ]);
 
         $user = User::create([
@@ -60,6 +77,6 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return to_route('dashboard');
+        return redirect()->route('verification.notice');
     }
 }

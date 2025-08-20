@@ -2,7 +2,8 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Notifications\CustomVerifyEmail;
 use App\UserRole;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasApiTokens;
@@ -50,6 +51,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'verified_at' => 'datetime',
             'password' => 'hashed',
             'role' => UserRole::class,
             'requested_role' => 'string',
@@ -189,6 +191,30 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if the user requires admin verification
+     */
+    public function requiresVerification(): bool
+    {
+        return $this->isHealthcareProfessional() || $this->isHealthCampaignManager();
+    }
+
+    /**
+     * Check if the user is verified by admin (for healthcare professionals and campaign managers)
+     */
+    public function isVerifiedByAdmin(): bool
+    {
+        return $this->is_verified === true;
+    }
+
+    /**
+     * Send the email verification notification.
+     */
+    public function sendEmailVerificationNotification()
+    {
+        $this->notify(new CustomVerifyEmail);
+    }
+
+    /**
      * Get their blogs
      */
     public function blogs()
@@ -219,5 +245,4 @@ class User extends Authenticatable
     {
         return $this->hasMany(Quiz::class, 'healthcare_id');
     }
-
 }
