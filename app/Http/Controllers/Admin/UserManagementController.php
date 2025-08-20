@@ -19,12 +19,7 @@ class UserManagementController extends Controller
      */
     public function index(): Response
     {
-        $users = User::select([
-                'id', 'name', 'email', 'role', 'email_verified_at', 'created_at',
-                'is_verified', 'verified_at', 'license_number', 'medical_specialty',
-                'institution_name', 'organization_name', 'job_title', 'work_email',
-                'organization_type', 'focus_areas','registration_body'
-            ])
+        $users = User::select(['id', 'name', 'email', 'role', 'requested_role', 'approval_status', 'email_verified_at', 'created_at'])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
@@ -53,12 +48,15 @@ class UserManagementController extends Controller
             ];
         });
 
+        $pendingApprovalsCount = User::where('approval_status', 'pending')->count();
+
         return Inertia::render('Admin/Users', [
             'users' => $users,
             'available_roles' => collect(UserRole::all())->map(fn($role) => [
                 'value' => $role->value,
                 'label' => $role->label(),
             ]),
+            'pendingApprovalsCount' => $pendingApprovalsCount,
         ]);
     }
 

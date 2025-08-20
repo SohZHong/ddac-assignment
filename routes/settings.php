@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Settings\PasswordController;
+use App\Http\Controllers\Settings\ProfessionalApplicationController;
 use App\Http\Controllers\Settings\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -21,4 +22,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('settings/appearance', function () {
         return Inertia::render('settings/Appearance');
     })->name('appearance');
+
+    // Professional Application Routes
+    Route::get('settings/professional-application', [App\Http\Controllers\Settings\ProfessionalApplicationController::class, 'create'])
+        ->name('professional-application.create');
+    Route::post('settings/professional-application', [App\Http\Controllers\Settings\ProfessionalApplicationController::class, 'store'])
+        ->name('professional-application.store');
 });

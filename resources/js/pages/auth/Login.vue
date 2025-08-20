@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import axios from '@/axios';
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,9 @@ const form = useForm({
     remember: false,
 });
 
-const submit = () => {
+const submit = async () => {
+    await axios.get('/sanctum/csrf-cookie'); // Get CSRF cookie ONCE
+
     form.post(route('login'), {
         onFinish: () => form.reset('password'),
     });
