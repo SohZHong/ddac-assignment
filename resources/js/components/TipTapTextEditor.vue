@@ -11,17 +11,18 @@ import { TextStyleKit } from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
 import StarterKit from '@tiptap/starter-kit';
 import { EditorContent, useEditor } from '@tiptap/vue-3';
+import { BoldIcon, Italic, LucideStrikethrough, LucideUnderline } from 'lucide-vue-next';
+import { ToolbarButton, ToolbarRoot, ToolbarSeparator, ToolbarToggleGroup, ToolbarToggleItem } from 'reka-ui';
 import { computed, onBeforeUnmount } from 'vue';
-import { Button } from './ui/button';
+import Icon from './Icon.vue';
 
 interface Props {
     onUpdate?: (content: string) => void;
     content?: string;
 }
-
 const props = defineProps<Props>();
 
-// Editor Setup
+/* Editor */
 const editor = useEditor({
     editorProps: {
         attributes: {
@@ -30,9 +31,7 @@ const editor = useEditor({
     },
     extensions: [
         StarterKit,
-        Link.configure({
-            openOnClick: false,
-        }),
+        Link.configure({ openOnClick: false }),
         Image,
         Underline,
         Text,
@@ -45,103 +44,189 @@ const editor = useEditor({
     content: props.content || '',
     onUpdate({ editor }) {
         const html = editor.getHTML();
-        if (props.onUpdate) props.onUpdate(html);
+        props.onUpdate?.(html);
     },
 });
 
-// Bold
+/* Marks / Nodes state + actions */
 const toggleBold = () => editor.value?.chain().focus().toggleBold().run();
-const isBold = computed(() => editor.value?.isActive('bold'));
+const isBold = computed(() => editor.value?.isActive('bold') ?? false);
 
-// Italic
 const toggleItalic = () => editor.value?.chain().focus().toggleItalic().run();
-const isItalic = computed(() => editor.value?.isActive('italic'));
+const isItalic = computed(() => editor.value?.isActive('italic') ?? false);
 
-// Underline
 const toggleUnderline = () => editor.value?.chain().focus().toggleUnderline().run();
-const isUnderline = computed(() => editor.value?.isActive('underline'));
+const isUnderline = computed(() => editor.value?.isActive('underline') ?? false);
 
-// Headings
-const headingLevels: Array<1 | 2 | 3> = [1, 2, 3];
+const toggleStrike = () => editor.value?.chain().focus().toggleStrike().run();
+const isStrike = computed(() => editor.value?.isActive('strike') ?? false);
+
+/* Headings */
 const setHeading = (level: Level) => editor.value?.chain().focus().toggleHeading({ level }).run();
-const isHeading = (level: Level) => computed(() => editor.value?.isActive('heading', { level }));
+const isHeadingActive = (level: Level) => editor.value?.isActive('heading', { level }) ?? false;
 
-// Color
+/* Text color */
 const setTextColor = (color: string) => editor.value?.chain().focus().setColor(color).run();
 
-// Links
+/* Links */
+const isLink = computed(() => editor.value?.isActive('link') ?? false);
 const setLink = () => {
     const url = window.prompt('Enter URL');
-    if (url) editor.value?.chain().focus().setLink({ href: url }).run();
+    if (!url) return;
+    editor.value?.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
 };
 const unsetLink = () => editor.value?.chain().focus().unsetLink().run();
-const isLink = computed(() => editor.value?.isActive('link'));
 
-// Image
+/* Image */
 const addImage = () => {
     const url = window.prompt('Enter image URL');
-    if (url) editor.value?.chain().focus().setImage({ src: url }).run();
+    if (!url) return;
+    editor.value?.chain().focus().setImage({ src: url }).run();
 };
 
-// Cleanup editor instance
+/* Cleanup */
 onBeforeUnmount(() => {
-    if (editor.value) editor.value.destroy();
+    editor.value?.destroy();
 });
 </script>
 
 <style scoped>
-button {
-    padding: 4px 6px;
-    border-radius: 4px;
+/* Color input styled to match buttons */
+.color-swatch {
+    background: transparent;
 }
-
-h1 {
-    font-size: 2rem; /* 32px */
-    font-weight: bold;
+.color-swatch::-webkit-color-swatch {
+    border: none;
+    border-radius: 6px;
 }
-
-h2 {
-    font-size: 1.5rem; /* 24px */
-    font-weight: bold;
-}
-
-h3 {
-    font-size: 1.25rem; /* 20px */
-    font-weight: bold;
+.color-swatch::-webkit-color-swatch-wrapper {
+    padding: 4px;
+    border-radius: 6px;
 }
 </style>
 
 <template>
-    <div class="mb-4 flex flex-wrap gap-2 border-b pb-2">
-        <!-- Bold -->
-        <Button @click="toggleBold" :class="['rounded border px-2 py-1', isBold ? 'bg-gray-300' : '']">B</Button>
+    <div>
+        <ToolbarRoot class="flex w-full flex-wrap items-center gap-1 rounded-lg border bg-white p-2 shadow-sm" aria-label="Formatting options">
+            <!-- Basic formatting -->
+            <ToolbarToggleGroup type="multiple" aria-label="Text formatting">
+                <ToolbarToggleItem
+                    class="ml-0.5 inline-flex h-[28px] w-[28px] items-center justify-center rounded bg-white text-black transition-colors hover:bg-gray-100 data-[state=on]:bg-green-200 data-[state=on]:text-green-800"
+                    :pressed="isBold"
+                    value="bold"
+                    aria-label="Bold"
+                    @click="toggleBold"
+                >
+                    <BoldIcon class="h-4 w-4" />
+                </ToolbarToggleItem>
 
-        <!-- Italic -->
-        <Button @click="toggleItalic" :class="['rounded border px-2 py-1 italic', isItalic ? 'bg-gray-300' : '']">I</Button>
+                <ToolbarToggleItem
+                    class="ml-0.5 inline-flex h-[28px] w-[28px] items-center justify-center rounded bg-white text-black transition-colors hover:bg-gray-100 data-[state=on]:bg-green-200 data-[state=on]:text-green-800"
+                    :pressed="isItalic"
+                    value="italic"
+                    aria-label="Italic"
+                    @click="toggleItalic"
+                >
+                    <Italic class="h-4 w-4" />
+                </ToolbarToggleItem>
 
-        <!-- Underline -->
-        <Button @click="toggleUnderline" :class="['rounded border px-2 py-1 underline', isUnderline ? 'bg-gray-300' : '']">U</Button>
+                <ToolbarToggleItem
+                    class="ml-0.5 inline-flex h-[28px] w-[28px] items-center justify-center rounded bg-white text-black transition-colors hover:bg-gray-100 data-[state=on]:bg-green-200 data-[state=on]:text-green-800"
+                    :pressed="isUnderline"
+                    value="underline"
+                    aria-label="Underline"
+                    @click="toggleUnderline"
+                >
+                    <LucideUnderline class="h-4 w-4" />
+                </ToolbarToggleItem>
 
-        <!-- Headings -->
-        <Button
-            v-for="level in headingLevels"
-            :key="level"
-            @click="setHeading(level)"
-            :class="['rounded border px-2 py-1', isHeading(level) ? 'bg-gray-300' : '']"
-        >
-            H{{ level }}
-        </Button>
+                <ToolbarToggleItem
+                    class="ml-0.5 inline-flex h-[28px] w-[28px] items-center justify-center rounded bg-white text-black transition-colors hover:bg-gray-100 data-[state=on]:bg-green-200 data-[state=on]:text-green-800"
+                    :pressed="isStrike"
+                    value="strike"
+                    aria-label="Strikethrough"
+                    @click="toggleStrike"
+                >
+                    <LucideStrikethrough class="h-4 w-4" />
+                </ToolbarToggleItem>
+            </ToolbarToggleGroup>
 
-        <!-- Text color -->
-        <input type="color" @input="setTextColor(($event.target as HTMLInputElement).value)" />
-        <!-- Link -->
-        <Button @click="setLink" class="rounded border px-2 py-1">Link</Button>
-        <Button v-if="isLink" @click="unsetLink" class="rounded border px-2 py-1">Remove Link</Button>
+            <ToolbarSeparator class="mx-2 h-5 w-px bg-gray-200" />
 
-        <!-- Image -->
-        <Button @click="addImage" class="rounded border px-2 py-1">Img</Button>
+            <!-- Headings -->
+            <ToolbarToggleGroup type="multiple" aria-label="Headings">
+                <ToolbarToggleItem
+                    class="ml-0.5 inline-flex h-[28px] w-[34px] items-center justify-center rounded bg-white font-semibold text-black transition-colors hover:bg-gray-100 data-[state=on]:bg-green-200 data-[state=on]:text-green-800"
+                    :pressed="isHeadingActive(1)"
+                    value="h1"
+                    aria-label="Heading 1"
+                    @click="setHeading(1)"
+                >
+                    H1
+                </ToolbarToggleItem>
+                <ToolbarToggleItem
+                    class="ml-0.5 inline-flex h-[28px] w-[34px] items-center justify-center rounded bg-white font-semibold text-black transition-colors hover:bg-gray-100 data-[state=on]:bg-green-200 data-[state=on]:text-green-800"
+                    :pressed="isHeadingActive(2)"
+                    value="h2"
+                    aria-label="Heading 2"
+                    @click="setHeading(2)"
+                >
+                    H2
+                </ToolbarToggleItem>
+                <ToolbarToggleItem
+                    class="ml-0.5 inline-flex h-[28px] w-[34px] items-center justify-center rounded bg-white font-semibold text-black transition-colors hover:bg-gray-100 data-[state=on]:bg-green-200 data-[state=on]:text-green-800"
+                    :pressed="isHeadingActive(3)"
+                    value="h3"
+                    aria-label="Heading 3"
+                    @click="setHeading(3)"
+                >
+                    H3
+                </ToolbarToggleItem>
+            </ToolbarToggleGroup>
+
+            <ToolbarSeparator class="mx-2 h-5 w-px bg-gray-200" />
+
+            <!-- Text color -->
+            <div class="flex items-center">
+                <Icon class="mr-1 h-4 w-4 text-black" name="palette" icon="lucide:palette" />
+                <input
+                    type="color"
+                    class="color-swatch ml-2 h-[28px] w-[28px] cursor-pointer appearance-none rounded border border-gray-200 p-0"
+                    @input="setTextColor(($event.target as HTMLInputElement).value)"
+                    :value="undefined"
+                    aria-label="Text color"
+                />
+            </div>
+
+            <ToolbarSeparator class="mx-2 h-5 w-px bg-gray-200" />
+
+            <!-- Link / Unlink -->
+            <ToolbarToggleGroup type="multiple" aria-label="Linking">
+                <ToolbarToggleItem
+                    class="ml-0.5 inline-flex h-[28px] w-[28px] items-center justify-center rounded bg-white text-black transition-colors hover:bg-gray-100 data-[state=on]:bg-green-200 data-[state=on]:text-green-800"
+                    :pressed="isLink"
+                    value="link"
+                    aria-label="Link"
+                    @click="isLink ? unsetLink() : setLink()"
+                >
+                    <Icon name="link" class="h-4 w-4" icon="lucide:link" />
+                </ToolbarToggleItem>
+            </ToolbarToggleGroup>
+
+            <!-- Image -->
+            <ToolbarButton
+                class="ml-0.5 inline-flex !h-[28px] !w-[28px] items-center justify-center rounded bg-white text-black transition-colors hover:bg-gray-100 data-[state=on]:bg-green-200 data-[state=on]:text-green-800"
+                aria-label="Insert image"
+                @click="addImage"
+            >
+                <Icon name="image" class="h-4 w-4" icon="lucide:image" />
+            </ToolbarButton>
+
+            <!-- Save (example action) -->
+            <ToolbarButton class="bg-green9 hover:bg-green10 ml-auto rounded px-3 text-sm font-medium text-white"> Save </ToolbarButton>
+        </ToolbarRoot>
+
+        <!-- Editor -->
+        <EditorContent :editor="editor" class="mt-4 min-h-[300px] rounded border p-4" />
     </div>
-
-    <!-- Editor -->
-    <EditorContent :editor="editor" class="min-h-[300px] rounded border p-4" />
 </template>

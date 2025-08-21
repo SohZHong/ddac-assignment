@@ -5,9 +5,8 @@ import { ref, watch } from 'vue';
 
 const props = defineProps<{
     open: boolean;
-    start?: string;
-    end?: string;
 }>();
+
 const emit = defineEmits<{
     (e: 'update:open', value: boolean): void;
     (e: 'confirm'): void;
@@ -31,17 +30,12 @@ function handleConfirm() {
     <Dialog v-model:open="localOpen">
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>Delete Availability Slot</DialogTitle>
-                <DialogDescription class="mt-2"> Are you sure you want to delete this slot? </DialogDescription>
+                <DialogTitle>Duplicate Submissions</DialogTitle>
+                <DialogDescription class="mt-2"> Do you wish to submit again? Your old response will be overwritten! </DialogDescription>
             </DialogHeader>
-
-            <div v-if="start && end">
-                <p class="text-sm text-gray-600">{{ new Date(start).toLocaleString() }} — {{ new Date(end).toLocaleString() }}</p>
-            </div>
-
-            <DialogFooter>
+            <DialogFooter class="mt-4">
                 <Button variant="secondary" @click="emit('update:open', false)">Cancel</Button>
-                <Button variant="destructive" @click="handleConfirm">Confirm</Button>
+                <Button @click="handleConfirm">Confirm</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>

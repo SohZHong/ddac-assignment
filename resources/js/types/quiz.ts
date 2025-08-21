@@ -1,3 +1,5 @@
+import { PatientRiskLevel } from './booking';
+
 export enum QuestionType {
     MCQ = 0,
     TRUE_FALSE = 1,
@@ -10,6 +12,7 @@ export interface Quiz {
     title: string;
     description?: string;
     questions?: QuizQuestion[];
+    active: boolean;
 }
 
 export interface QuizQuestion {
@@ -18,6 +21,7 @@ export interface QuizQuestion {
     question_text: string;
     type: QuestionType;
     options?: string[]; // only used for MCQ questions
+    answer?: string;
 }
 
 export interface QuizResponse {
@@ -25,8 +29,9 @@ export interface QuizResponse {
     quiz_id: string;
     booking_id: string;
     // key = question_id, value = answer
-    answers: Record<number, string | boolean>;
+    answers: { question_id: string | number; answer: string }[];
     completed_at: string;
+    quiz?: Quiz;
     booking?: {
         id: string;
         patient: {
@@ -34,5 +39,7 @@ export interface QuizResponse {
             name: string;
             email: string;
         };
+        healthcare_comments: string;
+        risk_level: PatientRiskLevel;
     };
 }

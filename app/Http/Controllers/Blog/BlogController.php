@@ -44,14 +44,6 @@ class BlogController extends Controller
     }
 
     /**
-     * Page for creating a new blog
-     */
-    public function create()
-    {
-        return Inertia::render('Blog/Create');
-    }
-
-    /**
      * Store a newly created blog in storage.
      */
     public function store(Request $request): Response
@@ -112,32 +104,6 @@ class BlogController extends Controller
     }
 
     /**
-     * Show the form for editing the specified blog.
-     */
-    public function edit(string $id)
-    {
-        $blog = Blog::findOrFail($id);
-        // Check authorization
-        $this->authorize('update', $blog);
-
-        return \Inertia\Inertia::render('Blog/Edit', [
-            'blog' => [
-                'id'           => $blog->id,
-                'title'        => $blog->title,
-                'slug'         => $blog->slug,
-                'cover_image'  => $blog->cover_image,
-                'content'      => $blog->content,
-                'author'       => [
-                    'id'   => $blog->author?->id ?? 0,
-                    'name' => $blog->author?->name ?? 'Anonymous',
-                ],
-                'published_at' => $blog->published_at,
-                'status'       => $blog->status,
-            ],
-        ]);
-    }
-
-    /**
      * Update the specified resource in storage.
      */
     public function update(Request $request, string $id)
@@ -179,6 +145,48 @@ class BlogController extends Controller
     }
 
     /**
+     * Publish the selected blog
+     */
+    public function publish(string $id)
+    {
+        $blog = Blog::findOrFail($id);
+
+        // Check if user is authorized to update
+        $this->authorize('update', $blog);
+
+        $blog->update([
+            'status'       => Blog::STATUS_PUBLISHED,
+            'published_at' => now()
+        ]);
+
+        return response()->json([
+            'message'  => 'Blog status updated successfully!',
+            'blog' => $blog,
+        ], 201);
+    }
+
+    /**
+     * Make the selected blog a draft
+     */
+    public function draft(string $id)
+    {
+        $blog = Blog::findOrFail($id);
+
+        // Check if user is authorized to update
+        $this->authorize('update', $blog);
+
+        $blog->update([
+            'status'       => Blog::STATUS_DRAFT,
+            'published_at' => null
+        ]);
+
+        return response()->json([
+            'message'  => 'Blog status updated successfully!',
+            'blog' => $blog,
+        ], 201);
+    }
+
+    /**
      * Soft delete the specified resource.
      */
     public function destroy(string $id)
@@ -189,11 +197,10 @@ class BlogController extends Controller
         $this->authorize('delete', $blog);
 
         $blog->delete();
-        
 
-        return redirect()
-        ->route('blog.index')
-        ->with('success', 'Blog soft deleted successfully.');    
+        return response()->json([
+            'message'  => 'Blog deleted successfully!',
+        ], 201);
     }
 
     /**

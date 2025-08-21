@@ -49,7 +49,7 @@ async function handleConfirmBooking(e: { eventId: string; scheduleId: string; st
     };
 
     await axios
-        .post('/api/bookings', payload)
+        .post(route('api.booking.store'), payload)
         .then((res) => {
             dialogOpen.value = false;
             console.log('Booking created:', res.data);

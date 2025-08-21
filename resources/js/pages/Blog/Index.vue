@@ -2,18 +2,19 @@
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { User } from '@/types';
-// import { type User } from '@/types';
-import type { BlogList } from '@/types/blog';
+import { Blog } from '@/types/blog';
+import { LaravelPagination } from '@/types/pagination';
 import { UserRole } from '@/types/role';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { Plus } from 'lucide-vue-next';
 
-defineProps<{
-    blogs: BlogList;
+const props = defineProps<{
+    blogs: LaravelPagination<Blog>;
 }>();
 
 const page = usePage();
 const user = page.props.auth.user as User;
+console.log(props.blogs);
 </script>
 
 <template>
@@ -37,25 +38,6 @@ const user = page.props.auth.user as User;
                     </Button>
                 </Link>
             </div>
-
-            <!-- Blog List -->
-            <!-- <Card>
-                <CardContent>
-                    <div class="space-y-4">
-                        <div
-                            v-for="blog in blogs.data"
-                            :key="blog.id"
-                            class="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50"
-                        >
-                            <
-                            <Link :key="blog.title" :href="`/blog/${blog.id}`">
-                                {{ blog.title }}
-                            </Link>
-                            <small> By {{ blog.author.name }} — {{ blog.published_at }} </small>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card> -->
             <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                 <div v-for="blog in blogs.data" :key="blog.id" class="group cursor-pointer">
                     <Link :href="route('blog.show', blog.id)" class="block overflow-hidden rounded-lg">

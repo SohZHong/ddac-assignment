@@ -1,22 +1,44 @@
 <script setup lang="ts">
 import axios from '@/axios';
+import Icon from '@/components/Icon.vue';
 import QuizDeleteDialog from '@/components/QuizDeleteDialog.vue';
 import QuizUpdateDialog from '@/components/QuizUpdateDialog.vue';
 import Toast from '@/components/Toast.vue';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import Label from '@/components/ui/label/Label.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { BreadcrumbItem } from '@/types';
+import { LaravelPagination } from '@/types/pagination';
 import { Quiz } from '@/types/quiz';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
+import {
+    PaginationEllipsis,
+    PaginationFirst,
+    PaginationLast,
+    PaginationList,
+    PaginationListItem,
+    PaginationNext,
+    PaginationPrev,
+    PaginationRoot,
+} from 'reka-ui';
 import { computed, ref } from 'vue';
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Healthcare', href: '/healthcare' }];
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Healthcare', href: '/healthcare' },
+    {
+        title: 'Quizzes',
+        href: '/healthcare/quizzes',
+    },
+];
 
-const props = defineProps<{ quizzes: Quiz[] }>();
+const props = defineProps<{ quizzes: LaravelPagination<Quiz> }>();
 
-const quizzes = ref<Quiz[]>(props.quizzes);
+const quizzes = ref<Quiz[]>(props.quizzes.data);
+
+const pagination = ref<LaravelPagination<Quiz>>(props.quizzes);
+const currentPage = ref(pagination.value.current_page);
 
 const quizId = ref('');
 const newQuizTitle = ref('');
@@ -38,7 +60,7 @@ const filteredQuizzes = computed(() => {
 
 async function createQuiz() {
     await axios
-        .post('/api/quizzes', {
+        .post(route('api.quizzes.store'), {
             title: newQuizTitle.value,
             description: newQuizDesc.value,
         })
@@ -70,7 +92,7 @@ async function createQuiz() {
 
 async function updateQuiz(payload: { id: string; title: string; description?: string }) {
     await axios
-        .put(`/api/quizzes/${payload.id}`, {
+        .put(route('api.quizzes.update', payload.id), {
             title: payload.title,
             description: payload.description,
         })
@@ -107,7 +129,7 @@ async function updateQuiz(payload: { id: string; title: string; description?: st
 
 async function deleteQuiz(payload: { id: string }) {
     await axios
-        .delete(`/api/quizzes/${payload.id}`)
+        .delete(route('api.quizzes.destroy', payload.id))
         .then(() => {
             // Remove the quiz from the array
             quizzes.value = quizzes.value.filter((q) => String(q.id) !== String(payload.id));
@@ -135,6 +157,45 @@ async function deleteQuiz(payload: { id: string }) {
         });
 }
 
+async function handleActiveChange(quiz: Quiz) {
+    try {
+        if (!quiz.active) {
+            // Activating this quiz
+            await axios.patch(route('api.quizzes.activate', quiz.id)).then((res) => {
+                // Deactivate all others in the frontend
+                quizzes.value.forEach((q) => {
+                    q.active = q.id === res.data.quiz.id;
+                });
+                toastMessage.value = {
+                    title: `Quiz Activated`,
+                    description: `"${quiz.title}" is now active.`,
+                    variant: 'success',
+                };
+            });
+        } else {
+            // Deactivating this quiz
+            await axios.patch(route('api.quizzes.deactivate', quiz.id)).then(() => {
+                quiz.active = false;
+                toastMessage.value = {
+                    title: `Quiz Deactivated`,
+                    description: `"${quiz.title}" has been deactivated.`,
+                    variant: 'success',
+                };
+            });
+        }
+
+        toastRef.value?.showToast();
+    } catch (err) {
+        toastMessage.value = {
+            title: `Failed to update quiz`,
+            description: (err as unknown as Error).message,
+            variant: 'destructive',
+        };
+        toastRef.value?.showToast();
+        console.error('Failed to update active state', err);
+    }
+}
+
 function handleEditClick(id: string, title: string, description?: string) {
     quizId.value = String(id);
     updateQuizTitle.value = title;
@@ -148,17 +209,22 @@ function handleDeleteClick(id: string) {
 
     deleteDialogOpen.value = true;
 }
+
+function goToPage(page: number) {
+    if (page === currentPage.value) return; // prevent duplicate navigation
+    router.visit(route('healthcare.quizzes.index', { page }));
+}
 </script>
 
 <template>
     <Head title="Manage Quizzes" />
+    <!-- Toast -->
+    <Toast ref="toastRef" :title="toastMessage.title" :description="toastMessage.description" :variant="toastMessage.variant" />
 
     <QuizUpdateDialog v-model:open="updateDialogOpen" :id="quizId" :title="updateQuizTitle" :description="updateQuizDesc" @confirm="updateQuiz" />
     <QuizDeleteDialog v-model:open="deleteDialogOpen" :id="quizId" @confirm="deleteQuiz" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-6 p-6">
-            <!-- Toast -->
-            <Toast ref="toastRef" :title="toastMessage.title" :description="toastMessage.description" :variant="toastMessage.variant" />
             <!-- Header -->
             <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -182,24 +248,97 @@ function handleDeleteClick(id: string) {
                 <Input v-model="searchQuery" placeholder="Search by quiz title" icon="search" class="min-w-[200px]" />
             </div>
             <!-- Existing Quizzes -->
-            <div class="grid gap-4 md:grid-cols-3">
-                <Card v-for="quiz in filteredQuizzes" :key="quiz.id">
-                    <CardHeader>
-                        <CardTitle>{{ quiz.title }}</CardTitle>
-                        <CardDescription>{{ quiz.description }}</CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-2">
-                        <p>Questions: {{ quiz.questions?.length || 0 }}</p>
-                        <div class="flex gap-2">
+            <div class="overflow-x-auto rounded-lg border">
+                <div class="min-w-[900px]">
+                    <!-- Table Header -->
+                    <div class="grid grid-cols-5 bg-muted text-sm font-semibold text-muted-foreground">
+                        <div class="px-4 py-2">Title</div>
+                        <div class="px-4 py-2">Description</div>
+                        <div class="px-4 py-2">Questions</div>
+                        <div class="px-4 py-2">Active</div>
+                        <div class="px-4 py-2">Actions</div>
+                    </div>
+
+                    <!-- Table Rows -->
+                    <div
+                        v-for="quiz in filteredQuizzes"
+                        :key="quiz.id"
+                        class="grid grid-cols-5 items-center border-t bg-white text-sm hover:bg-stone-50 dark:bg-black dark:hover:bg-accent"
+                    >
+                        <!-- Title -->
+                        <div class="px-4 py-3 font-medium">{{ quiz.title }}</div>
+
+                        <!-- Description -->
+                        <div class="truncate px-4 py-3 text-muted-foreground">
+                            {{ quiz.description }}
+                        </div>
+
+                        <!-- Questions Count -->
+                        <div class="px-4 py-3">
+                            {{ quiz.questions?.length || 0 }}
+                        </div>
+
+                        <!-- Active Checkbox -->
+                        <div class="px-4 py-3">
+                            <Label class="flex items-center gap-2">
+                                <input type="checkbox" :checked="quiz.active" @change="() => handleActiveChange(quiz)" />
+                                <span class="sr-only">Active</span>
+                            </Label>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex flex-wrap justify-between gap-2 px-4 py-3">
                             <Button variant="default">
                                 <Link :href="route('healthcare.quizzes.show', quiz.id)">View</Link>
                             </Button>
-                            <Button @click="() => handleEditClick(quiz.id, quiz.title, quiz.description)" variant="secondary">Edit</Button>
-                            <Button @click="() => handleDeleteClick(quiz.id)" variant="destructive">Delete</Button>
+                            <Button @click="() => handleEditClick(quiz.id, quiz.title, quiz.description)" variant="secondary"> Edit </Button>
+                            <Button @click="() => handleDeleteClick(quiz.id)" variant="destructive"> Delete </Button>
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div v-if="filteredQuizzes.length === 0" class="px-4 py-6 text-center text-muted-foreground">No quizzes found.</div>
+                </div>
             </div>
+            <PaginationRoot :total="pagination.total" :items-per-page="pagination.per_page" :default-page="pagination.current_page" show-edges>
+                <PaginationList v-slot="{ items }">
+                    <PaginationFirst
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                    >
+                        <Icon name="double-arrow-left" icon="radix-icons:double-arrow-left" />
+                    </PaginationFirst>
+                    <PaginationPrev
+                        class="mr-4 flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                    >
+                        <Icon name="chevron-left" icon="radix-icons:chevron-left" />
+                    </PaginationPrev>
+                    <template v-for="(page, index) in items">
+                        <PaginationListItem
+                            class="h-9 w-9 rounded-lg border transition hover:bg-white data-[selected]:!bg-white data-[selected]:text-black data-[selected]:shadow-sm dark:border-stone-800 dark:hover:bg-stone-700/70"
+                            v-if="page.type === 'page'"
+                            :key="index"
+                            :value="page.value"
+                            @click="goToPage(page.value)"
+                        >
+                            {{ page.value }}
+                        </PaginationListItem>
+
+                        <PaginationEllipsis class="flex h-9 w-9 items-center justify-center" v-else :key="page.type" :index="index">
+                            &#8230;
+                        </PaginationEllipsis>
+                    </template>
+                    <PaginationNext
+                        class="ml-4 flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                    >
+                        <Icon name="chevron-right" icon="radix-icons:chevron-right" />
+                    </PaginationNext>
+                    <PaginationLast
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                    >
+                        <Icon name="double-arrow-right" icon="radix-icons:double-arrow-right" />
+                    </PaginationLast>
+                </PaginationList>
+            </PaginationRoot>
         </div>
     </AppLayout>
 </template>

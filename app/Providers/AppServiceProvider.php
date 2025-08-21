@@ -12,6 +12,7 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Schedule::class => \App\Policies\SchedulePolicy::class,
         \App\Models\Booking::class => \App\Policies\BookingPolicy::class,
         \App\Models\Quiz::class => \App\Policies\QuizPolicy::class,
+        \App\Models\ConsultationReport::class => \App\Policies\ConsultationReportPolicy::class,
     ];
 
     /**
