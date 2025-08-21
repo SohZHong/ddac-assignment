@@ -4,7 +4,7 @@ import QuizDeleteDialog from '@/components/QuizDeleteDialog.vue';
 import QuizUpdateDialog from '@/components/QuizUpdateDialog.vue';
 import Toast from '@/components/Toast.vue';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import Label from '@/components/ui/label/Label.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -13,7 +13,13 @@ import { Quiz } from '@/types/quiz';
 import { Head, Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Healthcare', href: '/healthcare' }];
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Healthcare', href: '/healthcare' },
+    {
+        title: 'Quizzes',
+        href: '/healthcare/quizzes',
+    },
+];
 
 const props = defineProps<{ quizzes: Quiz[] }>();
 
@@ -193,13 +199,13 @@ console.log(props.quizzes);
 
 <template>
     <Head title="Manage Quizzes" />
+    <!-- Toast -->
+    <Toast ref="toastRef" :title="toastMessage.title" :description="toastMessage.description" :variant="toastMessage.variant" />
 
     <QuizUpdateDialog v-model:open="updateDialogOpen" :id="quizId" :title="updateQuizTitle" :description="updateQuizDesc" @confirm="updateQuiz" />
     <QuizDeleteDialog v-model:open="deleteDialogOpen" :id="quizId" @confirm="deleteQuiz" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-6 p-6">
-            <!-- Toast -->
-            <Toast ref="toastRef" :title="toastMessage.title" :description="toastMessage.description" :variant="toastMessage.variant" />
             <!-- Header -->
             <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -223,28 +229,57 @@ console.log(props.quizzes);
                 <Input v-model="searchQuery" placeholder="Search by quiz title" icon="search" class="min-w-[200px]" />
             </div>
             <!-- Existing Quizzes -->
-            <div class="grid grid-cols-2 gap-4 md:grid-cols-3">
-                <Card v-for="quiz in filteredQuizzes" :key="quiz.id">
-                    <CardHeader>
-                        <CardTitle>{{ quiz.title }}</CardTitle>
-                        <CardDescription>{{ quiz.description }}</CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-2">
-                        <p>Questions: {{ quiz.questions?.length || 0 }}</p>
+            <div class="overflow-x-auto rounded-lg border">
+                <div class="min-w-[900px]">
+                    <!-- Table Header -->
+                    <div class="grid grid-cols-5 bg-muted text-sm font-semibold text-muted-foreground">
+                        <div class="px-4 py-2">Title</div>
+                        <div class="px-4 py-2">Description</div>
+                        <div class="px-4 py-2">Questions</div>
+                        <div class="px-4 py-2">Active</div>
+                        <div class="px-4 py-2">Actions</div>
+                    </div>
+
+                    <!-- Table Rows -->
+                    <div
+                        v-for="quiz in filteredQuizzes"
+                        :key="quiz.id"
+                        class="grid grid-cols-5 items-center border-t bg-white text-sm hover:bg-stone-50"
+                    >
+                        <!-- Title -->
+                        <div class="px-4 py-3 font-medium">{{ quiz.title }}</div>
+
+                        <!-- Description -->
+                        <div class="truncate px-4 py-3 text-muted-foreground">
+                            {{ quiz.description }}
+                        </div>
+
+                        <!-- Questions Count -->
+                        <div class="px-4 py-3">
+                            {{ quiz.questions?.length || 0 }}
+                        </div>
+
                         <!-- Active Checkbox -->
-                        <Label class="flex items-center gap-2">
-                            <input type="checkbox" :checked="quiz.active" @change="() => handleActiveChange(quiz)" />
-                            <span>Active</span>
-                        </Label>
-                        <div class="flex gap-2">
+                        <div class="px-4 py-3">
+                            <Label class="flex items-center gap-2">
+                                <input type="checkbox" :checked="quiz.active" @change="() => handleActiveChange(quiz)" />
+                                <span class="sr-only">Active</span>
+                            </Label>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex flex-wrap justify-between gap-2 px-4 py-3">
                             <Button variant="default">
                                 <Link :href="route('healthcare.quizzes.show', quiz.id)">View</Link>
                             </Button>
-                            <Button @click="() => handleEditClick(quiz.id, quiz.title, quiz.description)" variant="secondary">Edit</Button>
-                            <Button @click="() => handleDeleteClick(quiz.id)" variant="destructive">Delete</Button>
+                            <Button @click="() => handleEditClick(quiz.id, quiz.title, quiz.description)" variant="secondary"> Edit </Button>
+                            <Button @click="() => handleDeleteClick(quiz.id)" variant="destructive"> Delete </Button>
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div v-if="filteredQuizzes.length === 0" class="px-4 py-6 text-center text-muted-foreground">No quizzes found.</div>
+                </div>
             </div>
         </div>
     </AppLayout>

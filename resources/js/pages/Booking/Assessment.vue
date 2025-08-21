@@ -16,7 +16,7 @@ const props = defineProps<{
     response?: QuizResponse;
 }>();
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Appointments', href: '/bookings' },
+    { title: 'Appointments', href: '/appointments' },
     { title: `Assessment: ${props.quiz.title}`, href: '#' },
 ];
 // Keep track of answers

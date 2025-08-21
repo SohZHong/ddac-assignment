@@ -32,7 +32,7 @@ function handleConfirm() {
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>Delete Availability Slot</DialogTitle>
-                <DialogDescription class="mt-2"> Are you sure you want to create this slot? </DialogDescription>
+                <DialogDescription class="mt-2"> Are you sure you want to delete this slot? </DialogDescription>
             </DialogHeader>
 
             <div v-if="start && end">

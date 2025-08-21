@@ -39,20 +39,29 @@ const mainNavItems = computed((): NavItem[] => {
             href: '/blogs',
             icon: BookHeartIcon,
         },
-        {
-            title: 'Appointment Booking',
-            href: '/schedules',
-            icon: Calendar,
-        },
-        {
-            title: 'Appointments',
-            href: '/bookings',
-            icon: List,
-        },
     ];
 
+    if (user.value.role === UserRole.PUBLIC_USER) {
+        items.push(
+            {
+                title: 'Appointment Booking',
+                href: '/schedules',
+                icon: Calendar,
+            },
+            {
+                title: 'Appointments',
+                href: '/bookings',
+                icon: List,
+            },
+        );
+    }
+
     // Add healthcare routes for healthcare professionals and above
-    if (user.value.role === UserRole.HEALTHCARE_PROFESSIONAL || UserRole.HEALTH_CAMPAIGN_MANAGER || user.value.role === UserRole.SYSTEM_ADMIN) {
+    if (
+        user.value.role === UserRole.HEALTHCARE_PROFESSIONAL ||
+        user.value.role === UserRole.HEALTH_CAMPAIGN_MANAGER ||
+        user.value.role === UserRole.SYSTEM_ADMIN
+    ) {
         items.push(
             {
                 title: 'Healthcare',
@@ -60,13 +69,18 @@ const mainNavItems = computed((): NavItem[] => {
                 icon: Heart,
             },
             {
+                title: 'Schedule',
+                href: '/healthcare/schedules',
+                icon: Calendar,
+            },
+            {
                 title: 'Appointments',
-                href: '/appointments',
+                href: '/healthcare/appointments',
                 icon: ClipboardEdit,
             },
             {
                 title: 'Assessment Quizzes',
-                href: '/quizzes',
+                href: '/healthcare/quizzes',
                 icon: MessageCircleQuestion,
             },
         );

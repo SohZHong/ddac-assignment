@@ -76,7 +76,7 @@ class ScheduleController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'start'        => 'required|date',
+            'start'        => 'required|date|after:now',
             'end'          => 'required|date|after:start',
             'day_of_week'  => 'required|integer|min:0|max:6',
         ]);
@@ -118,7 +118,7 @@ class ScheduleController extends Controller
         $this->authorize('update', $schedule);
 
         $validated = $request->validate([
-            'start_time'        => 'required|date',
+            'start_time'        => 'required|date|after:now',
             'end_time'          => 'required|date|after:start',
             'day_of_week'       => 'required|integer|min:0|max:6',
         ]);

@@ -9,9 +9,15 @@ class Booking extends Model
 {
     use HasFactory;
 
+    // Booking status
     const PENDING   = 0;
     const CONFIRMED = 1;
     const CANCELLED = 2;
+
+    // Risk level
+    const LOW   = 0;
+    const MID   = 1;
+    const HIGH  = 2;
 
     protected $fillable = [
         'schedule_id',
@@ -19,6 +25,8 @@ class Booking extends Model
         'start_time',
         'end_time',
         'status',
+        'healthcare_comments',
+        'risk_level',
     ];
     
     protected $casts = [
@@ -58,10 +66,10 @@ class Booking extends Model
     }
 
     /**
-     * Get the quiz responses associated with this booking
+     * Get the quiz response associated with this booking
      */
-    public function quizResponses()
+    public function quizResponse()
     {
-        return $this->hasMany(QuizResponse::class);
+        return $this->hasOne(QuizResponse::class);
     }
 }

@@ -1,7 +1,15 @@
+import { QuizResponse } from './quiz';
+
 export enum BookingStatus {
     PENDING = 0,
     CONFIRMED = 1,
     CANCELLED = 2,
+}
+
+export enum PatientRiskLevel {
+    LOW = 0,
+    MID = 1,
+    HIGH = 2,
 }
 
 export interface BookingPatient {
@@ -23,4 +31,7 @@ export interface Booking {
     start_time: string;
     end_time: string;
     status: BookingStatus;
+    healthcare_comments: string;
+    risk_level: PatientRiskLevel;
+    quizResponse?: QuizResponse;
 }

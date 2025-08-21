@@ -64,6 +64,21 @@ class BookingPolicy
     }
 
     /**
+     * Determine if the user can update a booking.
+     */
+    public function assessment(User $user, Booking $booking): bool
+    {
+        // Only allow the owner of the booking to start/submit assessment
+        return $booking->patient_id === $user->id;
+    }
+
+    public function reviewAppointmentResponse(User $user, Booking $booking): bool
+    {
+        // Only the healthcare professional who owns the schedule can manage the booking
+        return $booking->healthcare->id === $user->id;
+    }
+
+    /**
      * Determine if the user approve bookings.
      */
     public function approve(User $user, Booking $booking): bool

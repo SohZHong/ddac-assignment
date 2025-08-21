@@ -82,6 +82,8 @@ class BookingController extends Controller
         $booking = Booking::with(['schedule.healthcare'])
             ->findOrFail($bookingId);
 
+        $this->authorize('assessment', $booking);
+
         $bookingData = [
             'id'          => $booking->id,
             'schedule_id' => $booking->schedule_id,
@@ -130,6 +132,8 @@ class BookingController extends Controller
     {
         $booking = Booking::findOrFail($bookingId);
 
+        $this->authorize('assessment', $booking);
+
         $validated = $request->validate([
             'quiz_id'  => 'required|exists:quizzes,id',
             'answers'  => 'required|array',
@@ -152,14 +156,6 @@ class BookingController extends Controller
         $booking->healthcare->notify(new PatientCompleteAssessmentNotification($booking));
 
         return redirect()->route('booking.index')->with('success', 'Assessment submitted successfully.');
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
     }
 
     /**

@@ -61,7 +61,7 @@ class HealthcareCompleteAssessmentNotification extends Notification
             'patient_name'    => $actor,
             'schedule_id'     => $this->booking->schedule_id,
             'timestamp'       => now(),
-            'message'         => "{$actor} has completed your assessment for thenbooking from {$start} - {$end}",
+            'message'         => "{$actor} has completed your assessment for the booking from {$start} - {$end}",
         ];
     }
 }

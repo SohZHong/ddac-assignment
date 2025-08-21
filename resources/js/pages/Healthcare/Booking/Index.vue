@@ -4,12 +4,11 @@ import Icon from '@/components/Icon.vue';
 import Toast from '@/components/Toast.vue';
 import Badge from '@/components/ui/badge/Badge.vue';
 import Button from '@/components/ui/button/Button.vue';
-import { Card, CardContent } from '@/components/ui/card';
 import Input from '@/components/ui/input/Input.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { BreadcrumbItem } from '@/types';
 import { Booking, BookingStatus } from '@/types/booking';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { Filter } from 'lucide-vue-next';
 import {
     SelectContent,
@@ -33,7 +32,10 @@ interface StatusInfo {
     variant?: 'default' | 'destructive' | 'outline' | 'secondary' | null;
 }
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Healthcare', href: '/healthcare' }];
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Healthcare', href: '/healthcare' },
+    { title: 'Appointments', href: '#' },
+];
 
 const statusFilterOptions = [
     {
@@ -202,32 +204,84 @@ async function declineBooking(id: string) {
                     </SelectRoot>
                 </div>
             </div>
-            <div class="flex flex-col gap-4">
-                <div v-if="filteredBookings.length === 0" class="text-center text-muted-foreground">No appointments found.</div>
-                <Card v-for="booking in filteredBookings" :key="booking.id" class="w-full transition-shadow duration-200 hover:shadow-lg">
-                    <CardContent class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <div class="flex flex-1 flex-col gap-4 md:flex-row md:items-center">
-                            <div :class="['h-2 w-2 rounded-full', statusClass(booking.status)]"></div>
-                            <div class="text-lg font-semibold">{{ booking.patient.name }}</div>
-                            <div class="text-sm text-muted-foreground">{{ booking.patient.email }}</div>
-                            <div class="text-sm text-muted-foreground">
-                                {{ new Date(booking.start_time).toLocaleString() }} - {{ new Date(booking.end_time).toLocaleString() }}
-                            </div>
+            <!-- Table Wrapper -->
+            <div class="overflow-x-auto rounded-lg border">
+                <div class="min-w-[900px]">
+                    <!-- Table Header -->
+                    <div class="grid grid-cols-6 bg-muted text-sm font-semibold text-muted-foreground">
+                        <div class="px-4 py-2">Name</div>
+                        <div class="px-4 py-2">Email</div>
+                        <div class="px-4 py-2">Time</div>
+                        <div class="px-4 py-2">Risk</div>
+                        <div class="px-4 py-2">Status</div>
+                        <div class="px-4 py-2">Actions</div>
+                    </div>
+
+                    <!-- Table Rows -->
+                    <div
+                        v-for="booking in filteredBookings"
+                        :key="booking.id"
+                        class="grid grid-cols-6 items-center border-t bg-white text-sm hover:bg-stone-50"
+                    >
+                        <!-- Name -->
+                        <div class="px-4 py-3 font-medium">{{ booking.patient.name }}</div>
+
+                        <!-- Email -->
+                        <div class="px-4 py-3 text-muted-foreground">{{ booking.patient.email }}</div>
+
+                        <!-- Time -->
+                        <div class="px-4 py-3 text-muted-foreground">
+                            {{ new Date(booking.start_time).toLocaleString() }}
+                            –
+                            {{ new Date(booking.end_time).toLocaleString() }}
                         </div>
-                        <div v-if="booking.status !== BookingStatus.CANCELLED" class="flex items-center gap-4">
+
+                        <!-- Risk -->
+                        <div class="px-4 py-3">
+                            <Badge
+                                v-if="booking.risk_level !== undefined"
+                                :variant="booking.risk_level === 2 ? 'destructive' : booking.risk_level === 1 ? 'secondary' : 'default'"
+                            >
+                                {{ booking.risk_level === 0 ? 'Low' : booking.risk_level === 1 ? 'Mid' : 'High' }}
+                            </Badge>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="px-4 py-3">
+                            <Badge :variant="statusMap[booking.status].variant">
+                                {{ statusMap[booking.status].text }}
+                            </Badge>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex flex-wrap justify-between gap-2 px-4 py-3">
+                            <Button size="sm" variant="secondary" v-if="booking.quizResponse">
+                                <Link
+                                    :href="
+                                        route('healthcare.appointment.responses.show', {
+                                            booking: booking.id,
+                                            response: booking.quizResponse!.id,
+                                        })
+                                    "
+                                >
+                                    View Quiz
+                                </Link>
+                            </Button>
                             <Button
                                 size="sm"
                                 variant="default"
+                                v-if="booking.status !== BookingStatus.CONFIRMED"
                                 @click="approveBooking(booking.id!)"
-                                :disabled="booking.status === BookingStatus.CONFIRMED"
                             >
                                 Confirm
                             </Button>
-                            <Button size="sm" variant="destructive" @click="declineBooking(booking.id!)">Cancel</Button>
+                            <Button size="sm" variant="destructive" @click="declineBooking(booking.id!)"> Cancel </Button>
                         </div>
-                        <Badge :variant="statusMap[booking.status].variant">{{ statusMap[booking.status].text }}</Badge>
-                    </CardContent>
-                </Card>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div v-if="filteredBookings.length === 0" class="px-4 py-6 text-center text-muted-foreground">No appointments found.</div>
+                </div>
             </div>
         </div>
     </AppLayout>
