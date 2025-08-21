@@ -247,7 +247,7 @@ async function deleteSchedule() {
 
 function goToPage(page: number) {
     if (page === currentPage.value) return; // prevent duplicate navigation
-    router.visit(route('healthcare.schedule.index'));
+    router.visit(route('healthcare.schedule.index', { page }));
 }
 </script>
 <style scoped>

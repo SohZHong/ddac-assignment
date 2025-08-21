@@ -197,6 +197,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get their schedules
+     */
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::class, 'healthcare_id');
+    }
+
+    /**
      * Get their bookings
      */
     public function bookings()
@@ -209,7 +217,14 @@ class User extends Authenticatable
      */
     public function healthcareBookings()
     {
-        return $this->hasMany(Booking::class, 'healthcare_id');
+        return $this->hasManyThrough(
+            Booking::class,
+            Schedule::class,
+            'healthcare_id', // Foreign key on schedules table
+            'schedule_id',   // Foreign key on bookings table
+            'id',            // Local key on users table
+            'id'             // Local key on schedules table
+        );
     }
 
     /**
@@ -220,4 +235,18 @@ class User extends Authenticatable
         return $this->hasMany(Quiz::class, 'healthcare_id');
     }
 
+    /**
+     * Get all relevant reports
+     */
+
+    public function consultationReports()
+    {
+        return $this->hasMany(ConsultationReport::class, 'user_id');
+    }
+
+    // If this user is a doctor
+    public function uploadedConsultationReports()
+    {
+        return $this->hasMany(ConsultationReport::class, 'uploaded_by');
+    }
 }

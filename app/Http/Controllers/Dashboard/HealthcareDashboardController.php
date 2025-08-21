@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Models\Blog;
 use App\Models\Quiz;
 use App\Models\QuizResponse;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -18,12 +19,77 @@ class HealthcareDashboardController extends Controller
 {
     public function index(): Response
     {
+        $user = auth()->user();
+
+        // Today's bookings
+        $todayBookingsCount = $user->healthcareBookings()
+            ->whereDate('bookings.start_time', now())
+            ->count();
+
+        // Total bookings count
+        $totalBookings = $user->healthcareBookings()->count();
+
+        // Number of unique patients (confirmed = 1)
+        $confirmedPatients = $user->healthcareBookings()
+            ->where('status', Booking::CONFIRMED)
+            ->distinct('patient_id')
+            ->count('patient_id');
+
+        // Number of pending bookings (status = 0)
+        $pendingBookings = $user->healthcareBookings()
+            ->where('status', Booking::PENDING)
+            ->count();
+
+        // Number of schedules
+        $totalSchedules = $user->schedules()->count();
+
+        // Total hours available across schedules
+        $totalHoursAvailable = $user->schedules()
+            ->selectRaw('SUM(EXTRACT(EPOCH FROM (end_time - start_time))/3600) as hours')
+            ->value('hours') ?? 0;
+
+        // Quiz responses
+        $quizResponses = QuizResponse::whereIn(
+            'quiz_id',
+            $user->quizzes()->pluck('id')
+        )->count();
+
         return Inertia::render('Healthcare/Dashboard', [
-            'profile' => auth()->user()->only(['id','name','email']),
-            // 'bookings' => Booking::where('healthcare_id', auth()->id())
-            //     ->with('patient:id,name')
-            //     ->orderBy('start_time', 'asc')
-            //     ->get(),
+            'profile' => $user->only(['id', 'name', 'email']),
+            'stats' => [
+                'todayBookingsCount'=> $todayBookingsCount,
+                'totalBookings'     => $totalBookings,
+                'confirmedPatients' => $confirmedPatients,
+                'pendingBookings'   => $pendingBookings,
+                'totalSchedules'    => $totalSchedules,
+                'totalHours'        => $totalHoursAvailable,
+                'quizResponses'     => $quizResponses,
+            ],
+        ]);
+    }
+
+    public function patient(): Response
+    {
+        $user = auth()->user();
+
+        $patients = User::whereHas('bookings', function ($query) use ($user) {
+            $query->whereHas('schedule', fn($q) => $q->where('healthcare_id', $user->id));
+        })
+        ->withCount([
+            'bookings as bookings_count' => function ($query) use ($user) {
+                $query->whereHas('schedule', fn($q) => $q->where('healthcare_id', $user->id));
+            },
+            'bookings as pending_bookings_count' => function ($query) use ($user) {
+                $query->whereHas('schedule', fn($q) => $q->where('healthcare_id', $user->id))
+                    ->where('status', Booking::PENDING);
+            }
+        ])
+        ->orderBy('name')
+        ->paginate(15)
+        ->withQueryString();
+
+        return Inertia::render('Healthcare/Patient/Index', [
+            'patients' => $patients,
         ]);
     }
 

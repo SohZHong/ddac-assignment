@@ -8,6 +8,10 @@ Route::prefix('/healthcare')->group(function () {
         Route::get('/', [HealthcareDashboardController::class, 'index'])
             ->name('healthcare.index');
 
+        // Patient 
+        Route::get('/patients', [HealthcareDashboardController::class, 'patient'])
+            ->name('healthcare.patient.index');
+
         // Blog
         Route::get('/blogs', [HealthcareDashboardController::class, 'blog'])
             ->name('healthcare.blog.index');

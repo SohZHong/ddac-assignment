@@ -69,6 +69,11 @@ const mainNavItems = computed((): NavItem[] => {
                 icon: Heart,
             },
             {
+                title: 'Patients',
+                href: '/healthcare/patients',
+                icon: Users,
+            },
+            {
                 title: 'Blog',
                 href: '/healthcare/blogs',
                 icon: BookOpen,

@@ -149,7 +149,7 @@ async function declineBooking(id: string) {
 
 function goToPage(page: number) {
     if (page === currentPage.value) return; // prevent duplicate navigation
-    router.visit(route('healthcare.appointment.index'));
+    router.visit(route('healthcare.appointment.index', { page }));
 }
 </script>
 

@@ -212,7 +212,7 @@ function handleDeleteClick(id: string) {
 
 function goToPage(page: number) {
     if (page === currentPage.value) return; // prevent duplicate navigation
-    router.visit(route('healthcare.quizzes.index'));
+    router.visit(route('healthcare.quizzes.index', { page }));
 }
 </script>
 
