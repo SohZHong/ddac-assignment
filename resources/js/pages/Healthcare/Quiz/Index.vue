@@ -244,7 +244,7 @@ console.log(props.quizzes);
                     <div
                         v-for="quiz in filteredQuizzes"
                         :key="quiz.id"
-                        class="grid grid-cols-5 items-center border-t bg-white text-sm hover:bg-stone-50"
+                        class="grid grid-cols-5 items-center border-t bg-white text-sm hover:bg-stone-50 dark:bg-black dark:hover:bg-accent"
                     >
                         <!-- Title -->
                         <div class="px-4 py-3 font-medium">{{ quiz.title }}</div>

@@ -297,7 +297,7 @@ const toastMessage = ref({ title: '', description: '', variant: 'default' as 'de
                             <div
                                 v-for="schedule in events"
                                 :key="schedule.id"
-                                class="grid grid-cols-4 items-center border-t bg-white text-sm hover:bg-stone-50"
+                                class="grid grid-cols-4 items-center border-t bg-white text-sm hover:bg-stone-50 dark:bg-black dark:hover:bg-accent"
                             >
                                 <!-- Start -->
                                 <div class="px-4 py-3 font-medium">

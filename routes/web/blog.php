@@ -9,10 +9,6 @@ Route::prefix('blogs')->group(function () {
 
     // Authenticated routes — create, update, delete, restore
     Route::middleware('auth')->group(function () {
-        Route::get('/create', [BlogController::class, 'create'])
-            ->name('blog.create');      // Page to display create form
-        Route::get('/edit/{blog}', [BlogController::class, 'edit'])
-            ->name('blog.edit');      // Page to display edit form
 
         Route::post('/', [BlogController::class, 'store'])
             ->name('blog.store');       // Create blog

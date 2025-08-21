@@ -5,11 +5,15 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Schedule;
 use App\Models\Booking;
+use App\Models\Blog;
 use App\Models\Quiz;
 use App\Models\QuizResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Str;
 class HealthcareDashboardController extends Controller
 {
     public function index(): Response
@@ -21,6 +25,130 @@ class HealthcareDashboardController extends Controller
             //     ->orderBy('start_time', 'asc')
             //     ->get(),
         ]);
+    }
+
+    public function blog(): Response
+    {
+        $blogs = Blog::where('author_id', auth()->id())
+            ->orderByDesc('published_at')
+            ->paginate(15)
+            ->through(fn ($blog) => [
+                'id'            => $blog->id,
+                'title'         => $blog->title,
+                'slug'          => $blog->slug,
+                'cover_image'   => $blog->cover_image,
+                'author'        => [
+                    'id'   => optional($blog->author)->id   ?? 1,
+                    'name' => optional($blog->author)->name ?? 'Anonymous',
+                ],
+                'published_at'  => $blog->published_at,
+                'status'        => $blog->status
+            ]);
+        return Inertia::render('Healthcare/Blog/Index', [
+            'blogs' => $blogs
+        ]);
+    }
+
+    /**
+     * Page for creating a new blog
+     */
+    public function createBlog(): Response
+    {
+        return Inertia::render('Healthcare/Blog/Create');
+    }
+
+    public function storeBlog(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'content' => 'required|string',
+            'cover_image' => 'nullable|image|max:2048',
+            'status' => 'in:' . implode(',', [
+                Blog::STATUS_DRAFT,
+                Blog::STATUS_PUBLISHED,
+            ]),
+        ]);
+
+        $validated['slug'] = Str::slug($validated['title']);
+        $validated['author_id'] = auth()->id();
+
+        if ($request->hasFile('cover_image')) {
+            // Store in public folder for now
+            $validated['cover_image'] = $request->file('cover_image')->store('blogs', 'public');
+        }
+
+        if ($validated['status'] === Blog::STATUS_PUBLISHED) {
+            $validated['published_at'] = now();
+        }
+
+        Blog::create($validated);
+
+        return redirect()->route('healthcare.blog.index')->with('success', 'Blog created successfully');
+    }
+
+    /**
+     * Show the form for editing the specified blog.
+     */
+    public function editBlog(string $id): Response
+    {
+        $blog = Blog::findOrFail($id);
+        // Check authorization
+        $this->authorize('update', $blog);
+
+        return Inertia::render('Healthcare/Blog/Edit', [
+            'blog' => [
+                'id'           => $blog->id,
+                'title'        => $blog->title,
+                'slug'         => $blog->slug,
+                'cover_image'  => $blog->cover_image,
+                'content'      => $blog->content,
+                'author'       => [
+                    'id'   => $blog->author?->id ?? 0,
+                    'name' => $blog->author?->name ?? 'Anonymous',
+                ],
+                'published_at' => $blog->published_at,
+                'status'       => $blog->status,
+            ],
+        ]);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function updateBlog(Request $request, string $id)
+    {
+        $blog = Blog::findOrFail($id);
+
+        // Check if user is authorized to update
+        $this->authorize('update', $blog);
+
+        $validated = $request->validate([
+            'title' => 'sometimes|string|max:255',
+            'content' => 'sometimes',
+            'cover_image' => 'nullable|image|max:2048',
+            'status' => 'in:' . implode(',', [
+                Blog::STATUS_DRAFT,
+                Blog::STATUS_PUBLISHED,
+            ]),
+        ]);
+
+        if (isset($validated['title'])) {
+            $validated['slug'] = Str::slug($validated['title']);
+        }
+
+        if ($request->hasFile('cover_image')) {
+            // Delete image in public folder (Will be replaced later)
+            Storage::disk('public')->delete($blog->cover_image);
+            $validated['cover_image'] = $request->file('cover_image')->store('blogs', 'public');
+        }
+
+        if (isset($validated['status']) && $validated['status'] === Blog::STATUS_PUBLISHED) {
+            $validated['published_at'] = now();
+        }
+
+        $blog->update($validated);
+
+        return redirect()->route('healthcare.blog.index')->with('success', 'Blog updated successfully');
     }
 
     public function schedule(): Response
@@ -69,7 +197,7 @@ class HealthcareDashboardController extends Controller
     {
         $quizResponse = QuizResponse::with([
                 'booking.patient:id,name,email',
-                'quiz.questions' // eager-load the quiz and its questions
+                'quiz' // only quiz meta, not questions here
             ])
             ->where('id', $quizResponseId)
             ->where('booking_id', $bookingId)
@@ -80,17 +208,21 @@ class HealthcareDashboardController extends Controller
             ->mapWithKeys(fn ($answer) => [$answer['question_id'] => $answer['answer']])
             ->toArray();
 
-        // Merge answers into questions
-        $questions = $quizResponse->quiz->questions->map(function ($q) use ($answersMap) {
-            return [
-                'id'            => $q->id,
-                'quiz_id'       => $q->quiz_id,
-                'question_text' => $q->question_text,
-                'type'          => $q->type,
-                'options'       => $q->options,
-                'answer'        => $answersMap[$q->id] ?? null, // add the patient answer
-            ];
-        })->toArray();
+        // Paginate quiz questions separately
+        $questions = $quizResponse->quiz
+            ->questions()
+            ->select('id', 'quiz_id', 'question_text', 'type', 'options')
+            ->paginate(10)
+            ->through(function ($q) use ($answersMap) {
+                return [
+                    'id'            => $q->id,
+                    'quiz_id'       => $q->quiz_id,
+                    'question_text' => $q->question_text,
+                    'type'          => $q->type,
+                    'options'       => $q->options,
+                    'answer'        => $answersMap[$q->id] ?? null,
+                ];
+            });
 
         $responseData = [
             'id'           => $quizResponse->id,
@@ -105,7 +237,7 @@ class HealthcareDashboardController extends Controller
                     'email' => $quizResponse->booking->patient->email,
                 ],
                 'healthcare_comments' => $quizResponse->booking->healthcare_comments,
-                'risk_level' => $quizResponse->booking->risk_level,
+                'risk_level'          => $quizResponse->booking->risk_level,
             ],
             'quiz'         => [
                 'id'            => $quizResponse->quiz->id,
@@ -113,12 +245,12 @@ class HealthcareDashboardController extends Controller
                 'title'         => $quizResponse->quiz->title,
                 'description'   => $quizResponse->quiz->description,
                 'active'        => $quizResponse->quiz->active,
-                'questions'     => $questions,
             ],
         ];
 
         return Inertia::render('Healthcare/Booking/Response', [
-            'quizResponse' => $responseData
+            'quizResponse' => $responseData,
+            'questions'    => $questions,
         ]);
     }
 

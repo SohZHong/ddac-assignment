@@ -87,7 +87,7 @@ const filteredBookings = computed(() => {
 async function approveBooking(id: string) {
     const status = BookingStatus.CONFIRMED;
     await axios
-        .patch(`/api/bookings/approve/${id}`, { status })
+        .patch(route('api.booking.approve', id), { status })
         .then(() => {
             // Update the local booking status
             const booking = bookings.value.find((b) => b.id === id);
@@ -118,7 +118,7 @@ async function approveBooking(id: string) {
 async function declineBooking(id: string) {
     const status = BookingStatus.CANCELLED;
     await axios
-        .patch(`/api/bookings/decline/${id}`, { status })
+        .patch(route('api.booking.decline', id), { status })
         .then(() => {
             // Update the local booking status
             const booking = bookings.value.find((b) => b.id === id);
@@ -164,7 +164,7 @@ async function declineBooking(id: string) {
                     <Input v-model="searchQuery" placeholder="Search by patient name" icon="search" class="min-w-[200px]" />
                     <SelectRoot v-model="statusFilter">
                         <SelectTrigger
-                            class="text-grass11 data-[placeholder]:text-green9 inline-flex h-[35px] min-w-[160px] items-center justify-between gap-[5px] rounded-lg border bg-white px-[15px] text-xs leading-none shadow-sm outline-none hover:bg-stone-50 focus:shadow-[0_0_0_2px] focus:shadow-black"
+                            class="inline-flex h-[35px] min-w-[160px] items-center justify-between gap-[5px] rounded-lg border bg-white px-[15px] text-xs leading-none shadow-sm outline-none hover:bg-stone-50 focus:shadow-[0_0_0_2px] focus:shadow-black dark:bg-black dark:hover:bg-accent"
                             aria-label="Filter options"
                         >
                             <SelectValue placeholder="Filter" />
@@ -172,10 +172,12 @@ async function declineBooking(id: string) {
                         </SelectTrigger>
                         <SelectPortal>
                             <SelectContent
-                                class="data-[side=top]:animate-slideDownAndFade data-[side=right]:animate-slideLeftAndFade data-[side=bottom]:animate-slideUpAndFade data-[side=left]:animate-slideRightAndFade z-[100] min-w-[160px] rounded-lg border bg-white shadow-sm will-change-[opacity,transform]"
+                                class="data-[side=top]:animate-slideDownAndFade data-[side=right]:animate-slideLeftAndFade data-[side=bottom]:animate-slideUpAndFade data-[side=left]:animate-slideRightAndFade z-[100] min-w-[160px] rounded-lg border bg-white shadow-sm will-change-[opacity,transform] dark:bg-black"
                                 :side-offset="5"
                             >
-                                <SelectScrollUpButton class="text-violet11 flex h-[25px] cursor-default items-center justify-center bg-white">
+                                <SelectScrollUpButton
+                                    class="text-violet11 flex h-[25px] cursor-default items-center justify-center bg-white dark:bg-black"
+                                >
                                     <Icon name="chevron up" icon="radix-icons:chevron-up" />
                                 </SelectScrollUpButton>
                                 <SelectViewport class="p-[5px]">
@@ -196,7 +198,9 @@ async function declineBooking(id: string) {
                                         </SelectItem>
                                     </SelectGroup>
                                 </SelectViewport>
-                                <SelectScrollDownButton class="text-violet11 flex h-[25px] cursor-default items-center justify-center bg-white">
+                                <SelectScrollDownButton
+                                    class="text-violet11 flex h-[25px] cursor-default items-center justify-center bg-white dark:bg-black"
+                                >
                                     <Icon name="chevron down" icon="radix-icons:chevron-down" />
                                 </SelectScrollDownButton>
                             </SelectContent>
@@ -221,7 +225,7 @@ async function declineBooking(id: string) {
                     <div
                         v-for="booking in filteredBookings"
                         :key="booking.id"
-                        class="grid grid-cols-6 items-center border-t bg-white text-sm hover:bg-stone-50"
+                        class="grid grid-cols-6 items-center border-t bg-white text-sm hover:bg-stone-50 dark:bg-black dark:hover:bg-accent"
                     >
                         <!-- Name -->
                         <div class="px-4 py-3 font-medium">{{ booking.patient.name }}</div>

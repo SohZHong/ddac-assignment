@@ -3,10 +3,7 @@ export interface Author {
     name: string;
 }
 
-export enum BlogStatus {
-    STATUS_DRAFT = 0,
-    STATUS_PUBLISHED = 1,
-}
+export type BlogStatus = true | false;
 
 export interface Blog {
     id: string;
@@ -15,12 +12,6 @@ export interface Blog {
     cover_image?: string;
     content?: string;
     author: Author;
-    published_at: string;
+    published_at?: string;
     status: BlogStatus;
 }
-
-export type BlogList = {
-    data: Blog[];
-    links: any;
-    meta: any;
-};

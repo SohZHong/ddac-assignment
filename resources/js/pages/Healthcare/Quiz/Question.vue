@@ -235,7 +235,7 @@ function handleDeleteClick(id: string) {
                     <Input v-model="newQuestionText" placeholder="Question text" />
                     <SelectRoot v-model="newQuestionType">
                         <SelectTrigger
-                            class="text-grass11 data-[placeholder]:text-green9 inline-flex h-[35px] min-w-[160px] items-center justify-between gap-[5px] rounded-lg border bg-white px-[15px] text-xs leading-none shadow-sm outline-none hover:bg-stone-50 focus:shadow-[0_0_0_2px] focus:shadow-black"
+                            class="inline-flex h-[35px] min-w-[160px] items-center justify-between gap-[5px] rounded-lg border bg-white px-[15px] text-xs leading-none shadow-sm outline-none hover:bg-stone-50 focus:shadow-[0_0_0_2px] focus:shadow-black dark:bg-black dark:hover:bg-accent"
                             aria-label="Filter options"
                         >
                             <SelectValue placeholder="Filter" />
@@ -243,10 +243,12 @@ function handleDeleteClick(id: string) {
                         </SelectTrigger>
                         <SelectPortal>
                             <SelectContent
-                                class="data-[side=top]:animate-slideDownAndFade data-[side=right]:animate-slideLeftAndFade data-[side=bottom]:animate-slideUpAndFade data-[side=left]:animate-slideRightAndFade z-[100] min-w-[160px] rounded-lg border bg-white shadow-sm will-change-[opacity,transform]"
+                                class="data-[side=top]:animate-slideDownAndFade data-[side=right]:animate-slideLeftAndFade data-[side=bottom]:animate-slideUpAndFade data-[side=left]:animate-slideRightAndFade z-[100] min-w-[160px] rounded-lg border bg-white shadow-sm will-change-[opacity,transform] dark:bg-black"
                                 :side-offset="5"
                             >
-                                <SelectScrollUpButton class="text-violet11 flex h-[25px] cursor-default items-center justify-center bg-white">
+                                <SelectScrollUpButton
+                                    class="text-violet11 flex h-[25px] cursor-default items-center justify-center bg-white dark:bg-black"
+                                >
                                     <Icon name="chevron up" icon="radix-icons:chevron-up" />
                                 </SelectScrollUpButton>
                                 <SelectViewport class="p-[5px]">
@@ -267,7 +269,9 @@ function handleDeleteClick(id: string) {
                                         </SelectItem>
                                     </SelectGroup>
                                 </SelectViewport>
-                                <SelectScrollDownButton class="text-violet11 flex h-[25px] cursor-default items-center justify-center bg-white">
+                                <SelectScrollDownButton
+                                    class="text-violet11 flex h-[25px] cursor-default items-center justify-center bg-white dark:bg-black"
+                                >
                                     <Icon name="chevron down" icon="radix-icons:chevron-down" />
                                 </SelectScrollDownButton>
                             </SelectContent>
