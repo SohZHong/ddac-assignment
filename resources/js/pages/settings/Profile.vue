@@ -14,6 +14,11 @@ import { type BreadcrumbItem, type User } from '@/types';
 interface Props {
     mustVerifyEmail: boolean;
     status?: string;
+    userDetails: {
+        name: string;
+        email: string;
+        role: string; // This is the label of the UserRole enum
+    };
 }
 
 defineProps<Props>();
@@ -43,7 +48,6 @@ const submit = () => {
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
         <Head title="Profile settings" />
-
         <SettingsLayout>
             <div class="flex flex-col space-y-6">
                 <HeadingSmall title="Profile information" description="Update your name and email address" />
@@ -53,6 +57,19 @@ const submit = () => {
                         <Label for="name">Name</Label>
                         <Input id="name" class="mt-1 block w-full" v-model="form.name" required autocomplete="name" placeholder="Full name" />
                         <InputError class="mt-2" :message="form.errors.name" />
+                    </div>
+                    <div>
+                        <Label for="user-role">User Role</Label>
+                        <Input
+                            id="user-role"
+                            type="text"
+                            class="mt-1 block w-full"
+                            v-model="user.role"
+                            required
+                            autocomplete="role"
+                            placeholder="User role"
+                            disabled
+                        />
                     </div>
 
                     <div class="grid gap-2">
