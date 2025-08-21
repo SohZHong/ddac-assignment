@@ -8,9 +8,18 @@ import Input from '@/components/ui/input/Input.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { BreadcrumbItem } from '@/types';
 import { Booking, BookingStatus } from '@/types/booking';
-import { Head, Link } from '@inertiajs/vue3';
+import { LaravelPagination } from '@/types/pagination';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { Filter } from 'lucide-vue-next';
 import {
+    PaginationEllipsis,
+    PaginationFirst,
+    PaginationLast,
+    PaginationList,
+    PaginationListItem,
+    PaginationNext,
+    PaginationPrev,
+    PaginationRoot,
     SelectContent,
     SelectGroup,
     SelectItem,
@@ -61,19 +70,11 @@ const statusMap: Record<BookingStatus, StatusInfo> = {
 const toastRef = ref<InstanceType<typeof Toast> | null>(null);
 const toastMessage = ref({ title: '', description: '', variant: 'default' as 'default' | 'success' | 'destructive' });
 
-const statusClass = (status: BookingStatus) => {
-    switch (status) {
-        case BookingStatus.PENDING:
-            return 'bg-yellow-500';
-        case BookingStatus.CONFIRMED:
-            return 'bg-green-500';
-        case BookingStatus.CANCELLED:
-            return 'bg-red-500';
-    }
-};
+const props = defineProps<{ bookings: LaravelPagination<Booking> }>();
+const bookings = ref<Booking[]>(props.bookings.data);
 
-const props = defineProps<{ bookings: Booking[] }>();
-const bookings = ref<Booking[]>(props.bookings);
+const pagination = ref<LaravelPagination<Booking>>(props.bookings);
+const currentPage = ref(pagination.value.current_page);
 
 const searchQuery = ref('');
 const statusFilter = ref<BookingStatus | undefined>();
@@ -144,6 +145,11 @@ async function declineBooking(id: string) {
             console.error('Failed to decline booking', err);
             toastRef.value?.showToast();
         });
+}
+
+function goToPage(page: number) {
+    if (page === currentPage.value) return; // prevent duplicate navigation
+    router.visit(route('healthcare.appointment.index'));
 }
 </script>
 
@@ -287,6 +293,45 @@ async function declineBooking(id: string) {
                     <div v-if="filteredBookings.length === 0" class="px-4 py-6 text-center text-muted-foreground">No appointments found.</div>
                 </div>
             </div>
+            <PaginationRoot :total="pagination.total" :items-per-page="pagination.per_page" :default-page="pagination.current_page" show-edges>
+                <PaginationList v-slot="{ items }">
+                    <PaginationFirst
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                    >
+                        <Icon name="double-arrow-left" icon="radix-icons:double-arrow-left" />
+                    </PaginationFirst>
+                    <PaginationPrev
+                        class="mr-4 flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                    >
+                        <Icon name="chevron-left" icon="radix-icons:chevron-left" />
+                    </PaginationPrev>
+                    <template v-for="(page, index) in items">
+                        <PaginationListItem
+                            class="h-9 w-9 rounded-lg border transition hover:bg-white data-[selected]:!bg-white data-[selected]:text-black data-[selected]:shadow-sm dark:border-stone-800 dark:hover:bg-stone-700/70"
+                            v-if="page.type === 'page'"
+                            :key="index"
+                            :value="page.value"
+                            @click="goToPage(page.value)"
+                        >
+                            {{ page.value }}
+                        </PaginationListItem>
+
+                        <PaginationEllipsis class="flex h-9 w-9 items-center justify-center" v-else :key="page.type" :index="index">
+                            &#8230;
+                        </PaginationEllipsis>
+                    </template>
+                    <PaginationNext
+                        class="ml-4 flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                    >
+                        <Icon name="chevron-right" icon="radix-icons:chevron-right" />
+                    </PaginationNext>
+                    <PaginationLast
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                    >
+                        <Icon name="double-arrow-right" icon="radix-icons:double-arrow-right" />
+                    </PaginationLast>
+                </PaginationList>
+            </PaginationRoot>
         </div>
     </AppLayout>
 </template>

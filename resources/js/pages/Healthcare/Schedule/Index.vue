@@ -7,14 +7,25 @@ import Button from '@/components/ui/button/Button.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
+import { LaravelPagination } from '@/types/pagination';
 import { Schedule } from '@/types/schedule';
 import { CalendarOptions, type DateSelectArg, type EventClickArg, type EventDropArg } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { EventResizeDoneArg } from '@fullcalendar/interaction';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import FullCalendar from '@fullcalendar/vue3';
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { Calendar1 } from 'lucide-vue-next';
+import {
+    PaginationEllipsis,
+    PaginationFirst,
+    PaginationLast,
+    PaginationList,
+    PaginationListItem,
+    PaginationNext,
+    PaginationPrev,
+    PaginationRoot,
+} from 'reka-ui';
 import { ref } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -29,10 +40,55 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const props = defineProps<{
-    schedules: Schedule[];
+    schedules: LaravelPagination<Schedule>;
 }>();
 
-const events = ref<Schedule[]>(props.schedules);
+const events = ref<Schedule[]>(props.schedules.data);
+
+const pagination = ref<LaravelPagination<Schedule>>(props.schedules);
+const currentPage = ref(pagination.value.current_page);
+
+const createDialogOpen = ref(false);
+const deleteDialogOpen = ref(false);
+const tempSelection = ref<{ id?: string; start?: string; end?: string } | null>(null);
+const calendarRef = ref<InstanceType<typeof FullCalendar>>();
+
+const toastRef = ref<InstanceType<typeof Toast> | null>(null);
+const toastMessage = ref({ title: '', description: '', variant: 'default' as 'default' | 'success' | 'destructive' });
+
+const calendarOptions = ref<CalendarOptions>({
+    plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+    initialView: 'timeGridWeek',
+    timeZone: 'local',
+    height: 450, // total calendar height
+    contentHeight: 250, // just the event area height
+    events: events.value,
+    selectable: true, // allow dragging across cells
+    selectMirror: true, // show placeholder when selecting
+    nowIndicator: true,
+    editable: true,
+    headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,timeGridDay',
+    },
+
+    // Triggered when a range is selected
+    select: handleSelect,
+
+    // When event is dragged to a new time
+    eventDrop: async (info: EventDropArg) => {
+        await updateSchedule(info);
+    },
+
+    // When event is resized to change duration
+    eventResize: async (info: EventResizeDoneArg) => {
+        await updateSchedule(info);
+    },
+
+    // When event is clicked to delete
+    eventClick: handleClick,
+});
 
 function handleSelect(info: DateSelectArg) {
     if (createDialogOpen.value) return; // prevent re-opening
@@ -65,7 +121,7 @@ async function updateSchedule({ event, revert }: EventDropArg | EventResizeDoneA
     };
 
     await axios
-        .put(`/api/schedule/${event.id}`, payload)
+        .put(route('api.schedule.update', event.id), payload)
         .then((res) => {
             toastMessage.value = {
                 title: `Schedule Updated`,
@@ -118,7 +174,7 @@ async function confirmSchedule() {
         day_of_week: start.getUTCDay(),
     };
     axios
-        .post('/api/schedule', newSchedule)
+        .post(route('api.schedule.store'), newSchedule)
         .then((res) => {
             const s = res.data.schedule;
             console.log(s);
@@ -155,7 +211,7 @@ async function deleteSchedule() {
     if (!tempSelection.value || !tempSelection.value.id) return;
 
     await axios
-        .delete(`/api/schedule/${tempSelection.value.id}`)
+        .delete(route('api.schedule.destroy', tempSelection.value.id))
         .then((res) => {
             // remove from local events array
             events.value = events.value.filter((e) => String(e.id) !== String(tempSelection.value?.id));
@@ -189,47 +245,10 @@ async function deleteSchedule() {
         });
 }
 
-const calendarOptions = ref<CalendarOptions>({
-    plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
-    initialView: 'timeGridWeek',
-    timeZone: 'local',
-    height: 450, // total calendar height
-    contentHeight: 250, // just the event area height
-    events: events.value,
-    selectable: true, // allow dragging across cells
-    selectMirror: true, // show placeholder when selecting
-    nowIndicator: true,
-    editable: true,
-    headerToolbar: {
-        left: 'prev,next today',
-        center: 'title',
-        right: 'dayGridMonth,timeGridWeek,timeGridDay',
-    },
-
-    // Triggered when a range is selected
-    select: handleSelect,
-
-    // When event is dragged to a new time
-    eventDrop: async (info: EventDropArg) => {
-        await updateSchedule(info);
-    },
-
-    // When event is resized to change duration
-    eventResize: async (info: EventResizeDoneArg) => {
-        await updateSchedule(info);
-    },
-
-    // When event is clicked to delete
-    eventClick: handleClick,
-});
-
-const createDialogOpen = ref(false);
-const deleteDialogOpen = ref(false);
-const tempSelection = ref<{ id?: string; start?: string; end?: string } | null>(null);
-const calendarRef = ref<InstanceType<typeof FullCalendar>>();
-
-const toastRef = ref<InstanceType<typeof Toast> | null>(null);
-const toastMessage = ref({ title: '', description: '', variant: 'default' as 'default' | 'success' | 'destructive' });
+function goToPage(page: number) {
+    if (page === currentPage.value) return; // prevent duplicate navigation
+    router.visit(route('healthcare.schedule.index'));
+}
 </script>
 <style scoped>
 :deep(.fc button),
@@ -284,7 +303,7 @@ const toastMessage = ref({ title: '', description: '', variant: 'default' as 'de
                 </CardHeader>
                 <CardContent>
                     <div class="overflow-x-auto rounded-lg border">
-                        <div class="min-w-[700px]">
+                        <div class="min-w-[900px]">
                             <!-- Table Header -->
                             <div class="grid grid-cols-4 bg-muted text-sm font-semibold text-muted-foreground">
                                 <div class="px-4 py-2">Start</div>
@@ -332,6 +351,50 @@ const toastMessage = ref({ title: '', description: '', variant: 'default' as 'de
                             </div>
                         </div>
                     </div>
+                    <PaginationRoot
+                        :total="pagination.total"
+                        :items-per-page="pagination.per_page"
+                        :default-page="pagination.current_page"
+                        show-edges
+                    >
+                        <PaginationList v-slot="{ items }">
+                            <PaginationFirst
+                                class="flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                            >
+                                <Icon name="double-arrow-left" icon="radix-icons:double-arrow-left" />
+                            </PaginationFirst>
+                            <PaginationPrev
+                                class="mr-4 flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                            >
+                                <Icon name="chevron-left" icon="radix-icons:chevron-left" />
+                            </PaginationPrev>
+                            <template v-for="(page, index) in items">
+                                <PaginationListItem
+                                    class="h-9 w-9 rounded-lg border transition hover:bg-white data-[selected]:!bg-white data-[selected]:text-black data-[selected]:shadow-sm dark:border-stone-800 dark:hover:bg-stone-700/70"
+                                    v-if="page.type === 'page'"
+                                    :key="index"
+                                    :value="page.value"
+                                    @click="goToPage(page.value)"
+                                >
+                                    {{ page.value }}
+                                </PaginationListItem>
+
+                                <PaginationEllipsis class="flex h-9 w-9 items-center justify-center" v-else :key="page.type" :index="index">
+                                    &#8230;
+                                </PaginationEllipsis>
+                            </template>
+                            <PaginationNext
+                                class="ml-4 flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                            >
+                                <Icon name="chevron-right" icon="radix-icons:chevron-right" />
+                            </PaginationNext>
+                            <PaginationLast
+                                class="flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                            >
+                                <Icon name="double-arrow-right" icon="radix-icons:double-arrow-right" />
+                            </PaginationLast>
+                        </PaginationList>
+                    </PaginationRoot>
                 </CardContent>
             </Card>
         </div>

@@ -28,7 +28,7 @@ const form = useForm<{
     title: '',
     cover_image: null,
     content: '',
-    status: BlogStatus.STATUS_DRAFT,
+    status: false,
 });
 
 const processing = ref(false);

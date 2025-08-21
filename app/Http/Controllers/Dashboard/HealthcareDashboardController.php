@@ -173,8 +173,8 @@ class HealthcareDashboardController extends Controller
     {
         $bookings = Booking::with('patient:id,name,email')
             ->orderBy('start_time', 'asc')
-            ->get()
-            ->map(fn ($booking) => [
+            ->paginate(15)
+            ->through(fn ($booking) => [
                 'id'          => $booking->id,
                 'schedule_id' => $booking->schedule_id,
                 'patient'     => [
@@ -281,8 +281,8 @@ class HealthcareDashboardController extends Controller
     {
         $quizzes = Quiz::with('questions')
             ->where('healthcare_id', auth()->id())
-            ->get()
-            ->map(fn ($quiz) => [
+            ->paginate(15)
+            ->through(fn ($quiz) => [
                 'id'            => $quiz->id,
                 'healthcare_id' => $quiz->healthcare_id,
                 'title'         => $quiz->title,
@@ -308,22 +308,18 @@ class HealthcareDashboardController extends Controller
 
         $this->authorize('healthcareView', [Quiz::class, $quiz]);
         
-        $quiz->load('questions');
-
+        $questions = $quiz->questions()
+            ->select('id', 'quiz_id', 'question_text', 'type', 'options')
+            ->paginate(15);
+        
         return Inertia::render('Healthcare/Quiz/Question', [
             'quiz' => [
                 'id'            => $quiz->id,
                 'healthcare_id' => $quiz->healthcare_id,
                 'title'         => $quiz->title,
                 'description'   => $quiz->description,
-                'questions'     => $quiz->questions->map(fn ($q) => [
-                    'id'            => $q->id,
-                    'quiz_id'       => $q->quiz_id,
-                    'question_text' => $q->question_text,
-                    'type'          => $q->type,
-                    'options'       => $q->options,
-                ])
-            ]
+            ],
+            'questions'     => $questions,
         ]);
     }
 }

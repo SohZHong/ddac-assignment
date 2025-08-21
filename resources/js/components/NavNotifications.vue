@@ -17,7 +17,7 @@ function togglePanel() {
 
 async function handleButtonClick() {
     await axios
-        .post('api/notifications/read-all')
+        .post(route('api.notification.read.all'))
         .then(() => {
             notifications.value = [];
         })
@@ -37,7 +37,7 @@ async function handleButtonClick() {
                     </AvatarFallback>
                 </Avatar>
                 <!-- Red badge -->
-                <span class="absolute -top-1 right-1 rounded-full bg-red-500 px-1 text-xs text-white">
+                <span class="absolute -top-1 right-1 rounded-full bg-red-500 px-1 text-xs">
                     {{ notifications.length }}
                 </span>
                 <!-- Text label -->
@@ -50,20 +50,20 @@ async function handleButtonClick() {
 
     <!-- Slide-over panel -->
     <transition name="slide">
-        <div v-if="isOpen" class="fixed inset-y-0 right-0 z-50 flex w-80 flex-col bg-white shadow-xl">
+        <div v-if="isOpen" class="fixed inset-y-0 right-0 z-50 flex w-80 flex-col bg-white shadow-xl dark:bg-black">
             <div class="flex items-center justify-between border-b p-4">
                 <h2 class="text-lg font-semibold">Notifications</h2>
-                <button @click="togglePanel" class="text-gray-500 hover:text-gray-800">✕</button>
+                <button @click="togglePanel" class="text-gray-500 hover:text-gray-800 dark:text-shadow-white dark:hover:text-white">✕</button>
             </div>
             <!-- <Button @click="() => handleButtonClick">Hey</Button> -->
             <div class="flex-1 overflow-y-auto p-4">
                 <div v-if="notifications.length">
-                    <div v-for="n in notifications" :key="n.id" class="mb-2 rounded border p-3 hover:bg-gray-50">
+                    <div v-for="n in notifications" :key="n.id" class="mb-2 rounded border p-3 hover:bg-gray-50 dark:hover:bg-accent">
                         <p class="text-sm">{{ n.data.message }}</p>
                         <small class="text-xs text-gray-500">{{ new Date(n.created_at).toLocaleString() }}</small>
                     </div>
                 </div>
-                <div v-else class="mt-10 text-center text-sm text-gray-500">No notifications</div>
+                <div v-else class="mt-10 text-center text-sm text-gray-500 dark:text-shadow-white">No notifications</div>
             </div>
             <div class="border-t p-4 text-right">
                 <Button variant="destructive" @click="handleButtonClick">Mark all as read</Button>

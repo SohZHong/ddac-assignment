@@ -96,8 +96,8 @@ onMounted(() => {
 <template>
     <Head :title="`Assessment: ${localQuiz.title}`" />
     <QuizResponseUpdateConfirmDialog v-model:open="dialogOpen" @confirm="submitAnswers" />
+    <Toast ref="toastRef" :title="toastMessage.title" :description="toastMessage.description" :variant="toastMessage.variant" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <Toast ref="toastRef" :title="toastMessage.title" :description="toastMessage.description" :variant="toastMessage.variant" />
         <div class="flex flex-col gap-6 p-6">
             <!-- Header -->
             <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

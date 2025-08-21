@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import axios from '@/axios';
+import Icon from '@/components/Icon.vue';
 import QuizDeleteDialog from '@/components/QuizDeleteDialog.vue';
 import QuizUpdateDialog from '@/components/QuizUpdateDialog.vue';
 import Toast from '@/components/Toast.vue';
@@ -9,8 +10,19 @@ import { Input } from '@/components/ui/input';
 import Label from '@/components/ui/label/Label.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { BreadcrumbItem } from '@/types';
+import { LaravelPagination } from '@/types/pagination';
 import { Quiz } from '@/types/quiz';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
+import {
+    PaginationEllipsis,
+    PaginationFirst,
+    PaginationLast,
+    PaginationList,
+    PaginationListItem,
+    PaginationNext,
+    PaginationPrev,
+    PaginationRoot,
+} from 'reka-ui';
 import { computed, ref } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -21,9 +33,12 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const props = defineProps<{ quizzes: Quiz[] }>();
+const props = defineProps<{ quizzes: LaravelPagination<Quiz> }>();
 
-const quizzes = ref<Quiz[]>(props.quizzes);
+const quizzes = ref<Quiz[]>(props.quizzes.data);
+
+const pagination = ref<LaravelPagination<Quiz>>(props.quizzes);
+const currentPage = ref(pagination.value.current_page);
 
 const quizId = ref('');
 const newQuizTitle = ref('');
@@ -45,7 +60,7 @@ const filteredQuizzes = computed(() => {
 
 async function createQuiz() {
     await axios
-        .post('/api/quizzes', {
+        .post(route('api.quizzes.store'), {
             title: newQuizTitle.value,
             description: newQuizDesc.value,
         })
@@ -77,7 +92,7 @@ async function createQuiz() {
 
 async function updateQuiz(payload: { id: string; title: string; description?: string }) {
     await axios
-        .put(`/api/quizzes/${payload.id}`, {
+        .put(route('api.quizzes.update', payload.id), {
             title: payload.title,
             description: payload.description,
         })
@@ -114,7 +129,7 @@ async function updateQuiz(payload: { id: string; title: string; description?: st
 
 async function deleteQuiz(payload: { id: string }) {
     await axios
-        .delete(`/api/quizzes/${payload.id}`)
+        .delete(route('api.quizzes.destroy', payload.id))
         .then(() => {
             // Remove the quiz from the array
             quizzes.value = quizzes.value.filter((q) => String(q.id) !== String(payload.id));
@@ -146,7 +161,7 @@ async function handleActiveChange(quiz: Quiz) {
     try {
         if (!quiz.active) {
             // Activating this quiz
-            await axios.patch(`/api/quizzes/${quiz.id}/activate`).then((res) => {
+            await axios.patch(route('api.quizzes.activate', quiz.id)).then((res) => {
                 // Deactivate all others in the frontend
                 quizzes.value.forEach((q) => {
                     q.active = q.id === res.data.quiz.id;
@@ -159,7 +174,7 @@ async function handleActiveChange(quiz: Quiz) {
             });
         } else {
             // Deactivating this quiz
-            await axios.patch(`/api/quizzes/${quiz.id}/deactivate`).then(() => {
+            await axios.patch(route('api.quizzes.deactivate', quiz.id)).then(() => {
                 quiz.active = false;
                 toastMessage.value = {
                     title: `Quiz Deactivated`,
@@ -194,7 +209,11 @@ function handleDeleteClick(id: string) {
 
     deleteDialogOpen.value = true;
 }
-console.log(props.quizzes);
+
+function goToPage(page: number) {
+    if (page === currentPage.value) return; // prevent duplicate navigation
+    router.visit(route('healthcare.quizzes.index'));
+}
 </script>
 
 <template>
@@ -281,6 +300,45 @@ console.log(props.quizzes);
                     <div v-if="filteredQuizzes.length === 0" class="px-4 py-6 text-center text-muted-foreground">No quizzes found.</div>
                 </div>
             </div>
+            <PaginationRoot :total="pagination.total" :items-per-page="pagination.per_page" :default-page="pagination.current_page" show-edges>
+                <PaginationList v-slot="{ items }">
+                    <PaginationFirst
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                    >
+                        <Icon name="double-arrow-left" icon="radix-icons:double-arrow-left" />
+                    </PaginationFirst>
+                    <PaginationPrev
+                        class="mr-4 flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                    >
+                        <Icon name="chevron-left" icon="radix-icons:chevron-left" />
+                    </PaginationPrev>
+                    <template v-for="(page, index) in items">
+                        <PaginationListItem
+                            class="h-9 w-9 rounded-lg border transition hover:bg-white data-[selected]:!bg-white data-[selected]:text-black data-[selected]:shadow-sm dark:border-stone-800 dark:hover:bg-stone-700/70"
+                            v-if="page.type === 'page'"
+                            :key="index"
+                            :value="page.value"
+                            @click="goToPage(page.value)"
+                        >
+                            {{ page.value }}
+                        </PaginationListItem>
+
+                        <PaginationEllipsis class="flex h-9 w-9 items-center justify-center" v-else :key="page.type" :index="index">
+                            &#8230;
+                        </PaginationEllipsis>
+                    </template>
+                    <PaginationNext
+                        class="ml-4 flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                    >
+                        <Icon name="chevron-right" icon="radix-icons:chevron-right" />
+                    </PaginationNext>
+                    <PaginationLast
+                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                    >
+                        <Icon name="double-arrow-right" icon="radix-icons:double-arrow-right" />
+                    </PaginationLast>
+                </PaginationList>
+            </PaginationRoot>
         </div>
     </AppLayout>
 </template>

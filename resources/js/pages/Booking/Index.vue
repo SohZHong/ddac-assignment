@@ -42,7 +42,7 @@ const filteredPast = computed(() =>
 async function cancelBooking(id: string) {
     const status = BookingStatus.CANCELLED;
     await axios
-        .patch(`/api/bookings/cancel/${id}`, { status })
+        .patch(route('api.booking.cancel', id))
         .then(() => {
             // Update the local booking status
             const booking = upcomingBookings.value.find((b) => b.id === id);

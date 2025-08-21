@@ -6,15 +6,22 @@ import QuestionUpdateDialog from '@/components/QuestionUpdateDialog.vue';
 import Toast from '@/components/Toast.vue';
 import Badge from '@/components/ui/badge/Badge.vue';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { BreadcrumbItem } from '@/types';
+import { LaravelPagination } from '@/types/pagination';
 import { QuestionType, Quiz, QuizQuestion } from '@/types/quiz';
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { MessageCircleQuestion } from 'lucide-vue-next';
-
 import {
+    PaginationEllipsis,
+    PaginationFirst,
+    PaginationLast,
+    PaginationList,
+    PaginationListItem,
+    PaginationNext,
+    PaginationPrev,
+    PaginationRoot,
     SelectContent,
     SelectGroup,
     SelectItem,
@@ -30,8 +37,6 @@ import {
     SelectViewport,
 } from 'reka-ui';
 import { ref } from 'vue';
-
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Healthcare', href: '/healthcare' }];
 
 const questionTypeFilterOptions = [
     {
@@ -53,19 +58,18 @@ interface TypeInfo {
     variant?: 'default' | 'destructive' | 'outline' | 'secondary' | null;
 }
 
-const typeClass = (type: QuestionType) => {
-    switch (type) {
-        case QuestionType.MCQ:
-            return 'bg-yellow-500';
-        case QuestionType.TRUE_FALSE:
-            return 'bg-green-500';
-        case QuestionType.TEXT:
-            return 'bg-red-500';
-    }
-};
+const props = defineProps<{ quiz: Quiz; questions: LaravelPagination<QuizQuestion> }>();
 
-const props = defineProps<{ quiz: Quiz }>();
-const questions = ref<QuizQuestion[] | undefined>(props.quiz.questions);
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Healthcare', href: '/healthcare' },
+    { title: 'Quizzes', href: '/healthcare/quizzes' },
+    { title: `Question: ${props.quiz.title}`, href: '#' },
+];
+
+const pagination = ref<LaravelPagination<QuizQuestion>>(props.questions);
+const questions = ref<QuizQuestion[]>(props.questions.data);
+
+const currentPage = ref(pagination.value.current_page);
 
 const toastRef = ref<InstanceType<typeof Toast> | null>(null);
 const toastMessage = ref({ title: '', description: '', variant: 'default' as 'default' | 'success' | 'destructive' });
@@ -90,7 +94,7 @@ const deleteDialogOpen = ref(false);
 async function addQuestion() {
     if (newQuestionText.value === '') return;
     await axios
-        .post(`/api/quizzes/${props.quiz.id}/questions`, {
+        .post(route('api.quizzes.questions.store', props.quiz.id), {
             question_text: newQuestionText.value,
             type: newQuestionType.value,
             options: newQuestionOptionsText.value.split(';').map((s) => s.trim()),
@@ -124,10 +128,16 @@ async function addQuestion() {
 
 async function updateQuestion(payload: { id: string; text: string; optionText?: string }) {
     await axios
-        .put(`/api/quizzes/${props.quiz.id}/questions/${payload.id}`, {
-            text: payload.text,
-            option: payload.optionText,
-        })
+        .put(
+            route('api.quizzes.questions.update', {
+                quiz: props.quiz.id,
+                question: payload.id,
+            }),
+            {
+                text: payload.text,
+                option: payload.optionText,
+            },
+        )
         .then(() => {
             const question = questions.value?.find((q) => String(q.id) === String(payload.id));
             if (question) {
@@ -163,7 +173,12 @@ async function updateQuestion(payload: { id: string; text: string; optionText?: 
 
 async function deleteQuestion(payload: { id: string }) {
     await axios
-        .delete(`/api/quizzes/${props.quiz.id}/questions/${payload.id}`)
+        .delete(
+            route('api.quizzes.questions.destroy', {
+                quiz: props.quiz.id,
+                question: payload.id,
+            }),
+        )
         .then(() => {
             // Remove the question from the array
             questions.value = questions.value?.filter((q) => String(q.id) !== String(payload.id));
@@ -205,6 +220,16 @@ function handleDeleteClick(id: string) {
 
     deleteDialogOpen.value = true;
 }
+
+function goToPage(page: number) {
+    if (page === currentPage.value) return; // prevent duplicate navigation
+    router.visit(
+        route('healthcare.quizzes.show', {
+            quiz: props.quiz.id,
+            page,
+        }),
+    );
+}
 </script>
 
 <template>
@@ -218,10 +243,10 @@ function handleDeleteClick(id: string) {
         @confirm="updateQuestion"
     />
     <QuestionDeleteDialog v-model:open="deleteDialogOpen" :id="questionId" @confirm="deleteQuestion" />
+    <!-- Toast -->
+    <Toast ref="toastRef" :title="toastMessage.title" :description="toastMessage.description" :variant="toastMessage.variant" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-6 p-6">
-            <!-- Toast -->
-            <Toast ref="toastRef" :title="toastMessage.title" :description="toastMessage.description" :variant="toastMessage.variant" />
             <!-- Header -->
             <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -285,23 +310,86 @@ function handleDeleteClick(id: string) {
                 />
                 <Button @click="addQuestion">Add Question</Button>
 
-                <div class="flex flex-col gap-4">
-                    <Card v-for="q in questions" :key="q.id" class="w-full transition-shadow duration-200 hover:shadow-lg">
-                        <CardContent class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                            <div class="flex flex-1 flex-col gap-4 md:flex-row md:items-center">
-                                <div :class="['h-2 w-2 rounded-full', typeClass(q.type)]"></div>
-                                <div class="text-lg font-semibold">{{ q.question_text }}</div>
+                <!-- Questions Table -->
+                <div class="overflow-x-auto rounded-lg border">
+                    <div class="min-w-[800px]">
+                        <!-- Table Header -->
+                        <div class="grid grid-cols-3 bg-muted text-sm font-semibold text-muted-foreground">
+                            <div class="px-4 py-2">Question</div>
+                            <div class="px-4 py-2">Type</div>
+                            <div class="px-4 py-2">Actions</div>
+                        </div>
+
+                        <!-- Table Rows -->
+                        <div
+                            v-for="q in questions"
+                            :key="q.id"
+                            class="grid grid-cols-3 items-center border-t bg-white text-sm hover:bg-stone-50 dark:bg-black hover:dark:bg-accent"
+                        >
+                            <!-- Question Text -->
+                            <div class="truncate px-4 py-3 font-medium">
+                                {{ q.question_text }}
                             </div>
-                            <div class="flex items-center gap-4">
+
+                            <!-- Type Badge -->
+                            <div class="px-4 py-3">
+                                <Badge :variant="typeMap[q.type].variant">
+                                    {{ typeMap[q.type].text }}
+                                </Badge>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="flex items-center gap-2 px-4 py-3">
                                 <Button size="sm" variant="default" @click="handleEditClick(q.id, q.question_text, q.type, q.options?.join(';'))">
                                     Edit
                                 </Button>
-                                <Button size="sm" variant="destructive" @click="handleDeleteClick(q.id)">Delete</Button>
+                                <Button size="sm" variant="destructive" @click="handleDeleteClick(q.id)"> Delete </Button>
                             </div>
-                            <Badge :variant="typeMap[q.type].variant">{{ typeMap[q.type].text }}</Badge>
-                        </CardContent>
-                    </Card>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div v-if="questions.length === 0" class="px-4 py-6 text-center text-muted-foreground">No questions found.</div>
+                    </div>
                 </div>
+                <PaginationRoot :total="pagination.total" :items-per-page="pagination.per_page" :default-page="pagination.current_page" show-edges>
+                    <PaginationList v-slot="{ items }">
+                        <PaginationFirst
+                            class="flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                        >
+                            <Icon name="double-arrow-left" icon="radix-icons:double-arrow-left" />
+                        </PaginationFirst>
+                        <PaginationPrev
+                            class="mr-4 flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                        >
+                            <Icon name="chevron-left" icon="radix-icons:chevron-left" />
+                        </PaginationPrev>
+                        <template v-for="(page, index) in items">
+                            <PaginationListItem
+                                class="h-9 w-9 rounded-lg border transition hover:bg-white data-[selected]:!bg-white data-[selected]:text-black data-[selected]:shadow-sm dark:border-stone-800 dark:hover:bg-stone-700/70"
+                                v-if="page.type === 'page'"
+                                :key="index"
+                                :value="page.value"
+                                @click="goToPage(page.value)"
+                            >
+                                {{ page.value }}
+                            </PaginationListItem>
+
+                            <PaginationEllipsis class="flex h-9 w-9 items-center justify-center" v-else :key="page.type" :index="index">
+                                &#8230;
+                            </PaginationEllipsis>
+                        </template>
+                        <PaginationNext
+                            class="ml-4 flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                        >
+                            <Icon name="chevron-right" icon="radix-icons:chevron-right" />
+                        </PaginationNext>
+                        <PaginationLast
+                            class="flex h-9 w-9 items-center justify-center rounded-lg bg-transparent transition hover:bg-white disabled:opacity-50 dark:hover:bg-stone-700/70"
+                        >
+                            <Icon name="double-arrow-right" icon="radix-icons:double-arrow-right" />
+                        </PaginationLast>
+                    </PaginationList>
+                </PaginationRoot>
             </div>
         </div>
     </AppLayout>
