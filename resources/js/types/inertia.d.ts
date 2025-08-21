@@ -1,7 +1,12 @@
-import { FormOptions } from '@inertiajs/core'
+// resources/js/types/inertia.d.ts
+// No import needed, just declare the module
 
 declare module '@inertiajs/core' {
-  interface FormOptions {
-    transform?: () => FormData
-  }
+    // We are *merging* with the existing interface
+    interface FormOptions {
+        /**
+         * Optional function to transform the form into FormData
+         */
+        transform?: () => FormData;
+    }
 }

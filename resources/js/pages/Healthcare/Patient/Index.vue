@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import AppLayout from '@/layouts/AppLayout.vue';
 import { BreadcrumbItem, User } from '@/types';
 import { LaravelPagination } from '@/types/pagination';
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import {
     PaginationEllipsis,
     PaginationFirst,
@@ -34,9 +34,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 const props = defineProps<{
     patients: LaravelPagination<Patient>;
 }>();
-
-const page = usePage();
-const user = computed(() => page.props.auth.user as User);
 
 const patients = ref<Patient[]>(props.patients.data);
 
