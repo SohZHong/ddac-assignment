@@ -2,6 +2,7 @@
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
+
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type User } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
@@ -22,6 +23,7 @@ import {
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 import NavNotifications from './NavNotifications.vue';
+import { UserRole } from '@/types/role';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user as User);
@@ -158,6 +160,7 @@ const footerNavItems: NavItem[] = [
         <SidebarFooter>
             <NavFooter :items="footerNavItems" />
             <NavNotifications />
+            
             <NavUser />
         </SidebarFooter>
     </Sidebar>

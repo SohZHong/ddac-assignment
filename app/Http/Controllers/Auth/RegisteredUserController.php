@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -56,7 +57,7 @@ class RegisteredUserController extends Controller
                 'string',
                 Rule::in(['1', '2', '3']), // Only allow specific roles during registration
             ],
-            'work_email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+
         ], [
             'role.required' => 'Please select a user role.',
             'role.in' => 'Invalid role selected.',
