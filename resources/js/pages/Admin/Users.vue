@@ -15,7 +15,7 @@ import {
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type User } from '@/types';
-import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { Check, MoreHorizontal, Trash2, UserCog, X } from 'lucide-vue-next';
 import { ref } from 'vue';
 
@@ -69,6 +69,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const page = usePage();
 const currentUser = page.props.auth.user as User;
+const searchQuery = ref<string>((page.props as any).q ?? '');
 
 // Role update functionality
 const selectedUser = ref<UserData | null>(null);
@@ -186,6 +187,15 @@ const canManageUser = (user: UserData) => {
                     <h1 class="text-3xl font-bold tracking-tight">User Management</h1>
                     <p class="text-muted-foreground">Manage user accounts and roles</p>
                 </div>
+                <form class="flex items-center gap-2" @submit.prevent="() => router.get(route('admin.users'), { q: searchQuery }, { preserveState: true, preserveScroll: true })">
+                    <input
+                        v-model="searchQuery"
+                        type="text"
+                        placeholder="Search name or email..."
+                        class="h-9 w-64 rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    />
+                    <Button type="submit" size="sm">Search</Button>
+                </form>
             </div>
 
             <Card>
