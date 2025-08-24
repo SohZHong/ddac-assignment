@@ -26,6 +26,11 @@ class RoleMiddleware
         $user = Auth::user();
         $userRole = $user->role;
 
+        // System administrators can access everything
+        if ($userRole === UserRole::SYSTEM_ADMIN) {
+            return $next($request);
+        }
+
         // Convert provided role identifiers (e.g., 'system_admin' or '4') to UserRole enums
         $allowedRoles = [];
         foreach ($roles as $roleIdentifier) {
