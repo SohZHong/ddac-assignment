@@ -157,7 +157,7 @@
           </DialogDescription>
         </DialogHeader>
         <div class="space-y-2 py-2">
-          <p class="text-sm">Requested role: <strong>{{ user.requested_role || user.role_label }}</strong></p>
+          <p class="text-sm">Requested role: <strong>{{ user.requested_role_label || user.role_label }}</strong></p>
         </div>
         <DialogFooter>
           <Button variant="outline" @click="approveDialogOpen = false" :disabled="processing">
@@ -219,6 +219,7 @@ interface Props {
     role: UserRole
     role_label: string
     requested_role: string | null
+    requested_role_label?: string | null
     created_at: string
     credentials: Credential[]
   }
