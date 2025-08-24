@@ -32,7 +32,7 @@ const pendingApprovalsCount = computed(() => Number((page.props as any).pendingA
                 </div>
             </div>
 
-            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                 <!-- User Management Card -->
                 <Card>
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -80,6 +80,20 @@ const pendingApprovalsCount = computed(() => Number((page.props as any).pendingA
                         </CardDescription>
                         <Button asChild class="w-full">
                             <a href="/admin/system-activity">Open System Activity</a>
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                <!-- Content Management Card -->
+                <Card>
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle class="text-sm font-medium">Content Management</CardTitle>
+                        <Activity class="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <CardDescription class="mb-4">View, soft delete, restore and hard delete blogs</CardDescription>
+                        <Button asChild class="w-full">
+                            <a href="/admin/content">Open Content</a>
                         </Button>
                     </CardContent>
                 </Card>

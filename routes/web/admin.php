@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ApprovalController;
+use App\Http\Controllers\Admin\ContentController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\Admin\UserManagementController;
@@ -16,6 +17,10 @@ Route::middleware(['auth', 'role:system_admin'])->group(function () {
     
     Route::get('/admin/users', [UserManagementController::class, 'index'])
         ->name('admin.users');
+    
+    // Content management
+    Route::get('/admin/content', [ContentController::class, 'index'])
+        ->name('admin.content');
         
     // Approval routes
     Route::get('/admin/approvals', [ApprovalController::class, 'index'])

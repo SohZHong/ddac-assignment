@@ -2,7 +2,7 @@
 
 namespace App\Policies;
 
-use App\Models\UserRole;
+use App\UserRole;
 use App\Models\Blog;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;

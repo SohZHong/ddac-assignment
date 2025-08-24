@@ -4,7 +4,7 @@ import { User } from '@/types';
 import { Blog } from '@/types/blog';
 import { UserRole } from '@/types/role';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { Edit, Image, Settings, Trash } from 'lucide-vue-next';
+import { ArrowLeft, Edit, Image, Settings, Trash } from 'lucide-vue-next';
 import { defineProps, ref } from 'vue';
 
 const props = defineProps<{
@@ -32,14 +32,28 @@ const deleteBlog = () => {
     }
 };
 
+const goBack = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+        window.history.back();
+    } else {
+        router.visit(route('blog.index'));
+    }
+};
+
 document.addEventListener('click', handleClickOutside);
 </script>
 
 <template>
     <div class="relative mx-auto max-w-3xl py-8">
+        <!-- Back Button -->
+        <div class="absolute left-3 top-3 cursor-pointer">
+            <Button variant="outline" size="sm" @click="goBack" class="cursor-pointer">
+                <ArrowLeft class="mr-2 h-4 w-4" /> Back
+            </Button>
+        </div>
         <!-- Gear Icon -->
         <div v-if="user.id === Number(blog.author.id) || user.role === UserRole.SYSTEM_ADMIN" class="gear-menu absolute top-3 right-3">
-            <Button @click.stop="menuOpen = !menuOpen" class="rounded-full p-2 hover:bg-gray-200 dark:hover:bg-gray-700">
+            <Button @click.stop="menuOpen = !menuOpen" class="cursor-pointer rounded-full p-2 hover:bg-gray-200 dark:hover:bg-gray-700">
                 <Settings class="h-5 w-5" />
             </Button>
 

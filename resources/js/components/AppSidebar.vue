@@ -98,7 +98,8 @@ const mainNavItems = computed((): NavItem[] => {
     }
 
     // Add campaign routes for campaign managers and above (roles 3, 4)
-    if (user.value.role === '3') {
+    if (user.value.role === UserRole.HEALTH_CAMPAIGN_MANAGER ||
+    user.value.role === UserRole.SYSTEM_ADMIN) {
         items.push({
             title: 'Campaigns',
             href: '/campaigns',
@@ -110,7 +111,7 @@ const mainNavItems = computed((): NavItem[] => {
     if (user.value.role === UserRole.SYSTEM_ADMIN) {
         items.push(
             {
-                title: 'Admin',
+                title: 'Admin Dashboard',
                 href: '/admin',
                 icon: Shield,
             },
@@ -160,7 +161,7 @@ const footerNavItems: NavItem[] = [
         <SidebarFooter>
             <NavFooter :items="footerNavItems" />
             <NavNotifications />
-            
+
             <NavUser />
         </SidebarFooter>
     </Sidebar>
