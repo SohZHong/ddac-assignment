@@ -26,10 +26,14 @@ class RoleMiddleware
         $user = Auth::user();
         $userRole = $user->role;
 
-        // Convert string roles to UserRole enum instances
-        $allowedRoles = array_map(function ($role) {
-            return UserRole::from($role);
-        }, $roles);
+        // Convert provided role identifiers (e.g., 'system_admin' or '4') to UserRole enums
+        $allowedRoles = [];
+        foreach ($roles as $roleIdentifier) {
+            $enum = $this->resolveRoleToEnum($roleIdentifier);
+            if ($enum !== null) {
+                $allowedRoles[] = $enum;
+            }
+        }
 
         // Check if the user's role is in the allowed roles
         if (!in_array($userRole, $allowedRoles)) {
@@ -53,5 +57,27 @@ class RoleMiddleware
         }
 
         return $next($request);
+    }
+
+    /**
+     * Resolve a role identifier (slug or backing value) to a UserRole enum instance.
+     */
+    private function resolveRoleToEnum(string $roleIdentifier): ?UserRole
+    {
+        // Try direct backing value first (e.g., '1', '2', '3', '4')
+        $enum = UserRole::tryFrom((string) $roleIdentifier);
+        if ($enum instanceof UserRole) {
+            return $enum;
+        }
+
+        // Map legacy slug strings to enum
+        $slug = strtolower(trim($roleIdentifier));
+        return match ($slug) {
+            'public_user' => UserRole::PUBLIC_USER,
+            'healthcare_professional' => UserRole::HEALTHCARE_PROFESSIONAL,
+            'health_campaign_manager' => UserRole::HEALTH_CAMPAIGN_MANAGER,
+            'system_admin' => UserRole::SYSTEM_ADMIN,
+            default => null,
+        };
     }
 }

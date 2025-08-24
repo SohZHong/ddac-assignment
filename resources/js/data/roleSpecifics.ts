@@ -64,6 +64,7 @@ export const userRoles = [
     { value: '1', label: 'Public User' },
     { value: '2', label: 'Healthcare Professional' },
     { value: '3', label: 'Health Campaign Manager' },
+    { value: '4', label: 'System Administrator' },
 ];
 
 export const campaignTypes = [

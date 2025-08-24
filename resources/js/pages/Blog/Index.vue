@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button';
+// import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { User } from '@/types';
 import { Blog } from '@/types/blog';
 import { LaravelPagination } from '@/types/pagination';
-import { UserRole } from '@/types/role';
+// import { UserRole } from '@/types/role';
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import { Plus } from 'lucide-vue-next';
+// import { Plus } from 'lucide-vue-next';
 
 const props = defineProps<{
     blogs: LaravelPagination<Blog>;
@@ -27,7 +27,7 @@ console.log(props.blogs);
                     <h1 class="text-3xl font-bold tracking-tight">Educational Resources</h1>
                     <p class="text-muted-foreground">Enrich yourself with knowledge</p>
                 </div>
-                <Link
+                <!-- <Link
                     v-if="user.role === UserRole.HEALTHCARE_PROFESSIONAL || user.role === UserRole.HEALTH_CAMPAIGN_MANAGER"
                     :href="route('blog.create')"
                     class="inline-flex items-center"
@@ -36,7 +36,7 @@ console.log(props.blogs);
                         <Plus class="mr-2 h-4 w-4" />
                         Publish Your Blog
                     </Button>
-                </Link>
+                </Link> -->
             </div>
             <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                 <div v-for="blog in blogs.data" :key="blog.id" class="group cursor-pointer">

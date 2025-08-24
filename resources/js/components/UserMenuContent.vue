@@ -32,8 +32,8 @@ const handleLogout = () => {
                 </Link>
             </div>
         </DropdownMenuItem>
-        <!-- Show Professional Application link only for public users -->
-        <DropdownMenuItem v-if="user.role === 'public_user'">
+        <!-- Show Professional Application link only for public users (role '1') -->
+        <DropdownMenuItem v-if="user.role === '1'">
             <div class="w-full">
                 <Link :href="route('professional-application.create')" class="flex w-full items-center">
                     <UserPlus class="mr-2 h-4 w-4" />
