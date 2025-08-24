@@ -99,7 +99,7 @@ const pendingApprovalsCount = computed(() => Number((page.props as any).pendingA
                 </Card>
 
                 <!-- System Settings Card -->
-                <Card class="md:col-span-2 lg:col-span-3">
+                <Card class="md:col-span-2 lg:col-span-4">
                     <CardHeader>
                         <CardTitle class="flex items-center gap-2">
                             <Settings class="h-5 w-5" />

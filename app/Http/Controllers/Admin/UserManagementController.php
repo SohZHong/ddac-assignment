@@ -203,7 +203,7 @@ class UserManagementController extends Controller
             'action' => 'user.deleted',
             'target_type' => User::class,
             'target_id' => $user->id,
-            'metadata' => ['email' => $user->email],
+            'metadata' => ['email' => $user->email, 'target_name' => $user->name],
             'ip_address' => request()->ip(),
         ]);
 

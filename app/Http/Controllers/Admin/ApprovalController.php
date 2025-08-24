@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use App\UserRole as RoleEnum;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -45,7 +47,7 @@ class ApprovalController extends Controller
                     'issuer' => $credential->issuing_authority,
                     'issued_at' => $credential->issue_date->format('M j, Y'),
                     'expires_at' => $credential->expiry_date?->format('M j, Y'),
-                    'document_url' => $credential->document_path,
+                    'document_url' => $credential->document_path ? Storage::disk('public')->url($credential->document_path) : null,
                     'is_expired' => $credential->isExpired(),
                     'is_expiring_soon' => $credential->isExpiringSoon(),
                 ]),
@@ -65,6 +67,15 @@ class ApprovalController extends Controller
 
         $user->load('professionalCredentials');
 
+        $requestedRoleLabel = null;
+        if ($user->requested_role) {
+            try {
+                $requestedRoleLabel = RoleEnum::from($user->requested_role)->label();
+            } catch (\Throwable $e) {
+                $requestedRoleLabel = $user->requested_role;
+            }
+        }
+
         return Inertia::render('Admin/Approvals/Show', [
             'user' => [
                 'id' => $user->id,
@@ -73,6 +84,7 @@ class ApprovalController extends Controller
                 'role' => $user->role->value,
                 'role_label' => $user->role->label(),
                 'requested_role' => $user->requested_role,
+                'requested_role_label' => $requestedRoleLabel,
                 'created_at' => $user->created_at->format('M j, Y'),
                 'credentials' => $user->professionalCredentials->map(fn ($credential) => [
                     'id' => $credential->id,
@@ -81,7 +93,7 @@ class ApprovalController extends Controller
                     'issuer' => $credential->issuing_authority,
                     'issued_at' => $credential->issue_date->format('M j, Y'),
                     'expires_at' => $credential->expiry_date?->format('M j, Y'),
-                    'document_url' => $credential->document_path,
+                    'document_url' => $credential->document_path ? Storage::disk('public')->url($credential->document_path) : null,
                     'is_expired' => $credential->isExpired(),
                     'is_expiring_soon' => $credential->isExpiringSoon(),
                     'additional_info' => $credential->additional_info,
@@ -106,7 +118,7 @@ class ApprovalController extends Controller
         // Apply the requested role on approval
         if ($user->requested_role) {
             $user->update([
-                'role' => UserRole::from($user->requested_role),
+                'role' => RoleEnum::from($user->requested_role),
                 'requested_role' => null,
             ]);
         }
@@ -118,7 +130,10 @@ class ApprovalController extends Controller
             'action' => 'approval.approved',
             'target_type' => User::class,
             'target_id' => $user->id,
-            'metadata' => ['approved_role' => $user->role->value],
+            'metadata' => [
+                'approved_role' => $user->role->value,
+                'target_name' => $user->name,
+            ],
             'ip_address' => request()->ip(),
         ]);
         
@@ -156,7 +171,10 @@ class ApprovalController extends Controller
             'action' => 'approval.rejected',
             'target_type' => User::class,
             'target_id' => $user->id,
-            'metadata' => ['reason' => $request->reason],
+            'metadata' => [
+                'reason' => $request->reason,
+                'target_name' => $user->name,
+            ],
             'ip_address' => request()->ip(),
         ]);
         

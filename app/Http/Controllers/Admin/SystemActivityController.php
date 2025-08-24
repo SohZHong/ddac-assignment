@@ -15,15 +15,20 @@ class SystemActivityController extends Controller
 {
     public function index(): Response
     {
-        $logs = AdminLog::with('user')->latest()->limit(50)->get()->map(fn($log) => [
-            'id' => $log->id,
-            'user' => $log->user?->name,
-            'action' => $log->action,
-            'target' => $log->target_type ? $log->target_type.'#'.$log->target_id : null,
-            'metadata' => $log->metadata,
-            'ip' => $log->ip_address,
-            'created_at' => $log->created_at->diffForHumans(),
-        ]);
+        $logs = AdminLog::with('user')->latest()->limit(50)->get()->map(function($log) {
+            $metadata = is_array($log->metadata) ? $log->metadata : [];
+            $target = $metadata['target_name'] ?? ($log->target_type ? $log->target_type.'#'.$log->target_id : null);
+
+            return [
+                'id' => $log->id,
+                'user' => $log->user?->name,
+                'action' => $log->action,
+                'target' => $target,
+                'metadata' => $metadata,
+                'ip' => $log->ip_address,
+                'created_at' => $log->created_at->diffForHumans(),
+            ];
+        });
 
         // Ensure at least one incident exists to "function" out of the box
         if (IncidentReport::count() === 0) {
