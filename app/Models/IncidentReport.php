@@ -10,7 +10,7 @@ class IncidentReport extends Model
     use HasFactory;
 
     protected $fillable = [
-        'type', 'description', 'reported_by', 'status', 'context',
+        'type', 'title', 'description', 'reported_by', 'status', 'context',
     ];
 
     protected $casts = [

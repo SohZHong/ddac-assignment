@@ -29,6 +29,7 @@ class SystemActivityController extends Controller
         if (IncidentReport::count() === 0) {
             IncidentReport::create([
                 'type' => 'content_abuse',
+                'title' => 'Welcome seed report',
                 'description' => 'Reported spam content example',
                 'reported_by' => optional(Auth::user())->id,
                 'status' => 'open',
@@ -85,6 +86,7 @@ class SystemActivityController extends Controller
 
         IncidentReport::create([
             'type' => request('type'),
+            'title' => request('title') ?: null,
             'description' => request('description'),
             'reported_by' => optional(Auth::user())->id,
             'status' => 'open',
@@ -97,7 +99,7 @@ class SystemActivityController extends Controller
             'action' => 'incident.created',
             'target_type' => IncidentReport::class,
             'target_id' => $incident?->id,
-            'metadata' => ['type' => $incident?->type],
+            'metadata' => ['type' => $incident?->type, 'title' => $incident?->title],
             'ip_address' => request()->ip(),
         ]);
 
@@ -113,7 +115,7 @@ class SystemActivityController extends Controller
             'action' => 'incident.reopened',
             'target_type' => IncidentReport::class,
             'target_id' => $incident->id,
-            'metadata' => ['incident_id' => $incident->id, 'type' => $incident->type],
+            'metadata' => ['incident_id' => $incident->id, 'type' => $incident->type, 'title' => $incident->title],
             'ip_address' => request()->ip(),
         ]);
         return back()->with('success', 'Incident reopened');

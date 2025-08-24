@@ -20,9 +20,18 @@ class UserManagementController extends Controller
      */
     public function index(): Response
     {
+        $query = request('q');
+
         $users = User::select(['id', 'name', 'email', 'role', 'requested_role', 'approval_status', 'email_verified_at', 'created_at'])
+            ->when($query, function ($builder) use ($query) {
+                $builder->where(function ($q) use ($query) {
+                    $q->where('name', 'ILIKE', "%{$query}%")
+                      ->orWhere('email', 'ILIKE', "%{$query}%");
+                });
+            })
             ->orderBy('created_at', 'desc')
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
 
         $users->through(function ($user) {
             return [
@@ -58,6 +67,7 @@ class UserManagementController extends Controller
                 'label' => $role->label(),
             ]),
             'pendingApprovalsCount' => $pendingApprovalsCount,
+            'q' => $query,
         ]);
     }
 
@@ -91,6 +101,9 @@ class UserManagementController extends Controller
             return back()->withErrors(['role' => 'You cannot change your own role.']);
         }
 
+        // Capture old role before changing
+        $oldRole = $user->role; // enum instance (or null)
+
         $user->role = $newRole;
         $user->save();
 
@@ -100,7 +113,18 @@ class UserManagementController extends Controller
             'action' => 'user.role_changed',
             'target_type' => User::class,
             'target_id' => $user->id,
-            'metadata' => ['new_role' => $newRole->value],
+            'metadata' => [
+                'actor_id' => $currentUser->id,
+                'actor_name' => $currentUser->name,
+                'actor_email' => $currentUser->email,
+                'target_id' => $user->id,
+                'target_name' => $user->name,
+                'target_email' => $user->email,
+                'old_role' => $oldRole?->value,
+                'old_role_label' => $oldRole?->label(),
+                'new_role' => $newRole->value,
+                'new_role_label' => $newRole->label(),
+            ],
             'ip_address' => $request->ip(),
         ]);
 

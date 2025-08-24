@@ -17,14 +17,15 @@
                         <CardDescription>Recent administrative actions</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div class="max-h-[39rem] space-y-3 overflow-auto no-scrollbar">
+                        <div class="max-h-[44rem] space-y-3 overflow-auto no-scrollbar">
                             <div v-for="log in logs" :key="log.id" class="rounded-md border p-3">
                                 <div class="flex items-center justify-between">
                                     <div class="font-medium">{{ log.user || 'Unknown' }} • {{ log.action }}</div>
                                     <div class="text-xs text-muted-foreground">{{ log.created_at }}</div>
                                 </div>
                                 <div v-if="log.target" class="mt-1 text-xs text-muted-foreground">Target: {{ log.target }}</div>
-                                <pre v-if="log.metadata" class="mt-2 rounded bg-muted p-2 text-xs">{{ log.metadata }}</pre>
+                                <div v-if="formatLog(log)" class="mt-2 text-sm">{{ formatLog(log) }}</div>
+                                <pre v-else-if="log.metadata" class="mt-2 rounded bg-muted p-2 text-xs">{{ log.metadata }}</pre>
                             </div>
                         </div>
                     </CardContent>
@@ -37,7 +38,7 @@
                         <CardDescription>Open and recent reports</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div class="h-60 space-y-3 overflow-auto no-scrollbar">
+                        <div class="h-fit space-y-3 overflow-auto no-scrollbar">
                             <form class="mb-4 grid gap-2" @submit.prevent="createIncident">
                                 <div class="grid gap-2">
                                     <label class="text-sm font-medium" for="incident-type">New Incident Type</label>
@@ -50,6 +51,16 @@
                                         <option value="security">Security</option>
                                         <option value="feedback">Feedback</option>
                                     </select>
+                                </div>
+                                <div class="grid gap-2">
+                                    <label class="text-sm font-medium" for="incident-title">Title (optional)</label>
+                                    <input
+                                        id="incident-title"
+                                        v-model="incidentForm.title"
+                                        type="text"
+                                        class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                        placeholder="Short title"
+                                    />
                                 </div>
                                 <div class="grid gap-2">
                                     <label class="text-sm font-medium" for="incident-desc">Description</label>
@@ -68,7 +79,10 @@
                         <div class="max-h-96 space-y-3 overflow-auto no-scrollbar">
                             <div v-for="incident in incidents" :key="incident.id" class="rounded-md border p-3">
                                 <div class="flex items-center justify-between">
-                                    <div class="font-medium capitalize">{{ incident.type.replace('_', ' ') }}</div>
+                                    <div class="font-medium capitalize">
+                                        {{ incident.title || 'Untitled incident' }}
+                                        <span class="ml-2 text-xs lowercase text-muted-foreground">({{ incident.type.replace('_', ' ') }})</span>
+                                    </div>
                                     <Badge
                                         :variant="incident.status === 'resolved' ? 'secondary' : 'default'"
                                         class="cursor-pointer"
@@ -145,6 +159,7 @@ interface Log {
 interface Incident {
     id: number;
     type: string;
+    title?: string | null;
     description: string;
     status: string;
 }
@@ -167,6 +182,63 @@ const logs = computed<Log[]>(() => (page.props as any).logs ?? props.logs);
 const incidents = computed<Incident[]>(() => (page.props as any).incidents ?? props.incidents);
 const content = computed<Content[]>(() => (page.props as any).content ?? props.content);
 
+const roleLabelFromValue = (value: unknown): string => {
+    const v = String(value ?? '');
+    switch (v) {
+        case '1':
+            return 'Public User';
+        case '2':
+            return 'Healthcare Professional';
+        case '3':
+            return 'Health Campaign Manager';
+        case '4':
+            return 'System Administrator';
+        default:
+            return v || 'Unknown';
+    }
+};
+
+const formatLog = (log: Log): string => {
+    const m = (log.metadata as any) || {};
+    const actor = m.actor_name || log.user || 'Someone';
+
+    if (log.action === 'user.role_changed') {
+        const target = m.target_name || (log.target ?? 'user');
+        const fromRole = m.old_role_label || roleLabelFromValue(m.old_role);
+        const toRole = m.new_role_label || roleLabelFromValue(m.new_role);
+        return `${actor} changed ${target}'s role from ${fromRole} to ${toRole}`;
+    }
+
+    if (log.action === 'user.deleted') {
+        const target = m.target_name || m.email || (log.target ?? 'user');
+        return `${actor} deleted ${target}`;
+    }
+
+    if (log.action === 'approval.approved') {
+        const target = m.target_name || (log.target ?? 'user');
+        const role = roleLabelFromValue(m.approved_role);
+        return `${actor} approved ${target}'s application (role: ${role})`;
+    }
+    if (log.action === 'approval.rejected') {
+        const target = m.target_name || (log.target ?? 'user');
+        return `${actor} rejected ${target}'s application${m.reason ? `: ${m.reason}` : ''}`;
+    }
+
+    if (log.action === 'incident.created' && (m.type || m.title)) {
+        const typeText = (m.type || '').toString().replace('_', ' ');
+        return `${actor} reported a new incident (${m.title || 'Untitled incident'} • ${typeText})`;
+    }
+    if (log.action === 'incident.resolved' && m.incident_id) {
+        const typeText = (m.type || '').toString().replace('_', ' ');
+        return `${actor} resolved incident ${m.title ? `"${m.title}"` : `#${m.incident_id}`} ${typeText ? `(${typeText})` : ''}`.trim();
+    }
+    if (log.action === 'incident.reopened' && m.incident_id) {
+        const typeText = (m.type || '').toString().replace('_', ' ');
+        return `${actor} reopened incident ${m.title ? `"${m.title}"` : `#${m.incident_id}`} ${typeText ? `(${typeText})` : ''}`.trim();
+    }
+    return '';
+};
+
 const resolve = (id: number) => {
     router.post(
         route('admin.system.resolve-incident', id),
@@ -179,7 +251,7 @@ const resolve = (id: number) => {
 };
 
 const creating = ref(false);
-const incidentForm = reactive({ type: 'content_abuse', description: '' });
+const incidentForm = reactive({ type: 'content_abuse', title: '', description: '' });
 const createIncident = () => {
     if (!incidentForm.description) return;
     creating.value = true;
@@ -188,6 +260,7 @@ const createIncident = () => {
         onSuccess: () => {
             creating.value = false;
             incidentForm.description = '';
+            incidentForm.title = '';
             router.reload({ only: ['incidents', 'logs'] });
         },
         onFinish: () => (creating.value = false),
