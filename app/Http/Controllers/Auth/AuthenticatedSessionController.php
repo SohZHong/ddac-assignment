@@ -33,6 +33,17 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $user = Auth::user();
+        
+        // Redirect based on user role
+        if ($user->isSystemAdmin()) {
+            return redirect()->intended(route('admin.index', absolute: false));
+        } elseif ($user->isHealthCampaignManager()) {
+            return redirect()->intended(route('campaigns.index', absolute: false));
+        } elseif ($user->isHealthcareProfessional()) {
+            return redirect()->intended(route('healthcare.index', absolute: false));
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

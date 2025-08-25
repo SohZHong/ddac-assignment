@@ -4,7 +4,6 @@ import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type User } from '@/types';
-import { UserRole } from '@/types/role';
 import { Link, usePage } from '@inertiajs/vue3';
 import {
     BookHeartIcon,
@@ -96,8 +95,8 @@ const mainNavItems = computed((): NavItem[] => {
         );
     }
 
-    // Add campaign routes for campaign managers and above
-    if (user.value.role === UserRole.HEALTH_CAMPAIGN_MANAGER || user.value.role === UserRole.SYSTEM_ADMIN) {
+    // Add campaign routes for campaign managers and above (roles 3, 4)
+    if (user.value.role === '3') {
         items.push({
             title: 'Campaigns',
             href: '/campaigns',

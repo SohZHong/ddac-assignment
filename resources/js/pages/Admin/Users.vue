@@ -23,10 +23,23 @@ interface UserData {
     id: number;
     name: string;
     email: string;
+    work_email?: string;
     role: string;
     role_label: string;
     email_verified_at: string | null;
+    is_verified: boolean;
+    verified_at: string | null;
     created_at: string;
+    needs_verification: boolean;
+    // Professional details
+    license_number?: string;
+    medical_specialty?: string;
+    institution_name?: string;
+    organization_name?: string;
+    job_title?: string;
+    organization_type?: string;
+    focus_areas?: string;
+    registration_body?: string;
 }
 
 interface Props {
@@ -60,10 +73,13 @@ const currentUser = page.props.auth.user as User;
 // Role update functionality
 const selectedUser = ref<UserData | null>(null);
 const isRoleDialogOpen = ref(false);
+const isVerificationDialogOpen = ref(false);
 
 const roleUpdateForm = useForm({
     role: '',
 });
+
+const verificationForm = useForm({});
 
 const openRoleDialog = (user: UserData) => {
     selectedUser.value = user;
@@ -92,6 +108,34 @@ const deleteUser = (user: UserData) => {
     }
 };
 
+// Verification functionality
+const openVerificationDialog = (user: UserData) => {
+    selectedUser.value = user;
+    isVerificationDialogOpen.value = true;
+};
+
+const verifyUser = () => {
+    if (!selectedUser.value) return;
+
+    verificationForm.patch(route('admin.users.verify', selectedUser.value.id), {
+        onSuccess: () => {
+            isVerificationDialogOpen.value = false;
+            selectedUser.value = null;
+            verificationForm.reset();
+        },
+    });
+};
+
+const unverifyUser = (user: UserData) => {
+    if (confirm(`Are you sure you want to revoke ${user.name}'s verification?`)) {
+        verificationForm.patch(route('admin.users.unverify', user.id), {
+            onSuccess: () => {
+                verificationForm.reset();
+            },
+        });
+    }
+};
+
 // Helper functions
 const getUserInitials = (name: string) => {
     return name
@@ -104,12 +148,13 @@ const getUserInitials = (name: string) => {
 
 const getRoleBadgeVariant = (role: string) => {
     switch (role) {
-        case 'system_admin':
+        case '4': // System Admin
             return 'destructive';
-        case 'health_campaign_manager':
+        case '3': // Health Campaign Manager
             return 'default';
-        case 'healthcare_professional':
+        case '2': // Healthcare Professional
             return 'secondary';
+        case '1': // Public User
         default:
             return 'outline';
     }
@@ -120,11 +165,11 @@ const canManageUser = (user: UserData) => {
     if (user.id === currentUser.id) return false;
 
     // System admins can manage everyone
-    if (currentUser.role === 'system_admin') return true;
+    if (currentUser.role === '4') return true;
 
     // Health campaign managers can manage public users and healthcare professionals
-    if (currentUser.role === 'health_campaign_manager') {
-        return user.role === 'public_user' || user.role === 'healthcare_professional';
+    if (currentUser.role === '3') {
+        return user.role === '1' || user.role === '2';
     }
 
     return false;
@@ -155,7 +200,8 @@ const canManageUser = (user: UserData) => {
                                 <tr class="border-b">
                                     <th class="px-4 py-3 text-left font-medium">User</th>
                                     <th class="px-4 py-3 text-left font-medium">Role</th>
-                                    <th class="px-4 py-3 text-left font-medium">Status</th>
+                                    <th class="px-4 py-3 text-left font-medium">Email Status</th>
+                                    <th class="px-4 py-3 text-left font-medium">Verification</th>
                                     <th class="px-4 py-3 text-left font-medium">Joined</th>
                                     <th class="px-4 py-3 text-right font-medium">Actions</th>
                                 </tr>
@@ -172,6 +218,7 @@ const canManageUser = (user: UserData) => {
                                             <div>
                                                 <div class="font-medium">{{ user.name }}</div>
                                                 <div class="text-sm text-muted-foreground">{{ user.email }}</div>
+                                                <div v-if="user.work_email" class="text-xs text-muted-foreground">Work: {{ user.work_email }}</div>
                                             </div>
                                         </div>
                                     </td>
@@ -185,9 +232,22 @@ const canManageUser = (user: UserData) => {
                                             <Check v-if="user.email_verified_at" class="h-4 w-4 text-green-600" />
                                             <X v-else class="h-4 w-4 text-red-600" />
                                             <span class="text-sm">
-                                                {{ user.email_verified_at ? 'Verified' : 'Unverified' }}
+                                                {{ user.email_verified_at ? 'Email Verified' : 'Email Pending' }}
                                             </span>
                                         </div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div v-if="user.needs_verification" class="flex items-center gap-2">
+                                            <Check v-if="user.is_verified" class="h-4 w-4 text-green-600" />
+                                            <X v-else class="h-4 w-4 text-yellow-600" />
+                                            <span class="text-sm">
+                                                {{ user.is_verified ? 'Admin Verified' : 'Pending Verification' }}
+                                            </span>
+                                            <div v-if="user.verified_at" class="text-xs text-muted-foreground">
+                                                {{ user.verified_at }}
+                                            </div>
+                                        </div>
+                                        <div v-else class="text-sm text-muted-foreground">No verification required</div>
                                     </td>
                                     <td class="px-4 py-3 text-sm text-muted-foreground">
                                         {{ user.created_at }}
@@ -206,12 +266,26 @@ const canManageUser = (user: UserData) => {
                                                     <UserCog class="mr-2 h-4 w-4" />
                                                     Change Role
                                                 </DropdownMenuItem>
-                                                <DropdownMenuSeparator v-if="currentUser.role === 'system_admin'" />
-                                                <DropdownMenuItem
-                                                    v-if="currentUser.role === 'system_admin'"
-                                                    @click="deleteUser(user)"
-                                                    class="text-red-600"
-                                                >
+
+                                                <!-- Verification actions for professionals -->
+                                                <template v-if="user.needs_verification && currentUser.role === '4'">
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        v-if="!user.is_verified"
+                                                        @click="openVerificationDialog(user)"
+                                                        class="text-green-600"
+                                                    >
+                                                        <Check class="mr-2 h-4 w-4" />
+                                                        Verify Professional
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem v-else @click="unverifyUser(user)" class="text-yellow-600">
+                                                        <X class="mr-2 h-4 w-4" />
+                                                        Revoke Verification
+                                                    </DropdownMenuItem>
+                                                </template>
+
+                                                <DropdownMenuSeparator v-if="currentUser.role === '4'" />
+                                                <DropdownMenuItem v-if="currentUser.role === '4'" @click="deleteUser(user)" class="text-red-600">
                                                     <Trash2 class="mr-2 h-4 w-4" />
                                                     Delete User
                                                 </DropdownMenuItem>
@@ -259,6 +333,48 @@ const canManageUser = (user: UserData) => {
                     <Button variant="outline" @click="isRoleDialogOpen = false">Cancel</Button>
                     <Button @click="updateUserRole" :disabled="roleUpdateForm.processing">
                         {{ roleUpdateForm.processing ? 'Updating...' : 'Update Role' }}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Professional Verification Dialog -->
+        <Dialog v-model:open="isVerificationDialogOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Verify Professional Credentials</DialogTitle>
+                    <DialogDescription> Review and verify the professional credentials for {{ selectedUser?.name }}. </DialogDescription>
+                </DialogHeader>
+
+                <div v-if="selectedUser" class="grid gap-4 py-4">
+                    <!-- Professional Details -->
+                    <div class="space-y-3">
+                        <h4 class="font-medium">Professional Information</h4>
+
+                        <div v-if="selectedUser.role === '2'" class="space-y-2">
+                            <div class="text-sm"><strong>License Number:</strong> {{ selectedUser.license_number || 'Not provided' }}</div>
+                            <div class="text-sm"><strong>Medical Specialty:</strong> {{ selectedUser.medical_specialty || 'Not provided' }}</div>
+                            <div class="text-sm"><strong>Institution:</strong> {{ selectedUser.institution_name || 'Not provided' }}</div>
+                            <div class="text-sm">
+                                <strong>Professional Registration Body:</strong> {{ selectedUser.registration_body || 'Not provided' }}
+                            </div>
+                            <div class="text-sm"><strong>Work email:</strong> {{ selectedUser.work_email || 'Not provided' }}</div>
+                        </div>
+
+                        <div v-if="selectedUser.role === '3'" class="space-y-2">
+                            <div class="text-sm"><strong>Organization:</strong> {{ selectedUser.organization_name || 'Not provided' }}</div>
+                            <div class="text-sm"><strong>Job Title:</strong> {{ selectedUser.job_title || 'Not provided' }}</div>
+                            <div class="text-sm"><strong>Organization Type:</strong> {{ selectedUser.organization_type || 'Not provided' }}</div>
+                            <div class="text-sm"><strong>Primary Focus Area:</strong> {{ selectedUser.focus_areas || 'Not provided' }}</div>
+                            <div class="text-sm"><strong>Work email:</strong> {{ selectedUser.work_email || 'Not provided' }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" @click="isVerificationDialogOpen = false">Cancel</Button>
+                    <Button @click="verifyUser" :disabled="verificationForm.processing" class="bg-green-600 hover:bg-green-700">
+                        {{ verificationForm.processing ? 'Verifying...' : 'Verify Professional' }}
                     </Button>
                 </DialogFooter>
             </DialogContent>
