@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import axios from '@/axios';
+import Icon from '@/components/Icon.vue';
 import ScheduleCreateDialog from '@/components/ScheduleCreateDialog.vue';
 import ScheduleDeleteDialog from '@/components/ScheduleDeleteDialog.vue';
 import Toast from '@/components/Toast.vue';
@@ -40,12 +41,15 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const props = defineProps<{
-    schedules: LaravelPagination<Schedule>;
+    schedules: Schedule[];
+    paginateSchedules: LaravelPagination<Schedule>;
 }>();
 
-const events = ref<Schedule[]>(props.schedules.data);
+// const events = ref<Schedule[]>(props.schedules);
+const events = ref<Schedule[]>(props.paginateSchedules.data);
+const allEvents = ref<Schedule[]>(props.schedules);
 
-const pagination = ref<LaravelPagination<Schedule>>(props.schedules);
+const pagination = ref<LaravelPagination<Schedule>>(props.paginateSchedules);
 const currentPage = ref(pagination.value.current_page);
 
 const createDialogOpen = ref(false);
@@ -62,7 +66,7 @@ const calendarOptions = ref<CalendarOptions>({
     timeZone: 'local',
     height: 450, // total calendar height
     contentHeight: 250, // just the event area height
-    events: events.value,
+    events: allEvents.value,
     selectable: true, // allow dragging across cells
     selectMirror: true, // show placeholder when selecting
     nowIndicator: true,
@@ -97,6 +101,13 @@ function handleSelect(info: DateSelectArg) {
     createDialogOpen.value = true;
 }
 
+const updateScheduleInArray = (array: Schedule[], updated: Schedule) => {
+    const index = array.findIndex((item) => item.id === updated.id);
+    if (index !== -1) {
+        array[index] = updated;
+    }
+};
+
 async function updateSchedule({ event, revert }: EventDropArg | EventResizeDoneArg) {
     const start = event.start;
     const end = event.end;
@@ -123,6 +134,20 @@ async function updateSchedule({ event, revert }: EventDropArg | EventResizeDoneA
     await axios
         .put(route('api.schedule.update', event.id), payload)
         .then((res) => {
+            const s = res.data.schedule;
+
+            const updatedSchedule: Schedule = {
+                id: s.id,
+                start: s.start_time,
+                end: s.end_time,
+                day_of_week: s.day_of_week,
+            };
+
+            // Update paginated events
+            updateScheduleInArray(events.value, updatedSchedule);
+
+            // Update all events
+            updateScheduleInArray(allEvents.value, updatedSchedule);
             toastMessage.value = {
                 title: `Schedule Updated`,
                 description: res.data.message,
@@ -177,13 +202,16 @@ async function confirmSchedule() {
         .post(route('api.schedule.store'), newSchedule)
         .then((res) => {
             const s = res.data.schedule;
-            console.log(s);
-            events.value.push({
+
+            const data = {
                 id: s.id,
                 start: s.start_time,
                 end: s.end_time,
                 day_of_week: s.day_of_week,
-            });
+            };
+
+            events.value.push(data);
+            allEvents.value.push(data);
 
             toastMessage.value = {
                 title: `Schedule Created`,
@@ -195,7 +223,7 @@ async function confirmSchedule() {
         })
         .catch((err) => {
             toastMessage.value = {
-                title: `Schedule Deletion Failed`,
+                title: `Schedule Creation Failed`,
                 description: err.message,
                 variant: 'destructive',
             };
@@ -215,6 +243,7 @@ async function deleteSchedule() {
         .then((res) => {
             // remove from local events array
             events.value = events.value.filter((e) => String(e.id) !== String(tempSelection.value?.id));
+            allEvents.value = allEvents.value.filter((e) => String(e.id) !== String(tempSelection.value?.id));
             // remove from calendar view
             const calendarApi = calendarRef.value!.getApi();
             const event = calendarApi.getEventById(tempSelection.value!.id!);
