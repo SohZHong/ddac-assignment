@@ -17,20 +17,17 @@ use Inertia\Inertia;
 
 class BookingController extends Controller
 {
-    /**
-     * Public page for a patient to view bookings.
-     */
+
     public function index()
     {
-        $patientId = auth()->id(); // assuming logged in as patient
+        $patientId = auth()->id();
 
         $now = now();
 
-        $upcoming = Booking::with(['schedule.healthcare:id,name'])
+        $upcoming = Booking::with(['schedule.healthcare:id,name', 'quizResponse'])
             ->where('patient_id', $patientId)
             ->where('start_time', '>=', $now)
-            // Show confirmed or pending ones
-            ->whereIn('status', [Booking::CONFIRMED, Booking::CANCELLED])
+            ->whereIn('status', [Booking::CONFIRMED, Booking::PENDING, Booking::CANCELLED])
             ->orderBy('start_time', 'asc')
             ->get()
             ->map(fn ($up) => [
@@ -40,13 +37,14 @@ class BookingController extends Controller
                 'start_time'    => $up->start_time,
                 'end_time'      => $up->end_time,
                 'status'        => $up->status,
+                'has_assessment' => $up->quizResponse !== null,
                 'healthcare'    => [
                     'id'   => $up->schedule->healthcare->id,
                     'name' => $up->schedule->healthcare->name,
                 ],
             ]);
 
-        $past = Booking::with(['schedule.healthcare:id,name'])
+        $past = Booking::with(['schedule.healthcare:id,name', 'quizResponse'])
             ->where('patient_id', $patientId)
             ->where(function ($q) use ($now) {
                 // include confirmed or pending ones that have already passed
@@ -66,6 +64,7 @@ class BookingController extends Controller
                 'start_time'    => $p->start_time,
                 'end_time'      => $p->end_time,
                 'status'        => $p->status,
+                'has_assessment' => $p->quizResponse !== null,
                 'healthcare'    => [
                     'id'   => $p->schedule->healthcare->id,
                     'name' => $p->schedule->healthcare->name,
@@ -149,6 +148,7 @@ class BookingController extends Controller
             [
                 'answers'      => $validated['answers'],
                 'completed_at' => now(),
+                'updated_at'   => now(),
             ]
         );
 
@@ -158,9 +158,6 @@ class BookingController extends Controller
         return redirect()->route('booking.index')->with('success', 'Assessment submitted successfully.');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -188,15 +185,10 @@ class BookingController extends Controller
         $healthcare = $schedule->healthcare;
         $healthcare->notify(new BookingNotification($booking));
 
-        return response()->json([
-            'message' => 'Booking created successfully!',
-            'booking' => $booking,
-        ], 201);
+        // For Inertia.js requests, return a redirect with flash message
+        return redirect()->back()->with('success', 'Consultation booked successfully! Your appointment is pending confirmation.');
     }
 
-    /**
-     * Approve the booking.
-     */
     public function approve(string $id)
     {
         $booking = Booking::findOrFail($id);
@@ -217,9 +209,6 @@ class BookingController extends Controller
         ], 201);
     }
 
-    /**
-     * Decline the booking.
-     */
     public function decline(string $id)
     {
         $booking = Booking::findOrFail($id);
@@ -240,9 +229,6 @@ class BookingController extends Controller
         ], 201);
     }
 
-    /**
-     * Cancel the booking by patient.
-     */
     public function cancelByPatient(string $id)
     {
         $booking = Booking::findOrFail($id);
@@ -263,25 +249,6 @@ class BookingController extends Controller
         ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Booking $booking)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Booking $booking)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
         $booking = Booking::findOrFail($id);
@@ -299,13 +266,5 @@ class BookingController extends Controller
             'message' => 'Booking updated successfully!',
             'booking' => $booking,
         ], 201);
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Booking $booking)
-    {
-        //
     }
 }

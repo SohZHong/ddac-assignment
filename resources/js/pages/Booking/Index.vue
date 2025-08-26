@@ -123,9 +123,11 @@ async function cancelBooking(id: string) {
                             </div>
 
                             <!-- Actions -->
-                            <div class="flex flex-wrap justify-between gap-2 px-4 py-3" v-if="booking.status !== BookingStatus.CANCELLED">
-                                <Button size="sm" variant="default">
-                                    <Link :href="route('booking.assessment.index', booking.id)">Start Assessment</Link>
+                            <div class="flex flex-wrap gap-2 px-4 py-3" v-if="booking.status !== BookingStatus.CANCELLED">
+                                <Button size="sm" variant="default" v-if="booking.status !== BookingStatus.PENDING">
+                                    <Link :href="route('booking.assessment.index', booking.id)">
+                                        {{ booking.has_assessment ? 'Reattempt Assessment' : 'Start Assessment' }}
+                                    </Link>
                                 </Button>
                                 <Button size="sm" variant="destructive" @click="cancelBooking(booking.id!)">Cancel</Button>
                             </div>
@@ -141,17 +143,18 @@ async function cancelBooking(id: string) {
                 <div v-if="filteredPast.length > 0" class="overflow-x-auto rounded-lg border">
                     <div class="min-w-[700px]">
                         <!-- Table Header -->
-                        <div class="grid grid-cols-3 bg-muted text-sm font-semibold text-muted-foreground">
+                        <div class="grid grid-cols-4 bg-muted text-sm font-semibold text-muted-foreground">
                             <div class="px-4 py-2">Doctor</div>
                             <div class="px-4 py-2">Time</div>
                             <div class="px-4 py-2">Status</div>
+                            <div class="px-4 py-2">Actions</div>
                         </div>
 
                         <!-- Table Rows -->
                         <div
                             v-for="booking in filteredPast"
                             :key="booking.id"
-                            class="grid grid-cols-3 items-center border-t bg-white text-sm hover:bg-stone-50"
+                            class="grid grid-cols-4 items-center border-t bg-white text-sm hover:bg-stone-50 dark:bg-black dark:hover:bg-accent"
                         >
                             <!-- Doctor -->
                             <div class="px-4 py-3 font-medium">{{ booking.healthcare?.name }}</div>
@@ -167,6 +170,11 @@ async function cancelBooking(id: string) {
                                 <Badge :variant="statusMap[booking.status].variant">
                                     {{ statusMap[booking.status].text }}
                                 </Badge>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="flex flex-wrap gap-2 px-4 py-3">
+                                <Button size="sm" variant="outline">View Details</Button>
                             </div>
                         </div>
                     </div>

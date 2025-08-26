@@ -6,6 +6,7 @@ use App\Models\Blog;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
+use App\UserRole;
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Blog>
  */

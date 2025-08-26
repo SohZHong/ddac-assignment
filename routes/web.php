@@ -68,6 +68,15 @@ Route::middleware(['auth', 'role:system_admin'])->group(function () {
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
+
+// Include web route files
+require __DIR__.'/web/assessment.php';
+require __DIR__.'/web/blog.php';
+require __DIR__.'/web/booking.php';
+require __DIR__.'/web/campaign.php';
+require __DIR__.'/web/healthcare.php';
+require __DIR__.'/web/schedule.php';
+require __DIR__.'/web/admin.php';
 require __DIR__.'/web/blog.php';
 require __DIR__.'/web/booking.php';
 require __DIR__.'/web/schedule.php';

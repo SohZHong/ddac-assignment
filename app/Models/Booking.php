@@ -13,6 +13,9 @@ class Booking extends Model
     const PENDING   = 0;
     const CONFIRMED = 1;
     const CANCELLED = 2;
+    
+    // Special status for standalone assessments
+    const ASSESSMENT_ONLY = 3;
 
     // Risk level
     const LOW   = 0;

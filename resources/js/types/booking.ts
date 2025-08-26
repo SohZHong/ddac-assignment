@@ -33,5 +33,6 @@ export interface Booking {
     status: BookingStatus;
     healthcare_comments: string;
     risk_level: PatientRiskLevel;
+    has_assessment?: boolean;
     quizResponse?: QuizResponse;
 }

@@ -62,17 +62,6 @@ class ScheduleController extends Controller
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -94,25 +83,6 @@ class ScheduleController extends Controller
         ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Schedule $schedule)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Schedule $schedule)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, Schedule $schedule)
     {
         $this->authorize('update', $schedule);
@@ -130,9 +100,6 @@ class ScheduleController extends Controller
         ], 201);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         $schedule = Schedule::findOrFail($id);
@@ -144,5 +111,27 @@ class ScheduleController extends Controller
         return response()->json([
             'message' => 'Schedule deleted successfully!',
         ], 201);   
+    }
+
+    public function getByHealthcare($healthcareId)
+    {
+        $schedules = Schedule::with(['healthcare:id,name'])
+            ->where('healthcare_id', $healthcareId)
+            ->get()
+            ->map(function ($schedule) {
+                return [
+                    'id' => $schedule->id,
+                    'healthcare_id' => $schedule->healthcare_id,
+                    'day_of_week' => $schedule->day_of_week,
+                    'start_time' => $schedule->start_time,
+                    'end_time' => $schedule->end_time,
+                    'healthcare' => [
+                        'id' => $schedule->healthcare->id,
+                        'name' => $schedule->healthcare->name,
+                    ],
+                ];
+            });
+
+        return response()->json($schedules);
     }
 }
