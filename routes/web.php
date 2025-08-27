@@ -29,8 +29,72 @@ Route::middleware(['auth', 'role:healthcare_professional,health_campaign_manager
 // Health Campaign Manager Routes - UI (GET routes with Inertia::render)
 Route::middleware(['auth', 'role:health_campaign_manager,system_admin'])->group(function () {
     Route::get('/campaigns', function () {
-        return Inertia::render('Campaigns/Dashboard');
+        $campaigns = \App\Models\Campaign::with('creator')
+            ->when(auth()->user()->isHealthCampaignManager(), function ($query) {
+                return $query->where('created_by', auth()->id());
+            })
+            ->latest()
+            ->get()
+            ->map(function ($campaign) {
+                return [
+                    'id' => $campaign->id,
+                    'title' => $campaign->title,
+                    'description' => $campaign->description,
+                    'type' => $campaign->type,
+                    'status' => $campaign->status,
+                    'start_date' => $campaign->start_date->format('Y-m-d'),
+                    'end_date' => $campaign->end_date->format('Y-m-d'),
+                    'target_audience' => $campaign->target_audience,
+                    'target_reach' => $campaign->target_reach,
+                    'budget' => $campaign->budget,
+                    'location' => $campaign->location,
+                    'creator' => $campaign->creator->name,
+                    'created_at' => $campaign->created_at->format('Y-m-d H:i:s'),
+                    'updated_at' => $campaign->updated_at->format('Y-m-d H:i:s'),
+                    'is_running' => $campaign->isRunning(),
+                    'progress_percentage' => $campaign->getProgressPercentage(),
+                    'duration_days' => $campaign->getDurationInDays(),
+                ];
+            });
+
+        return Inertia::render('Campaigns/Dashboard', [
+            'campaigns' => $campaigns,
+        ]);
     })->name('campaigns.index');
+
+    Route::get('/campaigns/list', function () {
+        $campaigns = \App\Models\Campaign::with('creator')
+            ->when(auth()->user()->isHealthCampaignManager(), function ($query) {
+                return $query->where('created_by', auth()->id());
+            })
+            ->latest()
+            ->get()
+            ->map(function ($campaign) {
+                return [
+                    'id' => $campaign->id,
+                    'title' => $campaign->title,
+                    'description' => $campaign->description,
+                    'type' => $campaign->type,
+                    'status' => $campaign->status,
+                    'start_date' => $campaign->start_date->format('Y-m-d'),
+                    'end_date' => $campaign->end_date->format('Y-m-d'),
+                    'target_audience' => $campaign->target_audience,
+                    'target_reach' => $campaign->target_reach,
+                    'budget' => $campaign->budget,
+                    'location' => $campaign->location,
+                    'creator' => $campaign->creator->name,
+                    'created_at' => $campaign->created_at->format('Y-m-d H:i:s'),
+                    'updated_at' => $campaign->updated_at->format('Y-m-d H:i:s'),
+                    'is_running' => $campaign->isRunning(),
+                    'progress_percentage' => $campaign->getProgressPercentage(),
+                    'duration_days' => $campaign->getDurationInDays(),
+                ];
+            });
+
+        return Inertia::render('Campaigns/Index', [
+            'campaigns' => $campaigns,
+        ]);
+    })->name('campaigns.list');
 });
 
 // System Admin Only Routes - UI (GET routes with Inertia::render)

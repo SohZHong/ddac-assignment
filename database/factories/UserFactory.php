@@ -33,6 +33,8 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'role' => UserRole::PUBLIC_USER, // Default role
+            'approval_status' => 'approved', // Default to approved for testing
+            'approved_at' => now(),
         ];
     }
 
@@ -53,6 +55,8 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => UserRole::HEALTHCARE_PROFESSIONAL,
+            'approval_status' => 'approved',
+            'approved_at' => now(),
         ]);
     }
 
@@ -63,6 +67,8 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => UserRole::HEALTH_CAMPAIGN_MANAGER,
+            'approval_status' => 'approved',
+            'approved_at' => now(),
         ]);
     }
 
@@ -73,6 +79,20 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => UserRole::SYSTEM_ADMIN,
+            'approval_status' => 'approved',
+            'approved_at' => now(),
+        ]);
+    }
+
+    /**
+     * Create a user with public user role.
+     */
+    public function publicUser(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => UserRole::PUBLIC_USER,
+            'approval_status' => 'approved',
+            'approved_at' => now(),
         ]);
     }
 
@@ -88,6 +108,42 @@ class UserFactory extends Factory
                 UserRole::HEALTH_CAMPAIGN_MANAGER,
                 UserRole::SYSTEM_ADMIN,
             ]),
+            'approval_status' => 'approved',
+            'approved_at' => now(),
+        ]);
+    }
+
+    /**
+     * Create a user that needs approval (pending)
+     */
+    public function pending(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'approval_status' => 'pending',
+            'approved_at' => null,
+        ]);
+    }
+
+    /**
+     * Create a user that is approved
+     */
+    public function approved(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'approval_status' => 'approved',
+            'approved_at' => now(),
+        ]);
+    }
+
+    /**
+     * Create a user that is rejected
+     */
+    public function rejected(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'approval_status' => 'rejected',
+            'approved_at' => null,
+            'rejection_reason' => 'Test rejection reason',
         ]);
     }
 }

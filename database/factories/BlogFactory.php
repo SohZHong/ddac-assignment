@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Blog;
 use App\Models\User;
+use App\UserRole;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 /**

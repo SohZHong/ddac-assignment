@@ -24,6 +24,7 @@
         "vue-tsc": "^2.2.4"
     },
     "dependencies": {
+        "@fullcalendar/core": "^6.1.19",
         "@fullcalendar/daygrid": "^6.1.19",
         "@fullcalendar/interaction": "^6.1.19",
         "@fullcalendar/timegrid": "^6.1.19",
@@ -31,6 +32,7 @@
         "@heroicons/vue": "^2.2.0",
         "@inertiajs/vue3": "^2.0.0",
         "@tailwindcss/vite": "^4.1.11",
+        "@tanstack/vue-table": "^8.21.3",
         "@tiptap/extension-bubble-menu": "^3.2.0",
         "@tiptap/extension-color": "^3.2.0",
         "@tiptap/extension-heading": "^3.2.0",
@@ -42,7 +44,7 @@
         "@tiptap/starter-kit": "^3.2.0",
         "@tiptap/vue-3": "^3.2.0",
         "@vitejs/plugin-vue": "^6.0.0",
-        "@vueuse/core": "^12.8.2",
+        "@vueuse/core": "^13.7.0",
         "axios": "^1.11.0",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
