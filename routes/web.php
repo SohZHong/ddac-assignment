@@ -137,4 +137,5 @@ require __DIR__.'/web/booking.php';
 require __DIR__.'/web/schedule.php';
 require __DIR__.'/web/healthcare.php';
 require __DIR__.'/web/campaign.php';
+require __DIR__.'/web/event.php';
 require __DIR__.'/web/admin.php';

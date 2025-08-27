@@ -133,7 +133,9 @@ class Event extends Model
      */
     public function getRegistrationCount(): int
     {
-        return $this->registrations()->count();
+        return $this->registrations()
+            ->whereIn('status', ['registered', 'confirmed'])
+            ->count();
     }
 
     /**

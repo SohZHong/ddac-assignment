@@ -37,7 +37,7 @@ async function handleButtonClick() {
                     </AvatarFallback>
                 </Avatar>
                 <!-- Red badge -->
-                <span class="absolute -top-1 right-1 rounded-full bg-red-500 px-1 text-xs">
+                <span class="absolute right-1 rounded-full bg-red-500 px-1 text-xs font-black text-white">
                     {{ notifications.length }}
                 </span>
                 <!-- Text label -->

@@ -5,6 +5,7 @@ import NavUser from '@/components/NavUser.vue';
 
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type User } from '@/types';
+import { UserRole } from '@/types/role';
 import { Link, usePage } from '@inertiajs/vue3';
 import {
     BookHeartIcon,
@@ -23,7 +24,6 @@ import {
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 import NavNotifications from './NavNotifications.vue';
-import { UserRole } from '@/types/role';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user as User);
@@ -98,12 +98,16 @@ const mainNavItems = computed((): NavItem[] => {
     }
 
     // Add campaign routes for campaign managers and above (roles 3, 4)
-    if (user.value.role === UserRole.HEALTH_CAMPAIGN_MANAGER ||
-    user.value.role === UserRole.SYSTEM_ADMIN) {
+    if (user.value.role === UserRole.HEALTH_CAMPAIGN_MANAGER || user.value.role === UserRole.SYSTEM_ADMIN) {
         items.push({
             title: 'Campaigns',
             href: '/campaigns',
             icon: Megaphone,
+        });
+        items.push({
+            title: 'Events',
+            href: '/events',
+            icon: Calendar,
         });
     }
 

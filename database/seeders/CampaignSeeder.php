@@ -14,20 +14,14 @@ class CampaignSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get a campaign manager user
-        $user = User::where('role', 3)->first();
-
-        if (!$user) {
-            $this->command->info('No campaign manager found. Creating one...');
-            $user = User::create([
-                'name' => 'Campaign Manager',
-                'email' => 'campaign@example.com',
-                'password' => bcrypt('password'),
-                'role' => 3,
-                'approval_status' => 'approved',
-                'email_verified_at' => now(),
-            ]);
-        }
+        $user = User::create([
+            'name' => 'Campaign Manager',
+            'email' => 'campaign@example.com',
+            'password' => bcrypt('password'),
+            'role' => 3,
+            'approval_status' => 'approved',
+            'email_verified_at' => now(),
+        ]);
 
         // Create some sample campaigns
         $campaigns = [
