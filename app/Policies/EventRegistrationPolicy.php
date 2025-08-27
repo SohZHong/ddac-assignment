@@ -8,37 +8,46 @@ use App\Models\User;
 
 class EventRegistrationPolicy
 {
-    /**
-     * List registrations for a given event.
-     * Event creators (campaign managers) and system admins can view.
-     */
     public function viewAny(User $user, Event $event): bool
     {
         if ($user->isSystemAdmin()) {
             return true;
         }
-        // Event creator can view
         return $user->isHealthCampaignManager() && $event->created_by === $user->id;
     }
 
-    /**
-     * Create a registration for the given event.
-     * Any authenticated user can register when registrations are enabled.
-     */
-    public function create(User $user, Event $event): bool
+    public function create(User $user, Event $event, ?int $forUserId = null): bool
     {
-        return $user->hasVerifiedEmail();
+        // Managers/Admins can create for others on their own event
+        if ($user->isSystemAdmin() || ($user->isHealthCampaignManager() && $event->created_by === $user->id)) {
+            return true;
+        }
+        // Regular users can create for themselves only
+        return $forUserId === null || $forUserId === $user->id;
     }
 
-    /**
-     * Delete a registration. Only the owner can delete their own registration.
-     */
-    public function delete(User $user, EventRegistration|string $registration, Event $event): bool
+    public function update(User $user, Event $event, EventRegistration $registration): bool
     {
+        // Managers/Admins can update registrations on their own event
+        if ($user->isSystemAdmin() || ($user->isHealthCampaignManager() && $event->created_by === $user->id)) {
+            return true;
+        }
+        return false;
+    }
+
+    public function delete(User $user, EventRegistration|string $registration, Event $event, ?int $forUserId = null): bool
+    {
+        // Managers/Admins can delete registrations on their own event
+        if ($user->isSystemAdmin() || ($user->isHealthCampaignManager() && $event->created_by === $user->id)) {
+            return true;
+        }
+        // Regular users can delete their own registration
         if ($registration instanceof EventRegistration) {
             return $registration->user_id === $user->id;
         }
-        // If no registration found, allow noop (controller handles existence)
+        if ($forUserId !== null) {
+            return $forUserId === $user->id;
+        }
         return true;
     }
 }

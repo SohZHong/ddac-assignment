@@ -53,7 +53,8 @@ class EventRegistrationController extends Controller
      */
     public function store(Request $request, Event $event): RedirectResponse|JsonResponse
     {
-        $this->authorize('create', [EventRegistration::class, $event]);
+        $forUserId = $request->integer('user_id') ?: auth()->id();
+        $this->authorize('create', [EventRegistration::class, $event, $forUserId]);
 
         // Enforce requires_registration
         if (!$event->requires_registration) {
@@ -69,7 +70,7 @@ class EventRegistrationController extends Controller
         $registration = EventRegistration::firstOrCreate(
             [
                 'event_id' => $event->id,
-                'user_id' => auth()->id(),
+                'user_id' => $forUserId,
             ],
             [
                 'status' => 'registered',
@@ -87,13 +88,14 @@ class EventRegistrationController extends Controller
     /**
      * Unregister the authenticated user from an event.
      */
-    public function destroy(Event $event): RedirectResponse|JsonResponse
+    public function destroy(Request $request, Event $event): RedirectResponse|JsonResponse
     {
+        $forUserId = $request->integer('user_id') ?: auth()->id();
         $registration = EventRegistration::where('event_id', $event->id)
-            ->where('user_id', auth()->id())
+            ->where('user_id', $forUserId)
             ->first();
 
-        $this->authorize('delete', [$registration ?? EventRegistration::class, $event]);
+        $this->authorize('delete', [$registration ?? EventRegistration::class, $event, $forUserId]);
 
         if ($registration) {
             $registration->delete();

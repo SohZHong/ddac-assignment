@@ -2,13 +2,18 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/vue3';
+import { UserRole } from '@/types/role';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { ArrowLeft, Calendar, Clock, MapPin, Megaphone, Users, Video } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 
 interface Registration {
+    user_id: number;
     id: number;
     user_name: string;
     user_email: string;
@@ -54,6 +59,8 @@ interface EventData {
     attendances: Attendance[];
     user_registration: { id: number; status: string } | null;
     can_register: boolean;
+    user_attendance: { id: number; status: string; check_in_time: string | null } | null;
+    can_check_in: boolean;
 }
 
 interface Props {
@@ -61,6 +68,11 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const page = usePage();
+const currentUser = computed(() => page.props.auth?.user);
+const isManagerOrAdmin = computed(
+    () => currentUser.value && (currentUser.value.role === UserRole.HEALTH_CAMPAIGN_MANAGER || currentUser.value.role === UserRole.SYSTEM_ADMIN),
+);
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -101,6 +113,27 @@ const register = () => {
 
 const unregister = () => {
     router.delete(`/events/${props.event.id}/registrations`);
+};
+
+const checkIn = () => {
+    router.post(`/events/${props.event.id}/attendances`);
+};
+
+const undoCheckIn = () => {
+    router.delete(`/events/${props.event.id}/attendances`);
+};
+
+// Manager/Admin registration management
+const manageUserId = ref('');
+const addRegistrationById = () => {
+    const id = parseInt(manageUserId.value, 10);
+    if (!id) return;
+    router.post(`/events/${props.event.id}/registrations`, { user_id: id });
+};
+const removeRegistrationById = (userId?: number) => {
+    const id = userId ?? parseInt(manageUserId.value, 10);
+    if (!id) return;
+    router.delete(`/events/${props.event.id}/registrations`, { data: { user_id: id } });
 };
 </script>
 
@@ -196,6 +229,7 @@ const unregister = () => {
                                             <TableHead>Email</TableHead>
                                             <TableHead>Status</TableHead>
                                             <TableHead>Registered At</TableHead>
+                                            <TableHead v-if="isManagerOrAdmin">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -206,6 +240,25 @@ const unregister = () => {
                                                 <Badge variant="outline">{{ r.attended ? 'Attended' : 'Registered' }}</Badge>
                                             </TableCell>
                                             <TableCell>{{ formatDateTime(r.registered_at) }}</TableCell>
+                                            <TableCell v-if="isManagerOrAdmin">
+                                                <div class="flex gap-2">
+                                                    <Button
+                                                        v-if="!r.attended"
+                                                        size="sm"
+                                                        @click="router.post(`/events/${event.id}/attendances`, { user_id: r.user_id })"
+                                                    >
+                                                        Check In
+                                                    </Button>
+                                                    <Button
+                                                        v-else
+                                                        size="sm"
+                                                        variant="outline"
+                                                        @click="router.delete(`/events/${event.id}/attendances`, { data: { user_id: r.user_id } })"
+                                                    >
+                                                        Undo Check-in
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
                                         </TableRow>
                                     </TableBody>
                                 </Table>
@@ -227,6 +280,30 @@ const unregister = () => {
                                 Unregister
                             </Button>
                             <Button v-else variant="outline" class="w-full justify-start" disabled> Registration Closed or Full </Button>
+                            <div class="my-2 h-px bg-border" />
+                            <Button v-if="event.can_check_in" class="w-full justify-start" @click="checkIn"> Check In </Button>
+                            <Button v-else-if="event.user_attendance" variant="outline" class="w-full justify-start" @click="undoCheckIn">
+                                Undo Check-in
+                            </Button>
+                            <Button v-else variant="outline" class="w-full justify-start" disabled> Check-in Unavailable </Button>
+                        </CardContent>
+                    </Card>
+
+                    <Card v-if="isManagerOrAdmin">
+                        <CardHeader>
+                            <CardTitle>Manage Registrations</CardTitle>
+                            <CardDescription>Add or remove participants by User ID</CardDescription>
+                        </CardHeader>
+                        <CardContent class="space-y-3">
+                            <div class="space-y-2">
+                                <Label for="user_id">User ID</Label>
+                                <Input id="user_id" v-model="manageUserId" placeholder="Enter user ID" />
+                            </div>
+                            <div class="flex gap-2">
+                                <Button @click="addRegistrationById">Add</Button>
+                                <Button variant="outline" @click="removeRegistrationById()">Remove</Button>
+                            </div>
+                            <div class="text-xs text-muted-foreground">Tip: Use the list below to remove a specific attendee directly.</div>
                         </CardContent>
                     </Card>
                 </div>

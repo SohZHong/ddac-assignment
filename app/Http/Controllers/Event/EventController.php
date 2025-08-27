@@ -128,6 +128,8 @@ class EventController extends Controller
 
         $currentUserRegistration = $event->registrations
             ->firstWhere('user_id', auth()->id());
+        $currentUserAttendance = $event->attendances
+            ->firstWhere('user_id', auth()->id());
 
         $eventData = [
             'id' => $event->id,
@@ -159,13 +161,22 @@ class EventController extends Controller
                 'status' => $currentUserRegistration->status,
             ] : null,
             'can_register' => $event->requires_registration && !$event->isAtCapacity(),
-            'registrations' => $event->registrations->map(function ($registration) {
+            'user_attendance' => $currentUserAttendance ? [
+                'id' => $currentUserAttendance->id,
+                'status' => $currentUserAttendance->status,
+                'check_in_time' => optional($currentUserAttendance->check_in_time)?->format('Y-m-d H:i:s'),
+            ] : null,
+            'can_check_in' => (
+                (!$event->requires_registration || $currentUserRegistration) && !$currentUserAttendance
+            ),
+            'registrations' => $event->registrations->map(function ($registration) use ($event) {
                 return [
                     'id' => $registration->id,
+                    'user_id' => $registration->user->id,
                     'user_name' => $registration->user->name,
                     'user_email' => $registration->user->email,
                     'registered_at' => $registration->created_at->format('Y-m-d H:i:s'),
-                    'attended' => $registration->attendance ? true : false,
+                    'attended' => $event->attendances->contains('user_id', $registration->user->id),
                 ];
             }),
             'attendances' => $event->attendances->map(function ($attendance) {
@@ -173,7 +184,7 @@ class EventController extends Controller
                     'id' => $attendance->id,
                     'user_name' => $attendance->user->name,
                     'user_email' => $attendance->user->email,
-                    'attended_at' => $attendance->created_at->format('Y-m-d H:i:s'),
+                    'attended_at' => optional($attendance->check_in_time)?->format('Y-m-d H:i:s') ?? $attendance->created_at->format('Y-m-d H:i:s'),
                 ];
             }),
         ];
