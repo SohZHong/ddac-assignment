@@ -37,7 +37,7 @@ class EventRegistrationTest extends TestCase
         ]);
     }
 
-    public function test_cannot_register_when_at_capacity(): void
+    public function test_user_is_waitlisted_when_at_capacity(): void
     {
         $event = Event::factory()->create([
             'capacity' => 1,
@@ -53,7 +53,13 @@ class EventRegistrationTest extends TestCase
 
         $this->actingAs($user2)
             ->post(route('events.registrations.store', $event))
-            ->assertSessionHasErrors('registration');
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('event_registrations', [
+            'event_id' => $event->id,
+            'user_id' => $user2->id,
+            'status' => 'waitlisted',
+        ]);
     }
 
     public function test_user_cannot_register_twice(): void

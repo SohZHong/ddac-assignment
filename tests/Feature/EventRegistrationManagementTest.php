@@ -46,7 +46,7 @@ class EventRegistrationManagementTest extends TestCase
         ]);
     }
 
-    public function test_capacity_enforced_when_manager_adds_others(): void
+    public function test_second_user_is_waitlisted_when_manager_adds_others_at_capacity(): void
     {
         $manager = User::factory()->create(['email_verified_at' => now(), 'role' => 3]);
         $event = Event::factory()->create(['created_by' => $manager->id, 'capacity' => 1, 'requires_registration' => true]);
@@ -55,6 +55,12 @@ class EventRegistrationManagementTest extends TestCase
         $user2 = User::factory()->create(['email_verified_at' => now()]);
 
         $this->actingAs($manager)->post(route('events.registrations.store', $event), ['user_id' => $user1->id])->assertRedirect();
-        $this->actingAs($manager)->post(route('events.registrations.store', $event), ['user_id' => $user2->id])->assertSessionHasErrors('registration');
+        $this->actingAs($manager)->post(route('events.registrations.store', $event), ['user_id' => $user2->id])->assertRedirect();
+
+        $this->assertDatabaseHas('event_registrations', [
+            'event_id' => $event->id,
+            'user_id' => $user2->id,
+            'status' => 'waitlisted',
+        ]);
     }
 }

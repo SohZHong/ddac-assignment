@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Validation\Rule;
 
 class EventRegistrationController extends Controller
 {
@@ -61,20 +62,18 @@ class EventRegistrationController extends Controller
             return back()->withErrors(['registration' => 'This event does not require registration.']);
         }
 
-        // Enforce capacity
-        if ($event->isAtCapacity()) {
-            return back()->withErrors(['registration' => 'This event has reached its capacity.']);
-        }
-
         // Create registration or return existing
+        // If event is at capacity, create (or keep) a waitlisted registration
+        $defaults = [
+            'status' => $event->isAtCapacity() ? 'waitlisted' : 'registered',
+        ];
+
         $registration = EventRegistration::firstOrCreate(
             [
                 'event_id' => $event->id,
                 'user_id' => $forUserId,
             ],
-            [
-                'status' => 'registered',
-            ]
+            $defaults
         );
 
         if ($request->wantsJson()) {
@@ -82,7 +81,7 @@ class EventRegistrationController extends Controller
         }
 
         return redirect()->route('events.show', $event)
-            ->with('success', 'Registered for event successfully.');
+            ->with('success', $registration->status === 'waitlisted' ? 'Added to waitlist.' : 'Registered for event successfully.');
     }
 
     /**
@@ -107,5 +106,38 @@ class EventRegistrationController extends Controller
 
         return redirect()->route('events.show', $event)
             ->with('success', 'Unregistered from event successfully.');
+    }
+
+    /**
+     * Update a registration's status (manager/admin on own event).
+     */
+    public function update(Request $request, Event $event, EventRegistration $registration): RedirectResponse|JsonResponse
+    {
+        $this->authorize('update', [$event, $registration]);
+
+        $validated = $request->validate([
+            'status' => [
+                'required',
+                Rule::in(['registered', 'confirmed', 'cancelled', 'waitlisted']),
+            ],
+        ]);
+
+        $newStatus = $validated['status'];
+        $oldStatus = $registration->status;
+
+        // Capacity enforcement only when moving into a counting status from a non-counting one
+        $countsTowardCapacity = fn(string $s) => in_array($s, ['registered', 'confirmed'], true);
+        if (!$countsTowardCapacity($oldStatus) && $countsTowardCapacity($newStatus) && $event->isAtCapacity()) {
+            return back()->withErrors(['registration' => 'This event has reached its capacity.']);
+        }
+
+        $registration->update(['status' => $newStatus]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true, 'status' => $registration->status]);
+        }
+
+        return redirect()->route('events.show', $event)
+            ->with('success', 'Registration status updated.');
     }
 }

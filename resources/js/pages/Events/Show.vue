@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
@@ -135,6 +136,18 @@ const removeRegistrationById = (userId?: number) => {
     if (!id) return;
     router.delete(`/events/${props.event.id}/registrations`, { data: { user_id: id } });
 };
+
+// Registration status management (manager/admin)
+const registrationStatuses = [
+    { value: 'registered', label: 'Registered' },
+    { value: 'confirmed', label: 'Confirmed' },
+    { value: 'cancelled', label: 'Cancelled' },
+    { value: 'waitlisted', label: 'Waitlisted' },
+];
+
+const updateRegistrationStatus = (registrationId: number, status: string) => {
+    router.patch(`/events/${props.event.id}/registrations/${registrationId}`, { status });
+};
 </script>
 
 <template>
@@ -237,7 +250,25 @@ const removeRegistrationById = (userId?: number) => {
                                             <TableCell>{{ r.user_name }}</TableCell>
                                             <TableCell>{{ r.user_email }}</TableCell>
                                             <TableCell>
-                                                <Badge variant="outline">{{ r.attended ? 'Attended' : 'Registered' }}</Badge>
+                                                <div class="flex items-center gap-2">
+                                                    <Badge v-if="r.attended" variant="outline">Attended</Badge>
+                                                    <div v-else-if="isManagerOrAdmin" class="min-w-[160px]">
+                                                        <Select
+                                                            :model-value="(r as any).status || 'registered'"
+                                                            @update:modelValue="(v) => updateRegistrationStatus(r.id, v)"
+                                                        >
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select status" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem v-for="opt in registrationStatuses" :key="opt.value" :value="opt.value">
+                                                                    {{ opt.label }}
+                                                                </SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                    <Badge v-else variant="outline">Registered</Badge>
+                                                </div>
                                             </TableCell>
                                             <TableCell>{{ formatDateTime(r.registered_at) }}</TableCell>
                                             <TableCell v-if="isManagerOrAdmin">

@@ -171,6 +171,7 @@ class EventController extends Controller
             ),
             'registrations' => $event->registrations->map(function ($registration) use ($event) {
                 return [
+                    'status' => $registration->status,
                     'id' => $registration->id,
                     'user_id' => $registration->user->id,
                     'user_name' => $registration->user->name,
