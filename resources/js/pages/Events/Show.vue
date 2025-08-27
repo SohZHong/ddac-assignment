@@ -230,6 +230,14 @@ const updateRegistrationStatus = (registrationId: number, status: string) => {
                             <CardDescription>People who have registered</CardDescription>
                         </CardHeader>
                         <CardContent>
+                            <div class="mb-3 flex justify-end gap-2">
+                                <Button variant="outline" as-child>
+                                    <a :href="`/events/${event.id}/registrations.csv`" target="_blank">Export Registrations CSV</a>
+                                </Button>
+                                <Button variant="outline" as-child>
+                                    <a :href="`/events/${event.id}/attendances.csv`" target="_blank">Export Attendances CSV</a>
+                                </Button>
+                            </div>
                             <div v-if="event.registrations.length === 0" class="py-8 text-center">
                                 <Users class="mx-auto h-12 w-12 text-muted-foreground" />
                                 <p class="mt-2 text-sm text-muted-foreground">No registrations yet</p>

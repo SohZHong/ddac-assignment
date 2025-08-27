@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EventRegistrationController extends Controller
 {
@@ -139,5 +140,91 @@ class EventRegistrationController extends Controller
 
         return redirect()->route('events.show', $event)
             ->with('success', 'Registration status updated.');
+    }
+
+    /**
+     * Stream registrations CSV for an event.
+     */
+    public function exportRegistrations(Request $request, Event $event): StreamedResponse
+    {
+        $this->authorize('viewAny', [EventRegistration::class, $event]);
+
+        $status = $request->string('status')->toString() ?: null;
+        $from = $request->date('from');
+        $to = $request->date('to');
+
+        $filename = sprintf('event_%d_registrations_%s.csv', $event->id, now()->format('Ymd_His'));
+
+        return response()->streamDownload(function () use ($event, $status, $from, $to) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['User ID', 'Name', 'Email', 'Status', 'Registered At']);
+
+            $query = $event->registrations()->with('user')
+                ->when($status, fn($q) => $q->where('status', $status))
+                ->when($from, fn($q) => $q->where('created_at', '>=', $from))
+                ->when($to, fn($q) => $q->where('created_at', '<=', $to));
+
+            $query->chunk(500, function ($rows) use ($out) {
+                foreach ($rows as $r) {
+                    fputcsv($out, [
+                        $r->user->id,
+                        $r->user->name,
+                        $r->user->email,
+                        $r->status,
+                        $r->created_at->format('Y-m-d H:i:s'),
+                    ]);
+                }
+            });
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
+    /**
+     * Stream attendances CSV for an event.
+     */
+    public function exportAttendances(Request $request, Event $event): StreamedResponse
+    {
+        $this->authorize('viewAny', [EventRegistration::class, $event]);
+
+        $present = $request->boolean('present', null);
+        $from = $request->date('from');
+        $to = $request->date('to');
+
+        $filename = sprintf('event_%d_attendances_%s.csv', $event->id, now()->format('Ymd_His'));
+
+        return response()->streamDownload(function () use ($event, $present, $from, $to) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['User ID', 'Name', 'Email', 'Check-in Time', 'Check-out Time']);
+
+            $query = $event->attendances()->with('user')
+                ->when(!is_null($present), function ($q) use ($present) {
+                    if ($present) {
+                        $q->where('status', 'present');
+                    } else {
+                        $q->where('status', '!=', 'present');
+                    }
+                })
+                ->when($from, fn($q) => $q->where('created_at', '>=', $from))
+                ->when($to, fn($q) => $q->where('created_at', '<=', $to));
+
+            $query->chunk(500, function ($rows) use ($out) {
+                foreach ($rows as $a) {
+                    fputcsv($out, [
+                        $a->user->id,
+                        $a->user->name,
+                        $a->user->email,
+                        optional($a->check_in_time)?->format('Y-m-d H:i:s'),
+                        optional($a->check_out_time)?->format('Y-m-d H:i:s'),
+                    ]);
+                }
+            });
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv',
+        ]);
     }
 }

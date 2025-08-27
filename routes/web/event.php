@@ -21,6 +21,12 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('events/{event}/registrations', [EventRegistrationController::class, 'destroy'])
         ->name('events.registrations.destroy');
 
+    // CSV exports (streamed)
+    Route::get('events/{event}/registrations.csv', [EventRegistrationController::class, 'exportRegistrations'])
+        ->name('events.registrations.export');
+    Route::get('events/{event}/attendances.csv', [EventRegistrationController::class, 'exportAttendances'])
+        ->name('events.attendances.export');
+
     // Attendance
     Route::get('events/{event}/attendances', [EventAttendanceController::class, 'index'])
         ->name('events.attendances.index');
