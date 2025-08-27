@@ -109,6 +109,19 @@ class EventController extends Controller
             $validated['campaign_id'] = null;
         }
 
+        // Time conflict check for same creator: overlap if existing.end >= new.start AND existing.start <= new.end
+        $start = Carbon::parse($validated['start_datetime']);
+        $end = Carbon::parse($validated['end_datetime']);
+        $overlapExists = Event::where('created_by', auth()->id())
+            ->where('end_datetime', '>', $start)
+            ->where('start_datetime', '<', $end)
+            ->exists();
+        if ($overlapExists) {
+            return back()
+                ->withErrors(['start_datetime' => 'This event time conflicts with an existing event you created.'])
+                ->withInput();
+        }
+
         $event = Event::create([
             ...$validated,
             'created_by' => auth()->id(),
@@ -265,6 +278,20 @@ class EventController extends Controller
         // Convert empty string to null for campaign_id
         if (isset($validated['campaign_id']) && $validated['campaign_id'] === '') {
             $validated['campaign_id'] = null;
+        }
+
+        // Time conflict check for same creator (exclude current event)
+        $start = Carbon::parse($validated['start_datetime']);
+        $end = Carbon::parse($validated['end_datetime']);
+        $overlapExists = Event::where('created_by', $event->created_by)
+            ->where('id', '!=', $event->id)
+            ->where('end_datetime', '>', $start)
+            ->where('start_datetime', '<', $end)
+            ->exists();
+        if ($overlapExists) {
+            return back()
+                ->withErrors(['start_datetime' => 'This event time conflicts with one of your other events.'])
+                ->withInput();
         }
 
         $event->update($validated);

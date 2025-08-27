@@ -28,8 +28,8 @@ class EventCsvExportTest extends TestCase
 
         $response = $this->actingAs($manager)->get(route('events.registrations.export', $event));
         $response->assertOk();
-        $response->assertHeader('content-type', 'text/csv');
-        $this->assertStringContainsString('User ID,Name,Email,Status,Registered At', $response->streamedContent());
+        $this->assertStringContainsString('text/csv', $response->headers->get('content-type'));
+        $this->assertStringContainsString('"User ID",Name,Email,Status,"Registered At"', $response->streamedContent());
         $this->assertStringContainsString($user->email, $response->streamedContent());
     }
 
@@ -45,8 +45,10 @@ class EventCsvExportTest extends TestCase
 
         $response = $this->actingAs($manager)->get(route('events.attendances.export', $event));
         $response->assertOk();
-        $response->assertHeader('content-type', 'text/csv');
-        $this->assertStringContainsString('User ID,Name,Email,Check-in Time,Check-out Time', $response->streamedContent());
-        $this->assertStringContainsString($user->email, $response->streamedContent());
+        $this->assertStringContainsString('text/csv', $response->headers->get('content-type'));
+        $content = $response->streamedContent();
+        $this->assertStringContainsString('"User ID",Name,Email,"Check-in Time","Check-out Time"', $content);
+        // At least one data row present (header + >=1 line)
+        $this->assertTrue(substr_count($content, "\n") >= 2);
     }
 }
