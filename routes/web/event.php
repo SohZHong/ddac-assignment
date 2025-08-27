@@ -1,13 +1,22 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 use App\Http\Controllers\Event\EventController;
 use App\Http\Controllers\Event\EventRegistrationController;
 use App\Http\Controllers\Event\EventAttendanceController;
 
 Route::middleware(['auth', 'role:health_campaign_manager,system_admin'])
     ->group(function () {
-        Route::resource('events', EventController::class);
+        // Static routes must come before resource to avoid conflicts with events/{event}
+        Route::get('events/calendar', function () {
+            return Inertia::render('Events/Calendar');
+        })->name('events.calendar');
+
+        Route::get('events-feed', [EventController::class, 'feed'])->name('events.feed');
+
+        Route::resource('events', EventController::class)
+            ->whereNumber('event');
     });
 
 // Registration routes (auth only)

@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Carbon;
 
 class EventController extends Controller
 {
@@ -283,5 +284,37 @@ class EventController extends Controller
 
         return redirect()->route('events.index')
             ->with('success', 'Event deleted successfully.');
+    }
+
+    /**
+     * Events feed for calendar (JSON only).
+     */
+    public function feed(Request $request): JsonResponse
+    {
+        $from = Carbon::parse($request->query('from', now()->startOfMonth()->toDateString()))->startOfDay();
+        $to = Carbon::parse($request->query('to', now()->endOfMonth()->toDateString()))->endOfDay();
+
+        $events = Event::when(auth()->user()->isHealthCampaignManager(), function ($query) {
+                return $query->where('created_by', auth()->id());
+            })
+            // overlap condition: end >= from AND start <= to
+            ->where('end_datetime', '>=', $from)
+            ->where('start_datetime', '<=', $to)
+            ->orderBy('start_datetime')
+            ->get()
+            ->map(function (Event $event) {
+                return [
+                    'id' => $event->id,
+                    'title' => $event->title,
+                    'type' => $event->type,
+                    'status' => $event->status,
+                    'start' => $event->start_datetime->toIso8601String(),
+                    'end' => $event->end_datetime->toIso8601String(),
+                    'is_online' => $event->is_online,
+                    'location' => $event->location,
+                ];
+            });
+
+        return response()->json(['events' => $events]);
     }
 }

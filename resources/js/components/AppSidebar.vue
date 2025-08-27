@@ -109,6 +109,11 @@ const mainNavItems = computed((): NavItem[] => {
             href: '/events',
             icon: Calendar,
         });
+        items.push({
+            title: 'Calendar',
+            href: '/events/calendar',
+            icon: Calendar,
+        });
     }
 
     // Add admin routes for system admins only
