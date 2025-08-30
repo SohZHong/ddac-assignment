@@ -5,7 +5,7 @@ use App\Http\Controllers\Blog\BlogController;
 
 Route::prefix('blogs')->group(function () {
     // Authenticated routes — create, update, delete, restore
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware('auth:web')->group(function () {
         Route::patch('/{blog}/publish', [BlogController::class, 'publish'])
             ->name('api.blog.update.publish');      // Publish blog
         Route::patch('/{blog}/draft', [BlogController::class, 'draft'])

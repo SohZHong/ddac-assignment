@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('notifications')->group(function () {
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware('auth:web')->group(function () {
         Route::post('/read/{id}', function($id) {
             $notification = auth()->user()->notifications()->findOrFail($id);
             $notification->markAsRead();

@@ -8,11 +8,14 @@ use App\Models\Booking;
 use App\Models\Quiz;
 use App\Models\QuizResponse;
 use App\Models\Schedule;
+use App\Models\VideoCall;
+use App\Events\VideoCallCreated;
 use App\Notifications\BookingReviewNotification;
 use App\Notifications\HealthcareCompleteAssessmentNotification;
 use App\Notifications\PatientCancelBookingNotification;
 use App\Notifications\PatientCompleteAssessmentNotification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class BookingController extends Controller
@@ -20,11 +23,11 @@ class BookingController extends Controller
 
     public function index()
     {
-        $patientId = auth()->id();
+        $patientId = Auth::id();
 
         $now = now();
 
-        $upcoming = Booking::with(['schedule.healthcare:id,name', 'quizResponse'])
+        $upcoming = Booking::with(['schedule.healthcare:id,name', 'quizResponse', 'videoCall'])
             ->where('patient_id', $patientId)
             ->where('start_time', '>=', $now)
             ->whereIn('status', [Booking::CONFIRMED, Booking::PENDING, Booking::CANCELLED])
@@ -38,13 +41,15 @@ class BookingController extends Controller
                 'end_time'      => $up->end_time,
                 'status'        => $up->status,
                 'has_assessment' => $up->quizResponse !== null,
+                'has_video_call' => $up->videoCall !== null,
+                'video_call_status' => $up->videoCall?->status,
                 'healthcare'    => [
                     'id'   => $up->schedule->healthcare->id,
                     'name' => $up->schedule->healthcare->name,
                 ],
             ]);
 
-        $past = Booking::with(['schedule.healthcare:id,name', 'quizResponse'])
+        $past = Booking::with(['schedule.healthcare:id,name', 'quizResponse', 'videoCall'])
             ->where('patient_id', $patientId)
             ->where(function ($q) use ($now) {
                 // include confirmed or pending ones that have already passed
@@ -65,6 +70,8 @@ class BookingController extends Controller
                 'end_time'      => $p->end_time,
                 'status'        => $p->status,
                 'has_assessment' => $p->quizResponse !== null,
+                'has_video_call' => $p->videoCall !== null,
+                'video_call_status' => $p->videoCall?->status,
                 'healthcare'    => [
                     'id'   => $p->schedule->healthcare->id,
                     'name' => $p->schedule->healthcare->name,
@@ -152,7 +159,7 @@ class BookingController extends Controller
             ]
         );
 
-        auth()->user()->notify(new HealthcareCompleteAssessmentNotification($booking));
+        Auth::user()->notify(new HealthcareCompleteAssessmentNotification($booking));
         $booking->healthcare->notify(new PatientCompleteAssessmentNotification($booking));
 
         return redirect()->route('booking.index')->with('success', 'Assessment submitted successfully.');
@@ -171,7 +178,7 @@ class BookingController extends Controller
 
         $this->authorize('store', [Booking::class, $schedule, $validated['start_time']]);
 
-        $user = auth()->user();
+        $user = Auth::user();
 
         $booking = Booking::create([
             'schedule_id' => $validated['schedule_id'],
@@ -199,13 +206,29 @@ class BookingController extends Controller
             'status' => Booking::CONFIRMED
         ]);
 
-        // Notify user of confirmed  booking
+        // Create video call room automatically when booking is confirmed
+        $videoCall = VideoCall::create([
+            'booking_id' => $booking->id,
+            'doctor_id' => $booking->schedule->healthcare_id,
+            'patient_id' => $booking->patient_id,
+            'room_id' => VideoCall::generateRoomId(),
+            'status' => VideoCall::STATUS_WAITING,
+        ]);
+
+        // Broadcast video call created event
+        broadcast(new VideoCallCreated($videoCall));
+
+        // Notify user of confirmed booking
         $patient = $booking->patient;
         $patient->notify(new BookingReviewNotification($booking));
 
         return response()->json([
-            'message' => 'Booking approved successfully!',
+            'message' => 'Booking approved successfully! Video call room created.',
             'booking' => $booking,
+            'video_call' => [
+                'room_id' => $videoCall->room_id,
+                'status' => $videoCall->status,
+            ],
         ], 201);
     }
 

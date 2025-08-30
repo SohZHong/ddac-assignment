@@ -83,3 +83,4 @@ require __DIR__.'/web/schedule.php';
 require __DIR__.'/web/healthcare.php';
 require __DIR__.'/web/campaign.php';
 require __DIR__.'/web/admin.php';
+require __DIR__.'/web/video-call.php';

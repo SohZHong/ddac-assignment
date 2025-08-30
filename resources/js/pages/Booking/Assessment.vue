@@ -109,9 +109,7 @@ onMounted(() => {
 
                 <!-- Existing Response Warning -->
                 <div v-if="response" class="rounded-md border border-amber-200 bg-amber-50 p-4">
-                    <p class="text-amber-800">
-                        You have already completed this assessment. Submitting again will update your previous responses.
-                    </p>
+                    <p class="text-amber-800">You have already completed this assessment. Submitting again will update your previous responses.</p>
                 </div>
             </div>
 

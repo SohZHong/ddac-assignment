@@ -75,4 +75,12 @@ class Booking extends Model
     {
         return $this->hasOne(QuizResponse::class);
     }
+
+    /**
+     * Get the video call associated with this booking
+     */
+    public function videoCall()
+    {
+        return $this->hasOne(VideoCall::class);
+    }
 }

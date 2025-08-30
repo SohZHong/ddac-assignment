@@ -34,5 +34,7 @@ export interface Booking {
     healthcare_comments: string;
     risk_level: PatientRiskLevel;
     has_assessment?: boolean;
+    has_video_call?: boolean;
+    video_call_status?: string;
     quizResponse?: QuizResponse;
 }
