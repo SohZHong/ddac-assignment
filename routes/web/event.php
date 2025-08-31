@@ -19,6 +19,21 @@ Route::middleware(['auth', 'role:health_campaign_manager,system_admin'])
             ->whereNumber('event');
     });
 
+// Livestream route - moved outside role middleware for testing
+Route::get('events/{event}/livestream', function ($event) {
+    $eventModel = \App\Models\Event::findOrFail($event);
+    $livestreamRoom = $eventModel->livestreamRoom;
+    
+    if (!$livestreamRoom) {
+        abort(404, 'Livestream not available for this event');
+    }
+    
+    return Inertia::render('Events/Livestream', [
+        'roomId' => $livestreamRoom->id,
+        'eventTitle' => $eventModel->title,
+    ]);
+})->name('events.livestream')->middleware(['auth']);
+
 // Registration routes (auth only)
 Route::middleware(['auth'])->group(function () {
     Route::get('events/{event}/registrations', [EventRegistrationController::class, 'index'])

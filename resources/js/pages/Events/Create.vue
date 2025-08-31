@@ -10,6 +10,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, Calendar, Save } from 'lucide-vue-next';
+import { computed, watch } from 'vue';
 
 interface Campaign {
     id: number;
@@ -45,8 +46,12 @@ const form = useForm({
     capacity: '',
     is_online: false,
     requires_registration: true,
-    campaign_id: 'none',
+    campaign_id: 'none' as string | null,
     metadata: {},
+    // Livestream fields
+    enable_livestream: false,
+    livestream_max_participants: 100,
+    livestream_room_name: '',
 });
 
 const eventTypes = ['webinar', 'health_event', 'check_up_drive', 'workshop', 'seminar'];
@@ -59,10 +64,41 @@ const statusOptions = [
     { value: 'cancelled', label: 'Cancelled' },
 ];
 
+// Auto-generate room name if not provided
+const computedRoomName = computed(() => {
+    if (form.livestream_room_name) return form.livestream_room_name;
+    if (form.title) {
+        return `event-${Date.now()}-${form.title.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+    }
+    return '';
+});
+
+// Auto-update room name when title changes (if room name is empty)
+watch(
+    () => form.title,
+    (newTitle) => {
+        if (!form.livestream_room_name && newTitle && form.enable_livestream) {
+            form.livestream_room_name = `event-${Date.now()}-${newTitle.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+        }
+    },
+);
+
 const submit = () => {
     // Convert "none" to null for campaign_id
     if (form.campaign_id === 'none') {
         form.campaign_id = null;
+    }
+
+    // Prepare livestream data if enabled
+    if (form.enable_livestream) {
+        form.metadata = {
+            ...form.metadata,
+            livestream: {
+                enabled: true,
+                max_participants: form.livestream_max_participants,
+                room_name: computedRoomName.value,
+            },
+        };
     }
 
     form.post('/events', {
@@ -247,7 +283,12 @@ const handleCapacityInput = (event: Event) => {
                     </CardHeader>
                     <CardContent class="space-y-4">
                         <div class="flex items-center space-x-2">
-                            <Checkbox id="is_online" v-model:checked="form.is_online" />
+                            <input
+                                id="is_online"
+                                type="checkbox"
+                                v-model="form.is_online"
+                                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
                             <Label for="is_online">This is an online event</Label>
                         </div>
 
@@ -275,6 +316,57 @@ const handleCapacityInput = (event: Event) => {
                             <p v-if="form.errors.online_meeting_url" class="text-sm text-red-500">
                                 {{ form.errors.online_meeting_url }}
                             </p>
+                        </div>
+
+                        <!-- Livestream Room Configuration -->
+                        <div v-if="form.is_online" class="space-y-4 border-t pt-4">
+                            <div class="flex items-center space-x-2">
+                                <input
+                                    id="enable_livestream"
+                                    type="checkbox"
+                                    v-model="form.enable_livestream"
+                                    class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <Label for="enable_livestream" class="font-medium">Enable LiveKit Livestream</Label>
+                            </div>
+
+                            <div v-if="form.enable_livestream" class="space-y-4 rounded-lg border bg-gray-50 p-4">
+                                <div class="space-y-2">
+                                    <Label for="livestream_max_participants">Maximum Participants</Label>
+                                    <Input
+                                        id="livestream_max_participants"
+                                        v-model="form.livestream_max_participants"
+                                        type="number"
+                                        min="1"
+                                        max="1000"
+                                        placeholder="100"
+                                        :class="{ 'border-red-500': form.errors.livestream_max_participants }"
+                                    />
+                                    <p v-if="form.errors.livestream_max_participants" class="text-sm text-red-500">
+                                        {{ form.errors.livestream_max_participants }}
+                                    </p>
+                                    <p class="text-xs text-gray-600">Maximum number of participants who can join the livestream simultaneously</p>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <Label for="livestream_room_name">Room Name</Label>
+                                    <Input
+                                        id="livestream_room_name"
+                                        v-model="form.livestream_room_name"
+                                        placeholder="Auto-generated if left empty"
+                                        :class="{ 'border-red-500': form.errors.livestream_room_name }"
+                                    />
+                                    <p v-if="form.errors.livestream_room_name" class="text-sm text-red-500">
+                                        {{ form.errors.livestream_room_name }}
+                                    </p>
+                                    <p class="text-xs text-gray-600">Leave empty to auto-generate a room name based on the event title</p>
+
+                                    <!-- Preview of generated room name -->
+                                    <div v-if="computedRoomName && !form.livestream_room_name" class="rounded bg-blue-50 p-2">
+                                        <p class="text-xs text-blue-700"><strong>Preview:</strong> {{ computedRoomName }}</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="grid gap-4 md:grid-cols-2">

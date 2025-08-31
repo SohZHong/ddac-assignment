@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class EventController extends Controller
 {
@@ -54,9 +55,9 @@ class EventController extends Controller
                 ];
             });
 
-        // Return JSON for testing when Vue pages don't exist
-        if (app()->environment('testing')) {
-            return response()->json(['events' => $events]);
+        // Return JSON for API requests or testing
+        if (request()->expectsJson() || app()->environment('testing')) {
+            return response()->json($events);
         }
 
         return Inertia::render('Events/Index', [
@@ -127,6 +128,29 @@ class EventController extends Controller
             'created_by' => auth()->id(),
         ]);
 
+        // Create LiveKit room if livestream is enabled
+        if (isset($validated['metadata']['livestream']['enabled']) && $validated['metadata']['livestream']['enabled']) {
+            try {
+                $livestreamData = $validated['metadata']['livestream'];
+                
+                $event->livestreamRoom()->create([
+                    'room_name' => $livestreamData['room_name'],
+                    'event_id' => $event->id,
+                    'created_by' => auth()->id(),
+                    'status' => 'scheduled',
+                    'max_participants' => $livestreamData['max_participants'] ?? 100,
+                    'started_at' => null,
+                    'ended_at' => null,
+                ]);
+            } catch (\Exception $e) {
+                // Log the error but don't fail the event creation
+                \Log::error('Failed to create LiveKit room for event: ' . $event->id, [
+                    'error' => $e->getMessage(),
+                    'event_data' => $event->toArray(),
+                ]);
+            }
+        }
+
         return redirect()->route('events.index')
             ->with('success', 'Event created successfully.');
     }
@@ -138,7 +162,7 @@ class EventController extends Controller
     {
         $this->authorize('view', $event);
 
-        $event->load(['creator', 'campaign', 'registrations.user', 'attendances.user']);
+        $event->load(['creator', 'campaign', 'registrations.user', 'attendances.user', 'livestreamRoom']);
 
         $currentUserRegistration = $event->registrations
             ->firstWhere('user_id', auth()->id());
@@ -183,6 +207,15 @@ class EventController extends Controller
             'can_check_in' => (
                 (!$event->requires_registration || $currentUserRegistration) && !$currentUserAttendance
             ),
+            'livestream_room' => $event->livestreamRoom ? [
+                'id' => $event->livestreamRoom->id,
+                'room_name' => $event->livestreamRoom->room_name,
+                'status' => $event->livestreamRoom->status,
+                'started_at' => $event->livestreamRoom->started_at?->format('Y-m-d H:i:s'),
+                'ended_at' => $event->livestreamRoom->ended_at?->format('Y-m-d H:i:s'),
+                'max_participants' => $event->livestreamRoom->max_participants,
+                'current_participants' => $event->livestreamRoom->participants()->whereNull('left_at')->count(),
+            ] : null,
             'registrations' => $event->registrations->map(function ($registration) use ($event) {
                 return [
                     'status' => $registration->status,

@@ -50,6 +50,7 @@
         "clsx": "^2.1.1",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^2.0.0",
+        "livekit-client": "^2.15.6",
         "lucide-vue-next": "^0.468.0",
         "reka-ui": "^2.4.1",
         "tailwind-merge": "^3.2.0",

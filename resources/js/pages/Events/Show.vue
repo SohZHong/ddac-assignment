@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LivekitRoom from '@/components/LivekitRoom.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +11,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { UserRole } from '@/types/role';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { ArrowLeft, Calendar, Clock, MapPin, Megaphone, Users, Video } from 'lucide-vue-next';
+import { ArrowLeft, Calendar, Clock, MapPin, Megaphone, Play, Radio, Square, Users, Video, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface Registration {
@@ -62,6 +63,16 @@ interface EventData {
     can_register: boolean;
     user_attendance: { id: number; status: string; check_in_time: string | null } | null;
     can_check_in: boolean;
+    // LiveKit livestream fields
+    livestream_room?: {
+        id: number;
+        room_name: string;
+        status: 'scheduled' | 'live' | 'ended' | 'cancelled';
+        started_at?: string;
+        ended_at?: string;
+        max_participants: number;
+        current_participants: number;
+    };
 }
 
 interface Props {
@@ -74,6 +85,11 @@ const currentUser = computed(() => page.props.auth?.user);
 const isManagerOrAdmin = computed(
     () => currentUser.value && (currentUser.value.role === UserRole.HEALTH_CAMPAIGN_MANAGER || currentUser.value.role === UserRole.SYSTEM_ADMIN),
 );
+
+// Livestream state
+const showLivestream = ref(false);
+const isJoiningLivestream = ref(false);
+const livestreamError = ref('');
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -88,6 +104,21 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const formatDateTime = (dateString: string) => new Date(dateString).toLocaleString();
 const formatTime = (dateString: string) => new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+// Livestream computed properties
+const hasLivestream = computed(() => !!props.event.livestream_room);
+const livestreamStatus = computed(() => props.event.livestream_room?.status || 'none');
+const canJoinLivestream = computed(() => {
+    if (!hasLivestream.value) return false;
+    const status = livestreamStatus.value;
+    return status === 'scheduled' || status === 'live';
+});
+const canManageLivestream = computed(() => {
+    if (!hasLivestream.value) return false;
+    return isManagerOrAdmin.value;
+});
+const isLivestreamLive = computed(() => livestreamStatus.value === 'live');
+const isLivestreamScheduled = computed(() => livestreamStatus.value === 'scheduled');
 
 const getStatusBadge = (status: string) => {
     switch (status) {
@@ -104,6 +135,79 @@ const getStatusBadge = (status: string) => {
         default:
             return 'outline';
     }
+};
+
+// Livestream management functions
+const joinLivestream = async () => {
+    if (!hasLivestream.value || !canJoinLivestream.value) return;
+
+    isJoiningLivestream.value = true;
+    livestreamError.value = '';
+
+    try {
+        showLivestream.value = true;
+    } catch (error) {
+        console.error('Failed to join livestream:', error);
+        livestreamError.value = 'Failed to join livestream. Please try again.';
+    } finally {
+        isJoiningLivestream.value = false;
+    }
+};
+
+const startLivestream = async () => {
+    if (!canManageLivestream.value) return;
+
+    try {
+        const response = await fetch(`/api/livekit/rooms/${props.event.livestream_room?.id}/start`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            },
+        });
+
+        if (response.ok) {
+            // Refresh the page to get updated livestream status
+            window.location.reload();
+        } else {
+            throw new Error('Failed to start livestream');
+        }
+    } catch (error) {
+        console.error('Failed to start livestream:', error);
+        livestreamError.value = 'Failed to start livestream. Please try again.';
+    }
+};
+
+const endLivestream = async () => {
+    if (!canManageLivestream.value) return;
+
+    try {
+        const response = await fetch(`/api/livekit/rooms/${props.event.livestream_room?.id}/end`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            },
+        });
+
+        if (response.ok) {
+            // Refresh the page to get updated livestream status
+            window.location.reload();
+        } else {
+            throw new Error('Failed to end livestream');
+        }
+    } catch (error) {
+        console.error('Failed to end livestream:', error);
+        livestreamError.value = 'Failed to end livestream. Please try again.';
+    }
+};
+
+const closeLivestream = () => {
+    showLivestream.value = false;
+};
+
+const goToLivestream = () => {
+    router.visit(`/events/${props.event.id}/livestream`);
 };
 
 const goBack = () => router.visit('/events');
@@ -220,6 +324,92 @@ const updateRegistrationStatus = (registrationId: number, status: string) => {
                                         <div v-if="event.capacity" class="text-muted-foreground">Remaining: {{ event.remaining_capacity }}</div>
                                     </div>
                                 </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <!-- Livestream Status Card -->
+                    <Card v-if="hasLivestream">
+                        <CardHeader>
+                            <CardTitle class="flex items-center gap-2">
+                                <Radio class="h-5 w-5" />
+                                Livestream Status
+                            </CardTitle>
+                            <CardDescription>Current livestream information</CardDescription>
+                        </CardHeader>
+                        <CardContent class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <Badge
+                                        :variant="isLivestreamLive ? 'default' : isLivestreamScheduled ? 'outline' : 'secondary'"
+                                        class="flex items-center gap-2"
+                                    >
+                                        <Radio v-if="isLivestreamLive" class="h-3 w-3" />
+                                        {{ isLivestreamLive ? 'LIVE' : isLivestreamScheduled ? 'Scheduled' : 'Ended' }}
+                                    </Badge>
+                                    <span class="text-sm text-muted-foreground">
+                                        {{
+                                            livestreamStatus === 'live'
+                                                ? 'Currently streaming'
+                                                : livestreamStatus === 'scheduled'
+                                                  ? 'Stream will start soon'
+                                                  : 'Stream has ended'
+                                        }}
+                                    </span>
+                                </div>
+
+                                <div class="flex gap-2">
+                                    <!-- Join Livestream Button -->
+                                    <Button
+                                        v-if="canJoinLivestream && !showLivestream"
+                                        @click="goToLivestream"
+                                        :disabled="isJoiningLivestream"
+                                        class="flex items-center gap-2"
+                                    >
+                                        <Play class="h-4 w-4" />
+                                        {{ isLivestreamLive ? 'Join Stream' : 'Join Scheduled Stream' }}
+                                    </Button>
+
+                                    <!-- Livestream Management Buttons (for managers) -->
+                                    <Button
+                                        v-if="canManageLivestream && isLivestreamScheduled"
+                                        @click="startLivestream"
+                                        variant="default"
+                                        class="flex items-center gap-2"
+                                    >
+                                        <Play class="h-4 w-4" />
+                                        Start Stream
+                                    </Button>
+
+                                    <Button
+                                        v-if="canManageLivestream && isLivestreamLive"
+                                        @click="endLivestream"
+                                        variant="destructive"
+                                        class="flex items-center gap-2"
+                                    >
+                                        <Square class="h-4 w-4" />
+                                        End Stream
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <!-- Livestream Details -->
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <span class="text-muted-foreground">Room:</span>
+                                    <span class="ml-2 font-mono">{{ event.livestream_room?.room_name }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-muted-foreground">Participants:</span>
+                                    <span class="ml-2"
+                                        >{{ event.livestream_room?.current_participants || 0 }} / {{ event.livestream_room?.max_participants }}</span
+                                    >
+                                </div>
+                            </div>
+
+                            <!-- Error Message -->
+                            <div v-if="livestreamError" class="rounded bg-red-50 p-2 text-sm text-red-500">
+                                {{ livestreamError }}
                             </div>
                         </CardContent>
                     </Card>
@@ -345,6 +535,32 @@ const updateRegistrationStatus = (registrationId: number, status: string) => {
                             <div class="text-xs text-muted-foreground">Tip: Use the list below to remove a specific attendee directly.</div>
                         </CardContent>
                     </Card>
+                </div>
+            </div>
+        </div>
+
+        <!-- Livestream Modal/Overlay -->
+        <div v-if="showLivestream" class="bg-opacity-75 fixed inset-0 z-50 flex items-center justify-center bg-black">
+            <div class="flex h-full max-h-[90vh] w-full max-w-7xl flex-col rounded-lg bg-white shadow-xl">
+                <!-- Livestream Header -->
+                <div class="flex items-center justify-between rounded-t-lg border-b bg-gray-50 p-4">
+                    <div class="flex items-center gap-3">
+                        <Radio class="h-5 w-5 text-green-600" />
+                        <h2 class="text-xl font-semibold">{{ event.title }} - Livestream</h2>
+                        <Badge v-if="isLivestreamLive" variant="default" class="flex items-center gap-1">
+                            <Radio class="h-3 w-3" />
+                            LIVE
+                        </Badge>
+                    </div>
+                    <Button @click="closeLivestream" variant="outline" size="sm">
+                        <X class="h-4 w-4" />
+                        Close
+                    </Button>
+                </div>
+
+                <!-- Livestream Content -->
+                <div class="flex-1 overflow-hidden">
+                    <LivekitRoom :room-id="event.livestream_room?.id || 0" :event-title="event.title" />
                 </div>
             </div>
         </div>

@@ -9,3 +9,5 @@ require __DIR__.'/api/booking.php';
 require __DIR__.'/api/notification.php';
 require __DIR__.'/api/quiz.php';
 require __DIR__.'/api/report.php';
+require __DIR__.'/api/events.php';
+require __DIR__.'/api/livekit.php';

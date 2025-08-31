@@ -19,6 +19,10 @@ Route::get('dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+Route::get('/livekit-test', function () {
+    return Inertia::render('LivekitTest');
+})->middleware(['auth', 'verified'])->name('livekit.test');
+
 // Healthcare Professional Routes - UI (GET routes with Inertia::render)
 Route::middleware(['auth', 'role:healthcare_professional,health_campaign_manager,system_admin'])->group(function () {
     Route::get('/healthcare', function () {
