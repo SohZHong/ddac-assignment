@@ -136,9 +136,9 @@ const getHealthScoreDescription = (score: number, assessmentCount: number) => {
                 <div class="card mb-6">
                     <div class="p-6">
                         <div class="mb-4 flex items-center justify-between">
-                            <h3 class="text-lg font-semibold text-gray-900">Health Score</h3>
+                            <h3 class="text-lg font-semibold text-white">Health Score</h3>
                             <div class="text-right">
-                                <div class="text-2xl font-bold text-gray-900">{{ stats.healthScore }}/100</div>
+                                <div class="text-2xl font-bold text-white">{{ stats.healthScore }}/100</div>
                                 <div class="text-sm" :class="getRiskLevelColor(stats.latestRiskLevel)">
                                     {{ getRiskLevelText(stats.latestRiskLevel) }}
                                 </div>
