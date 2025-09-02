@@ -5,6 +5,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\ApprovalController;
 use App\Http\Controllers\Admin\SystemActivityController;
+use App\Http\Controllers\DashboardController;
 use App\Models\User;
 
 Route::get('/', function () {
@@ -15,9 +16,9 @@ Route::get('/approval-pending', function () {
     return Inertia::render('auth/PendingApproval');
 })->name('approval.pending');
 
-Route::get('dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 // Healthcare Professional Routes - UI (GET routes with Inertia::render)
 Route::middleware(['auth', 'role:healthcare_professional,health_campaign_manager,system_admin'])->group(function () {
