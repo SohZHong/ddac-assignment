@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Facades\Storage;
 
 class DashboardController extends Controller
 {
@@ -79,7 +80,7 @@ class DashboardController extends Controller
         
         $healthScore = $this->calculateHealthScore($user);
         $latestAssessment = $this->getLatestAssessment($user);
-        
+
         return Inertia::render('Dashboard', [
             'user' => $user->only(['id', 'name', 'email', 'role']),
             'stats' => [
@@ -107,12 +108,13 @@ class DashboardController extends Controller
                 ];
             }),
             'recentReports' => $consultationReports->map(function ($report) {
+                $disk = config('filesystems.default');
                 return [
                     'id' => $report->id,
                     'title' => $report->title ?? 'Consultation Report',
                     'created_at' => $report->created_at,
                     'doctor_name' => $report->uploadedBy->name ?? 'Unknown Doctor',
-                    'file_path' => $report->file_path,
+                    'file_path' => Storage::disk($disk)->url($report->file_path),
                 ];
             }),
             'recentBlogs' => $recentBlogs->map(function ($blog) {

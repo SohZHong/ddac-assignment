@@ -22,6 +22,8 @@ class BlogController extends Controller
      */
     public function index(): Response
     {
+        $disk = config('filesystems.default');
+
         $blogs = Blog::with('author:id,name')
             ->where('status', Blog::STATUS_PUBLISHED)
             ->orderByDesc('published_at')
@@ -30,7 +32,7 @@ class BlogController extends Controller
                 'id'            => $blog->id,
                 'title'         => $blog->title,
                 'slug'          => $blog->slug,
-                'cover_image'   => $blog->cover_image,
+                'cover_image'   => $blog->cover_image ? Storage::disk($disk)->url($blog->cover_image) : $blog->cover_image,
                 'author'        => [
                     'id'   => optional($blog->author)->id   ?? 1,
                     'name' => optional($blog->author)->name ?? 'Anonymous',
@@ -129,11 +131,14 @@ class BlogController extends Controller
 
         $disk = config('filesystems.default');
 
+        
         if ($request->hasFile('cover_image')) {
             // Delete image in public folder (Will be replaced later)
             
             Storage::disk($disk)->delete($blog->cover_image);
             $validated['cover_image'] = $request->file('cover_image')->store('blogs', $disk);
+        } else {
+            unset($validated['cover_image']);
         }
 
         if (isset($validated['status']) && $validated['status'] === Blog::STATUS_PUBLISHED) {
@@ -142,9 +147,7 @@ class BlogController extends Controller
 
         $blog->update($validated);
 
-        return Inertia::render('Blog/Show', [
-            'blog' => $blog->load('author:id,name'),
-        ]);
+        return redirect()->route('healthcare.blog.index');
     }
 
     /**

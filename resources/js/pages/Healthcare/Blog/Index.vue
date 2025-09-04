@@ -262,13 +262,7 @@ function goToPage(page: number) {
                     >
                         <!-- Title (clickable to public view if published) -->
                         <div class="truncate px-4 py-3 font-medium">
-                            <Link
-                                v-if="blog.status"
-                                :href="route('blog.show', blog.id)"
-                                target="_blank"
-                                rel="noopener"
-                                class="hover:underline"
-                            >
+                            <Link v-if="blog.status" :href="route('blog.show', blog.id)" target="_blank" rel="noopener" class="hover:underline">
                                 {{ blog.title }}
                             </Link>
                             <span v-else>{{ blog.title }}</span>
@@ -298,7 +292,9 @@ function goToPage(page: number) {
                         <!-- Actions -->
                         <div class="flex items-center gap-2 px-4 py-3 whitespace-nowrap">
                             <Button size="sm" variant="outline">
-                                <Link :href="route('blog.show', blog.id)" target="_blank" rel="noopener" class="inline-flex items-center"> View </Link>
+                                <Link :href="route('blog.show', blog.id)" target="_blank" rel="noopener" class="inline-flex items-center">
+                                    View
+                                </Link>
                             </Button>
                             <Button size="sm" variant="default" @click="editBlog(blog.id)"> Edit </Button>
                             <Button size="sm" variant="default" v-if="!blog.status" @click="publishBlog(blog.id)"> Publish </Button>
