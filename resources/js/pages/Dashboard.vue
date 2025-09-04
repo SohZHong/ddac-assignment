@@ -164,12 +164,12 @@ const getHealthScoreDescription = (score: number, assessmentCount: number) => {
 
                 <Card>
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">Total Appointments</CardTitle>
-                        <Calendar class="h-4 w-4 text-muted-foreground" />
+                        <CardTitle class="text-lg font-medium">Total Appointments</CardTitle>
+                        <Calendar class="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
-                        <div class="text-2xl font-bold">{{ props.stats.totalBookings }}</div>
-                        <p class="text-xs text-muted-foreground">
+                        <div class="mb-6 text-2xl font-bold text-green-600">{{ props.stats.totalBookings }}</div>
+                        <p class="text-md text-muted-foreground">
                             {{ props.stats.confirmedBookings }} confirmed, {{ props.stats.pendingBookings }} pending
                         </p>
                         <Button variant="outline" class="mt-4 w-full" size="sm">
@@ -178,25 +178,25 @@ const getHealthScoreDescription = (score: number, assessmentCount: number) => {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card class="flex justify-center">
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">Completed Sessions</CardTitle>
+                        <CardTitle class="text-lg font-medium">Completed Sessions</CardTitle>
                         <CheckCircle class="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
-                        <div class="text-2xl font-bold text-green-600">{{ props.stats.completedBookings }}</div>
-                        <p class="text-xs text-muted-foreground">Healthcare consultations completed</p>
+                        <div class="mb-6 text-2xl font-bold text-green-600">{{ props.stats.completedBookings }}</div>
+                        <p class="text-md text-muted-foreground">Healthcare consultations completed</p>
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card class="flex justify-center">
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">Health Reports</CardTitle>
-                        <FileText class="h-4 w-4 text-muted-foreground" />
+                        <CardTitle class="text-lg font-medium">Health Reports</CardTitle>
+                        <FileText class="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
-                        <div class="text-2xl font-bold">{{ props.stats.totalReports }}</div>
-                        <p class="text-xs text-muted-foreground">{{ props.stats.quizResponsesCount }} quiz responses</p>
+                        <div class="mb-6 text-2xl font-bold text-green-600">{{ props.stats.totalReports }}</div>
+                        <p class="text-md text-muted-foreground">{{ props.stats.quizResponsesCount }} quiz responses</p>
                     </CardContent>
                 </Card>
             </div>
@@ -215,7 +215,7 @@ const getHealthScoreDescription = (score: number, assessmentCount: number) => {
                             <Calendar class="mx-auto mb-4 h-12 w-12 opacity-50" />
                             <p>No upcoming appointments</p>
                             <Button variant="outline" class="mt-4">
-                                <Link :href="route('booking.create')">Book Appointment</Link>
+                                <Link href="/schedules">Book Appointment</Link>
                             </Button>
                         </div>
                         <div v-else class="space-y-4">
@@ -226,7 +226,7 @@ const getHealthScoreDescription = (score: number, assessmentCount: number) => {
                             >
                                 <div class="flex-1">
                                     <div class="font-medium">{{ appointment.healthcare.name }}</div>
-                                    <div class="text-sm text-muted-foreground">
+                                    <div class="text-md text-muted-foreground">
                                         {{ formatDate(appointment.start_time) }}
                                     </div>
                                 </div>
@@ -255,7 +255,7 @@ const getHealthScoreDescription = (score: number, assessmentCount: number) => {
                         <div v-if="props.recentReports.length === 0" class="py-8 text-center text-muted-foreground">
                             <FileText class="mx-auto mb-4 h-12 w-12 opacity-50" />
                             <p>No reports available yet</p>
-                            <p class="text-sm">Reports will appear here after your consultations</p>
+                            <p class="text-md">Reports will appear here after your consultations</p>
                         </div>
                         <div v-else class="space-y-4">
                             <div
@@ -265,7 +265,7 @@ const getHealthScoreDescription = (score: number, assessmentCount: number) => {
                             >
                                 <div class="flex-1">
                                     <div class="font-medium">{{ report.title }}</div>
-                                    <div class="text-sm text-muted-foreground">
+                                    <div class="text-md text-muted-foreground">
                                         By Dr. {{ report.doctor_name }} • {{ formatDate(report.created_at) }}
                                     </div>
                                 </div>
@@ -297,8 +297,8 @@ const getHealthScoreDescription = (score: number, assessmentCount: number) => {
                     <div v-else class="grid gap-4 md:grid-cols-3">
                         <div v-for="blog in props.recentBlogs" :key="blog.id" class="rounded-lg border p-4 transition-colors hover:bg-gray-50">
                             <h4 class="mb-2 line-clamp-2 font-medium">{{ blog.title }}</h4>
-                            <p class="mb-3 line-clamp-3 text-sm text-muted-foreground">{{ blog.excerpt }}</p>
-                            <div class="flex items-center justify-between text-xs text-muted-foreground">
+                            <p class="text-md mb-3 line-clamp-3 text-muted-foreground">{{ blog.excerpt }}</p>
+                            <div class="text-md flex items-center justify-between text-muted-foreground">
                                 <span>{{ blog.author_name }}</span>
                                 <span class="flex items-center gap-1">
                                     <Clock class="h-3 w-3" />
