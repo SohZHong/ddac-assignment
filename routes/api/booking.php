@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Booking\BookingController;
 
 Route::prefix('bookings')->group(function () {
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware('auth:web')->group(function () {
     Route::post('/', [BookingController::class, 'store'])
         ->name('api.booking.store');
 

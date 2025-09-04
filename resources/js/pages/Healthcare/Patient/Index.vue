@@ -116,6 +116,52 @@ function goToPage(page: number) {
     if (page === currentPage.value) return; // prevent duplicate navigation
     router.visit(route('healthcare.patients.index', { page }));
 }
+
+async function startVideoCallWithPatient(patientId: string) {
+    try {
+        // Find the most recent confirmed booking for this patient
+        const response = await axios.get(`/api/healthcare/patients/${patientId}/latest-booking`);
+
+        if (!response.data.booking) {
+            toastMessage.value = {
+                title: 'No Active Booking',
+                description: 'No confirmed booking found for this patient',
+                variant: 'destructive',
+            };
+            toastRef.value?.showToast();
+            return;
+        }
+
+        const booking = response.data.booking;
+
+        // Check if a video call room already exists for this booking
+        const checkResponse = await axios.get(`/api/bookings/${booking.id}/video-call`);
+
+        let roomId;
+
+        if (checkResponse.data.video_call) {
+            // Use existing room
+            roomId = checkResponse.data.video_call.room_id;
+        } else {
+            // Create new video call room if none exists
+            const createResponse = await axios.post('/api/video-calls/create', {
+                booking_id: booking.id,
+            });
+            roomId = createResponse.data.room_id;
+        }
+
+        // Navigate to video call room
+        router.visit(`/video-call/${roomId}`);
+    } catch (error: any) {
+        console.error('Error starting video call:', error);
+        toastMessage.value = {
+            title: 'Video Call Error',
+            description: error.response?.data?.message || 'Failed to start video call',
+            variant: 'destructive',
+        };
+        toastRef.value?.showToast();
+    }
+}
 </script>
 
 <template>
@@ -173,7 +219,22 @@ function goToPage(page: number) {
                                 <!-- Actions -->
                                 <div class="flex flex-wrap justify-between gap-2 px-4 py-3">
                                     <Button size="sm" variant="default" @click="handleUploadClick(String(patient.id))"> Upload Report </Button>
-                                    <Button size="sm" variant="outline" disabled> Meeting </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        @click="startVideoCallWithPatient(String(patient.id))"
+                                        class="border-green-700 text-green-700 hover:bg-green-700 hover:text-white"
+                                    >
+                                        <svg class="mr-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                            ></path>
+                                        </svg>
+                                        Meeting
+                                    </Button>
                                 </div>
                             </div>
 
