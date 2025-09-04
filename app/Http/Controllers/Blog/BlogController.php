@@ -32,7 +32,7 @@ class BlogController extends Controller
                 'id'            => $blog->id,
                 'title'         => $blog->title,
                 'slug'          => $blog->slug,
-                'cover_image'   => $blog->cover_image ? Storage::disk($disk)->url($blog->cover_image) : $blog->cover_image,
+                'cover_image'   => $blog->cover_image ? Storage::disk($disk)->url($blog->cover_image) : null,
                 'author'        => [
                     'id'   => optional($blog->author)->id   ?? 1,
                     'name' => optional($blog->author)->name ?? 'Anonymous',
@@ -87,13 +87,14 @@ class BlogController extends Controller
         $blog = Blog::with('author:id,name')
             ->where('status', Blog::STATUS_PUBLISHED)
             ->findOrFail($id);
+        $disk = config('filesystems.default');
 
         return \Inertia\Inertia::render('Blog/Show', [
             'blog' => [
                 'id'           => $blog->id,
                 'title'        => $blog->title,
                 'slug'         => $blog->slug,
-                'cover_image'  => $blog->cover_image,
+                'cover_image'   => $blog->cover_image ? Storage::disk($disk)->url($blog->cover_image) : null,
                 'content'      => $blog->content,
                 'author'       => [
                     'id'   => $blog->author?->id ?? 0,

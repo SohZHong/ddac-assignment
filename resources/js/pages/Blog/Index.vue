@@ -42,6 +42,7 @@ console.log(props.blogs);
                 <div v-for="blog in blogs.data" :key="blog.id" class="group cursor-pointer">
                     <Link :href="route('blog.show', blog.id)" class="block overflow-hidden rounded-lg">
                         <img
+                            v-if="blog.cover_image"
                             :src="blog.cover_image"
                             :alt="blog.title"
                             class="h-56 w-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -57,8 +58,8 @@ console.log(props.blogs);
                         </Link>
 
                         <p class="mt-1 text-sm text-gray-500">
-                            By {{ blog.author.name }} —
-                            {{ blog.published_at }}
+                            By {{ blog.author.name }}
+                            {{ blog.published_at ? ' - ' + new Date(blog.published_at).toLocaleString() : null }}
                         </p>
                     </div>
                 </div>

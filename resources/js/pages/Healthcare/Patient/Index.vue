@@ -168,7 +168,6 @@ async function startVideoCallWithPatient(patientId: string) {
     <Head title="My Patients" />
     <Toast ref="toastRef" :title="toastMessage.title" :description="toastMessage.description" :variant="toastMessage.variant" />
 
-    <!-- <ScheduleCreateDialog v-model:open="createDialogOpen" :start="tempSelection?.start" :end="tempSelection?.end" @confirm="confirmSchedule" /> -->
     <ReportCreateDialog v-model:open="createDialogOpen" @confirm="uploadReport" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-6 p-6">
