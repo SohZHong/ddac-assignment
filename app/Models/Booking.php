@@ -13,6 +13,9 @@ class Booking extends Model
     const PENDING   = 0;
     const CONFIRMED = 1;
     const CANCELLED = 2;
+    
+    // Special status for standalone assessments
+    const ASSESSMENT_ONLY = 3;
 
     // Risk level
     const LOW   = 0;
@@ -71,5 +74,13 @@ class Booking extends Model
     public function quizResponse()
     {
         return $this->hasOne(QuizResponse::class);
+    }
+
+    /**
+     * Get the video call associated with this booking
+     */
+    public function videoCall()
+    {
+        return $this->hasOne(VideoCall::class);
     }
 }

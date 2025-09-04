@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Quiz\QuizController;
 use App\Http\Controllers\Quiz\QuizQuestionController;
 
-Route::middleware('auth:sanctum')->prefix('quizzes')->group(function () {
+Route::middleware('auth:web')->prefix('quizzes')->group(function () {
 
     Route::post('/', [QuizController::class, 'store'])
         ->name('api.quizzes.store');

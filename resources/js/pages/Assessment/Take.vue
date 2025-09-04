@@ -1,62 +1,72 @@
 <script setup lang="ts">
-import QuizResponseUpdateConfirmDialog from '@/components/QuizResponseUpdateConfirmDialog.vue';
 import Toast from '@/components/Toast.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { BreadcrumbItem } from '@/types';
-import { Booking } from '@/types/booking';
-import { QuestionType, Quiz, QuizResponse } from '@/types/quiz';
+import { QuestionType } from '@/types/quiz';
 import { Head, router } from '@inertiajs/vue3';
 import { onMounted, ref } from 'vue';
+
+interface Quiz {
+    id: number;
+    title: string;
+    description: string;
+    healthcare: {
+        id: number;
+        name: string;
+    };
+    questions: Array<{
+        id: number;
+        question_text: string;
+        type: QuestionType;
+        options?: string[];
+    }>;
+}
+
+interface RecentResponse {
+    id: number;
+    completed_at: string;
+}
+
 const props = defineProps<{
-    booking: Booking;
     quiz: Quiz;
-    response?: QuizResponse;
+    recentResponse?: RecentResponse;
 }>();
+
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Appointments', href: '/appointments' },
-    { title: `Assessment: ${props.quiz.title}`, href: '#' },
+    { title: 'Health Assessments', href: '/assessments' },
+    { title: props.quiz.title, href: '#' },
 ];
-// Keep track of answers
+
 const answers = ref<Record<number, string | number>>({});
-const localQuiz = ref<Quiz>(props.quiz);
-const localBooking = ref<Booking>(props.booking);
 const toastRef = ref<InstanceType<typeof Toast> | null>(null);
-const toastMessage = ref({ title: '', description: '', variant: 'default' as 'default' | 'success' | 'destructive' });
-const dialogOpen = ref(false);
+const toastMessage = ref({
+    title: '',
+    description: '',
+    variant: 'default' as 'default' | 'success' | 'destructive',
+});
 
 function submitAnswers() {
-    // Check if the user has answered before
-    const unanswered = localQuiz.value.questions?.filter((q) => {
+    const unanswered = props.quiz.questions.filter((q) => {
         const ans = answers.value[Number(q.id)];
         return ans === '' || ans === null || ans === undefined;
     });
 
-    if (unanswered && unanswered.length > 0) {
+    if (unanswered.length > 0) {
         toastMessage.value = {
-            title: `Empty Details`,
-            description: 'Please answer all the questions!',
+            title: 'Incomplete Assessment',
+            description: 'Please answer all questions before submitting.',
             variant: 'destructive',
         };
         toastRef.value?.showToast();
         return;
     }
 
-    if (props.response) {
-        dialogOpen.value = true;
-    } else {
-        handleSubmitAnswer();
-    }
-}
-
-function handleSubmitAnswer() {
     router.post(
-        route('booking.assessment.submit', localBooking.value.id),
+        route('assessment.submit', props.quiz.id),
         {
-            quiz_id: props.quiz.id,
-            booking_id: localBooking.value.id,
             answers: Object.entries(answers.value).map(([qId, answer]) => ({
                 question_id: qId,
                 answer,
@@ -64,20 +74,21 @@ function handleSubmitAnswer() {
         },
         {
             onSuccess: () => {
-                router.visit(route('booking.index'));
+                toastMessage.value = {
+                    title: 'Assessment Completed',
+                    description: 'Your assessment has been submitted successfully.',
+                    variant: 'success',
+                };
+                toastRef.value?.showToast();
             },
             onError: (errors: any) => {
                 console.error(errors);
-                // Add toast
                 toastMessage.value = {
-                    title: `Assessment Submission Failed`,
-                    description: 'Failed to submit assessment',
+                    title: 'Submission Failed',
+                    description: 'Failed to submit assessment. Please try again.',
                     variant: 'destructive',
                 };
-
-                // Show toast
                 toastRef.value?.showToast();
-                console.error('Failed to submit assessment');
             },
         },
     );
@@ -85,7 +96,7 @@ function handleSubmitAnswer() {
 
 onMounted(() => {
     // Initialize answers
-    localQuiz.value.questions?.forEach((q) => {
+    props.quiz.questions.forEach((q) => {
         if (!(q.id in answers.value)) {
             answers.value[Number(q.id)] = '';
         }
@@ -94,28 +105,30 @@ onMounted(() => {
 </script>
 
 <template>
-    <Head :title="`Assessment: ${localQuiz.title}`" />
-    <QuizResponseUpdateConfirmDialog v-model:open="dialogOpen" @confirm="submitAnswers" />
+    <Head :title="`Assessment: ${quiz.title}`" />
     <Toast ref="toastRef" :title="toastMessage.title" :description="toastMessage.description" :variant="toastMessage.variant" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-6 p-6">
             <!-- Header -->
             <div class="flex flex-col gap-4">
                 <div>
-                    <h1 class="text-3xl font-bold tracking-tight">{{ localQuiz.title }}</h1>
-                    <p class="text-muted-foreground">{{ localQuiz.description }}</p>
-                    <p class="mt-1 text-sm text-muted-foreground">Created by {{ localBooking.healthcare?.name }}</p>
+                    <h1 class="text-3xl font-bold tracking-tight">{{ quiz.title }}</h1>
+                    <p class="text-muted-foreground">{{ quiz.description }}</p>
+                    <p class="mt-1 text-sm text-muted-foreground">Created by {{ quiz.healthcare.name }}</p>
                 </div>
 
-                <!-- Existing Response Warning -->
-                <div v-if="response" class="rounded-md border border-amber-200 bg-amber-50 p-4">
-                    <p class="text-amber-800">You have already completed this assessment. Submitting again will update your previous responses.</p>
+                <!-- Recent Response Warning -->
+                <div v-if="recentResponse" class="rounded-md border border-amber-200 bg-amber-50 p-4">
+                    <p class="text-amber-800">
+                        You completed this assessment recently on
+                        {{ new Date(recentResponse.completed_at).toLocaleString() }}. Taking it again will create a new submission.
+                    </p>
                 </div>
             </div>
 
             <!-- Questions -->
             <div class="flex flex-col gap-4">
-                <Card v-for="(question, index) in localQuiz.questions" :key="question.id" class="w-full">
+                <Card v-for="(question, index) in quiz.questions" :key="question.id" class="w-full">
                     <CardHeader>
                         <CardTitle class="text-lg"> {{ index + 1 }}. {{ question.question_text }} </CardTitle>
                     </CardHeader>
@@ -154,7 +167,7 @@ onMounted(() => {
 
             <!-- Submit Button -->
             <div class="flex items-center justify-between">
-                <Button variant="outline" @click="router.visit(route('booking.index'))"> Back to Appointments </Button>
+                <Button variant="outline" @click="router.visit(route('assessment.index'))"> Back to Assessments </Button>
                 <Button @click="submitAnswers" class="px-8"> Submit Assessment </Button>
             </div>
         </div>
