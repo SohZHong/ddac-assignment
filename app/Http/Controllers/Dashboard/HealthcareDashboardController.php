@@ -219,6 +219,17 @@ class HealthcareDashboardController extends Controller
 
     public function schedule(): Response
     {
+        $paginateSchedules = Schedule::where('healthcare_id', auth()->id())
+                ->where('start_time', '>=', now(config('app.timezone')))
+                ->orderBy('start_time', 'asc')
+                ->paginate(15)
+                ->through(fn ($schedule) => [
+                'id'           => $schedule->id,
+                'start'        => $schedule->start_time,
+                'end'          => $schedule->end_time,
+                'day_of_week'  => $schedule->day_of_week,
+            ]);
+
         $schedules = Schedule::where('healthcare_id', auth()->id())
                 ->where('start_time', '>=', now(config('app.timezone')))
                 ->orderBy('start_time', 'asc')
@@ -232,6 +243,7 @@ class HealthcareDashboardController extends Controller
 
         return Inertia::render('Healthcare/Schedule/Index', [
             'schedules' => $schedules,
+            'paginateSchedules' => $paginateSchedules
         ]);
     }
 
