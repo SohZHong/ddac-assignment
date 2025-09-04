@@ -1,19 +1,16 @@
 <script setup lang="ts">
-// import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { User } from '@/types';
 import { Blog } from '@/types/blog';
 import { LaravelPagination } from '@/types/pagination';
 // import { UserRole } from '@/types/role';
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 // import { Plus } from 'lucide-vue-next';
 
 const props = defineProps<{
     blogs: LaravelPagination<Blog>;
 }>();
 
-const page = usePage();
-const user = page.props.auth.user as User;
 console.log(props.blogs);
 </script>
 
@@ -27,6 +24,11 @@ console.log(props.blogs);
                     <h1 class="text-3xl font-bold tracking-tight">Educational Resources</h1>
                     <p class="text-muted-foreground">Enrich yourself with knowledge</p>
                 </div>
+                <Link :href="'/healthcare/blogs'" class="inline-flex items-center cursor-pointer">
+                    <Button class="cursor-pointer">
+                        My Blogs
+                    </Button>
+                </Link>
                 <!-- <Link
                     v-if="user.role === UserRole.HEALTHCARE_PROFESSIONAL || user.role === UserRole.HEALTH_CAMPAIGN_MANAGER"
                     :href="route('blog.create')"

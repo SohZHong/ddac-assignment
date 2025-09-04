@@ -81,7 +81,7 @@ const mainNavItems = computed((): NavItem[] => {
             },
             {
                 title: 'Blog',
-                href: '/healthcare/blogs',
+                href: '/blogs',
                 icon: BookOpen,
             },
             {

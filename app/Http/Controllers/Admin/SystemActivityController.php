@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AdminLog;
 use App\Models\IncidentReport;
 use App\Models\Blog;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -15,7 +16,18 @@ class SystemActivityController extends Controller
 {
     public function index(): Response
     {
-        $logs = AdminLog::with('user')->latest()->limit(50)->get()->map(function($log) {
+        $userId = request('user_id');
+        $action = request('action');
+
+        $query = AdminLog::with('user')->latest();
+        if (!empty($userId)) {
+            $query->where('user_id', $userId);
+        }
+        if (!empty($action)) {
+            $query->where('action', $action);
+        }
+
+        $logs = $query->limit(50)->get()->map(function($log) {
             $metadata = is_array($log->metadata) ? $log->metadata : [];
             $target = $metadata['target_name'] ?? ($log->target_type ? $log->target_type.'#'.$log->target_id : null);
 
@@ -59,10 +71,22 @@ class SystemActivityController extends Controller
             ]);
         }
 
+        // Build filter options
+        $adminOptions = User::whereIn('id', AdminLog::select('user_id'))
+            ->get(['id','name'])
+            ->map(fn($u) => ['id' => $u->id, 'name' => $u->name]);
+        $actionOptions = AdminLog::select('action')->distinct()->orderBy('action')->pluck('action');
+
         return Inertia::render('Admin/SystemActivity', [
             'logs' => $logs,
             'incidents' => $incidents,
             'content' => $content,
+            'admins' => $adminOptions,
+            'actions' => $actionOptions,
+            'filters' => [
+                'user_id' => $userId,
+                'action' => $action,
+            ],
         ]);
     }
 

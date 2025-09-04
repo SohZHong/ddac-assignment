@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Blog;
 
 use App\Http\Controllers\Controller;
 use App\Models\Blog;
+use App\Models\AdminLog;
 use App\UserRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -205,6 +206,22 @@ class BlogController extends Controller
 
         $blog->delete();
 
+        // Log admin soft delete action
+        if (optional(Auth::user())->role === UserRole::SYSTEM_ADMIN) {
+            AdminLog::create([
+                'user_id'     => Auth::id(),
+                'action'      => 'blog.soft_deleted',
+                'target_type' => Blog::class,
+                'target_id'   => $blog->id,
+                'metadata'    => [
+                    'target_name' => $blog->title,
+                    'title'     => $blog->title,
+                    'author_id' => $blog->author_id,
+                ],
+                'ip_address'  => request()->ip(),
+            ]);
+        }
+
         return response()->json([
             'message'  => 'Blog deleted successfully!',
         ], 201);
@@ -221,6 +238,22 @@ class BlogController extends Controller
         $this->authorize('restore', $blog);
 
         $blog->restore();
+
+        // Log admin restore action
+        if (optional(Auth::user())->role === UserRole::SYSTEM_ADMIN) {
+            AdminLog::create([
+                'user_id'     => Auth::id(),
+                'action'      => 'blog.restored',
+                'target_type' => Blog::class,
+                'target_id'   => $blog->id,
+                'metadata'    => [
+                    'target_name' => $blog->title,
+                    'title'     => $blog->title,
+                    'author_id' => $blog->author_id,
+                ],
+                'ip_address'  => request()->ip(),
+            ]);
+        }
         return response()->json(['message' => 'Restored successfully']);
     }
 
@@ -234,7 +267,26 @@ class BlogController extends Controller
         // Check if user is authorized to hard delete
         $this->authorize('forceDelete', $blog);
 
+        $blogTitle = $blog->title;
+        $blogAuthorId = $blog->author_id;
+
         $blog->forceDelete();
+
+        // Log admin hard delete action
+        if (optional(Auth::user())->role === UserRole::SYSTEM_ADMIN) {
+            AdminLog::create([
+                'user_id'     => Auth::id(),
+                'action'      => 'blog.hard_deleted',
+                'target_type' => Blog::class,
+                'target_id'   => $blog->id,
+                'metadata'    => [
+                    'target_name' => $blogTitle,
+                    'title'       => $blogTitle,
+                    'author_id'   => $blogAuthorId,
+                ],
+                'ip_address'  => request()->ip(),
+            ]);
+        }
         return response()->json(['message' => 'Hard Deleted successfully']);
     }
 }

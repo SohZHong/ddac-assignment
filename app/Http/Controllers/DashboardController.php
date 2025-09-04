@@ -61,7 +61,7 @@ class DashboardController extends Controller
             ->count();
         
         $consultationReports = $user->consultationReports()
-            ->with(['uploadedBy'])
+            ->with(['doctor'])
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
@@ -114,7 +114,7 @@ class DashboardController extends Controller
                     'title' => $report->title ?? 'Consultation Report',
                     'created_at' => $report->created_at,
                     'doctor_name' => $report->uploadedBy->name ?? 'Unknown Doctor',
-                    'file_path' => Storage::disk($disk)->url($report->file_path),
+                    'file_path' => $report->file_path ? Storage::disk($disk)->url($report->file_path) : null,
                 ];
             }),
             'recentBlogs' => $recentBlogs->map(function ($blog) {

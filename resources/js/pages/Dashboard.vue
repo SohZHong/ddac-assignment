@@ -261,7 +261,7 @@ const getHealthScoreDescription = (score: number, assessmentCount: number) => {
                             <div
                                 v-for="report in props.recentReports"
                                 :key="report.id"
-                                class="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-gray-50"
+                                class="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-gray-800"
                             >
                                 <div class="flex-1">
                                     <div class="font-medium">{{ report.title }}</div>
@@ -295,7 +295,7 @@ const getHealthScoreDescription = (score: number, assessmentCount: number) => {
                         <p>No articles available</p>
                     </div>
                     <div v-else class="grid gap-4 md:grid-cols-3">
-                        <div v-for="blog in props.recentBlogs" :key="blog.id" class="rounded-lg border p-4 transition-colors hover:bg-gray-50">
+                        <div v-for="blog in props.recentBlogs" :key="blog.id" class="rounded-lg border p-4 transition-colors hover:bg-gray-800">
                             <h4 class="mb-2 line-clamp-2 font-medium">{{ blog.title }}</h4>
                             <p class="text-md mb-3 line-clamp-3 text-muted-foreground">{{ blog.excerpt }}</p>
                             <div class="text-md flex items-center justify-between text-muted-foreground">
