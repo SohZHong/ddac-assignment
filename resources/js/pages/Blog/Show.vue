@@ -4,7 +4,7 @@ import { User } from '@/types';
 import { Blog } from '@/types/blog';
 import { UserRole } from '@/types/role';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { ArrowLeft, Edit, Image, Settings, Trash } from 'lucide-vue-next';
+import { ArrowLeft, Edit, Settings, Trash } from 'lucide-vue-next';
 import { defineProps, ref } from 'vue';
 
 const props = defineProps<{
@@ -41,15 +41,14 @@ const goBack = () => {
 };
 
 document.addEventListener('click', handleClickOutside);
+console.log(props.blog.cover_image);
 </script>
 
 <template>
-    <div class="relative mx-auto max-w-3xl py-8">
+    <div class="relative mx-auto max-w-3xl pt-16 pb-8">
         <!-- Back Button -->
-        <div class="absolute left-3 top-3 cursor-pointer">
-            <Button variant="outline" size="sm" @click="goBack" class="cursor-pointer">
-                <ArrowLeft class="mr-2 h-4 w-4" /> Back
-            </Button>
+        <div class="absolute top-3 left-3 cursor-pointer">
+            <Button variant="outline" size="sm" @click="goBack" class="cursor-pointer"> <ArrowLeft class="mr-2 h-4 w-4" /> Back </Button>
         </div>
         <!-- Gear Icon -->
         <div v-if="user.id === Number(blog.author.id) || user.role === UserRole.SYSTEM_ADMIN" class="gear-menu absolute top-3 right-3">
@@ -78,11 +77,13 @@ document.addEventListener('click', handleClickOutside);
             </div>
         </div>
 
-        <Image :src="blog.cover_image" :alt="blog.title" class="h-80 w-full rounded-lg object-cover" />
+        <img :src="blog.cover_image" :alt="blog.title" class="h-80 w-full rounded-lg object-cover" />
 
         <h1 class="mt-6 text-3xl font-bold">{{ blog.title }}</h1>
 
-        <p class="mt-1 text-sm text-gray-500">By {{ blog.author.name }} — {{ blog.published_at || 'Unpublished' }}</p>
+        <p class="mt-1 text-sm text-gray-500">
+            By {{ blog.author.name }} — {{ blog.published_at ? new Date(blog.published_at).toLocaleString() : 'Unpublished' }}
+        </p>
 
         <div class="prose prose-sm mt-6 max-w-none dark:prose-invert" v-html="blog.content"></div>
     </div>

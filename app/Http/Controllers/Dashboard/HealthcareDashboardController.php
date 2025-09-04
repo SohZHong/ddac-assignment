@@ -251,6 +251,9 @@ class HealthcareDashboardController extends Controller
     public function appointment(): Response
     {
         $bookings = Booking::with('patient:id,name,email')
+            ->whereHas('schedule', function ($query) {
+                $query->where('healthcare_id', auth()->id());
+            })
             ->orderBy('start_time', 'asc')
             ->paginate(15)
             ->through(fn ($booking) => [
