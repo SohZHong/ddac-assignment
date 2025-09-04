@@ -42,7 +42,7 @@ function viewHistory() {
             <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                     <h1 class="text-3xl font-bold tracking-tight">Health Assessments</h1>
-                    <p class="text-muted-foreground">Take health assessments created by healthcare professionals</p>
+                    <p class="">Take health assessments created by healthcare professionals</p>
                 </div>
                 <div class="flex gap-2">
                     <Button variant="outline" @click="viewHistory"> View History </Button>
@@ -51,41 +51,37 @@ function viewHistory() {
 
             <!-- Assessments Grid -->
             <div v-if="quizzes.length > 0" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <Card v-for="quiz in quizzes" :key="quiz.id" class="flex flex-col">
+                <Card v-for="quiz in quizzes" :key="quiz.id" class="flex h-full flex-col">
                     <CardHeader>
                         <div class="flex items-start justify-between">
                             <div class="flex-1">
                                 <CardTitle class="text-lg">{{ quiz.title }}</CardTitle>
-                                <p class="mt-1 text-sm text-muted-foreground">by {{ quiz.healthcare.name }}</p>
+                                <p class="mt-1 text-sm">by {{ quiz.healthcare.name }}</p>
                             </div>
                             <Badge v-if="quiz.has_taken" variant="secondary">Completed</Badge>
                         </div>
                     </CardHeader>
                     <CardContent class="flex flex-1 flex-col">
-                        <p class="mb-4 flex-1 text-sm text-muted-foreground">
+                        <p class="mb-4 text-sm">
                             {{ quiz.description || 'No description available' }}
                         </p>
 
-                        <div class="space-y-3">
+                        <div class="flex-1 space-y-3">
                             <div class="flex items-center justify-between text-sm">
-                                <span class="text-muted-foreground">Questions:</span>
+                                <span class="">Questions:</span>
                                 <span class="font-medium">{{ quiz.questions_count }}</span>
                             </div>
 
                             <div v-if="quiz.has_taken && quiz.last_taken" class="text-sm">
-                                <span class="text-muted-foreground">Last taken:</span>
-                                <span class="block font-medium">
-                                    {{ new Date(quiz.last_taken).toLocaleDateString() }}
-                                </span>
+                                <span class="">Last taken: {{ new Date(quiz.last_taken).toLocaleDateString() }}</span>
                             </div>
+                        </div>
+                        <div class="mt-auto flex gap-2 pt-4">
+                            <Button @click="takeAssessment(quiz.id)" class="flex-1" :variant="quiz.has_taken ? 'outline' : 'default'">
+                                {{ quiz.has_taken ? 'Retake' : 'Take Assessment' }}
+                            </Button>
 
-                            <div class="flex gap-2 pt-2">
-                                <Button @click="takeAssessment(quiz.id)" class="flex-1" :variant="quiz.has_taken ? 'outline' : 'default'">
-                                    {{ quiz.has_taken ? 'Retake' : 'Take Assessment' }}
-                                </Button>
-
-                                <Button v-if="quiz.has_taken" @click="viewHistory" variant="outline" size="sm"> Results </Button>
-                            </div>
+                            <Button v-if="quiz.has_taken" @click="viewHistory" variant="outline"> Results </Button>
                         </div>
                     </CardContent>
                 </Card>
@@ -95,7 +91,7 @@ function viewHistory() {
             <div v-else class="py-12 text-center">
                 <div class="mx-auto max-w-md">
                     <div class="mb-4">
-                        <svg class="mx-auto h-12 w-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
@@ -105,7 +101,7 @@ function viewHistory() {
                         </svg>
                     </div>
                     <h3 class="mb-2 text-lg font-medium text-gray-900">No Assessments Available</h3>
-                    <p class="text-muted-foreground">
+                    <p class="">
                         There are no active health assessments available at the moment. Check back later or contact your healthcare provider.
                     </p>
                 </div>
