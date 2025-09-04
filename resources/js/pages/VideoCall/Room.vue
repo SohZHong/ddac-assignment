@@ -1,15 +1,369 @@
+<script setup lang="ts">
+import { Head, router } from '@inertiajs/vue3';
+import axios from 'axios';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+
+declare global {
+    interface Window {
+        Echo: any;
+    }
+}
+
+// Props
+interface Props {
+    roomId: string;
+    doctor: {
+        id: number;
+        name: string;
+    };
+    patient: {
+        id: number;
+        name: string;
+    };
+    currentUser: {
+        id: number;
+        name: string;
+        role: string;
+    };
+}
+
+const props = defineProps<Props>();
+
+// Refs
+const localVideo = ref<HTMLVideoElement>();
+const remoteVideo = ref<HTMLVideoElement>();
+
+// State
+const callStatus = ref<'connecting' | 'connected' | 'ended'>('connecting');
+const isVideoEnabled = ref(true);
+const isAudioEnabled = ref(true);
+const isDoctorConnected = ref(false);
+const isPatientConnected = ref(false);
+const callDuration = ref(0);
+const callStartTime = ref<Date | null>(null);
+
+// WebRTC
+let localStream: MediaStream | null = null;
+let peerConnection: RTCPeerConnection | null = null;
+let websocket: any = null;
+let iceCandidatesQueue: RTCIceCandidate[] = [];
+
+// Computed
+const isDoctor = computed(() => props.currentUser.role === 'doctor');
+
+// Methods
+const formatDuration = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (hours > 0) {
+        return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+};
+
+const initializeWebRTC = async () => {
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+        });
+
+        if (localVideo.value) {
+            localVideo.value.srcObject = localStream;
+            localVideo.value.muted = true;
+        }
+
+        peerConnection = new RTCPeerConnection({
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                {
+                    urls: 'turn:openrelay.metered.ca:80',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject',
+                },
+            ],
+        });
+
+        localStream.getTracks().forEach((track) => {
+            if (peerConnection && localStream) {
+                peerConnection.addTrack(track, localStream);
+            }
+        });
+
+        peerConnection.ontrack = (event) => {
+            const [remoteStream] = event.streams;
+            if (remoteVideo.value) {
+                remoteVideo.value.srcObject = remoteStream;
+                remoteVideo.value.autoplay = true;
+                remoteVideo.value.playsInline = true;
+                callStatus.value = 'connected';
+                startCallTimer();
+            }
+        };
+
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+                sendSignal({
+                    type: 'ice-candidate',
+                    candidate: event.candidate,
+                });
+            }
+        };
+
+        peerConnection.onconnectionstatechange = () => {
+            if (peerConnection) {
+                if (peerConnection.connectionState === 'connected') {
+                    callStatus.value = 'connected';
+                    startCallTimer();
+                }
+            }
+        };
+    } catch {
+        alert('Failed to access camera and microphone. Please check permissions and refresh the page.');
+    }
+};
+
+const initializeWebSocket = () => {
+    websocket = window.Echo.private(`video-call.${props.roomId}`)
+        .listen('.participant.joined', (e: any) => {
+            if (e.user_id === props.doctor.id) {
+                isDoctorConnected.value = true;
+            }
+            if (e.user_id === props.patient.id) {
+                isPatientConnected.value = true;
+            }
+
+            if (isDoctorConnected.value && isPatientConnected.value && isDoctor.value) {
+                setTimeout(() => createOffer(), 1000);
+            }
+        })
+        .listen('.webrtc.signal', (e: any) => {
+            handleSignal(e.signal);
+        })
+        .listen('.call.ended', () => {
+            endCall();
+        });
+};
+
+const sendSignal = async (signal: any) => {
+    try {
+        const otherParticipantId = isDoctor.value ? props.patient.id : props.doctor.id;
+
+        if (signal.sdp) {
+            signal.sdp = cleanSDP(signal.sdp);
+        }
+
+        await axios.post(`/api/video-calls/${props.roomId}/signal`, {
+            signal,
+            to_user_id: otherParticipantId,
+        });
+    } catch (error) {
+        console.error('Error sending signal:', error);
+    }
+};
+
+const cleanSDP = (sdp: string): string => {
+    const lines = sdp.split('\r\n');
+    const cleanedLines: string[] = [];
+
+    for (const line of lines) {
+        if (line.startsWith('a=ssrc-group:')) {
+            continue;
+        }
+
+        if (line.startsWith('a=ssrc:') && line.includes('msid:')) {
+            continue;
+        }
+
+        cleanedLines.push(line);
+    }
+
+    return cleanedLines.join('\r\n');
+};
+
+const handleSignal = async (signal: any) => {
+    if (!peerConnection || !signal) return;
+
+    try {
+        switch (signal.type) {
+            case 'offer':
+                const cleanedOffer = {
+                    type: signal.type,
+                    sdp: cleanSDP(signal.sdp),
+                };
+
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(cleanedOffer));
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+
+                await sendSignal({
+                    type: 'answer',
+                    sdp: answer.sdp,
+                });
+
+                await processQueuedIceCandidates();
+
+                break;
+
+            case 'answer':
+                const cleanedAnswer = {
+                    type: signal.type,
+                    sdp: cleanSDP(signal.sdp),
+                };
+
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(cleanedAnswer));
+
+                await processQueuedIceCandidates();
+                break;
+
+            case 'ice-candidate':
+                if (peerConnection.remoteDescription) {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
+                } else {
+                    iceCandidatesQueue.push(new RTCIceCandidate(signal.candidate));
+                }
+                break;
+        }
+    } catch (error) {
+        if (error instanceof Error && error.message.includes('Failed to parse SessionDescription')) {
+        }
+    }
+};
+
+const processQueuedIceCandidates = async () => {
+    if (!peerConnection || iceCandidatesQueue.length === 0) return;
+
+    for (const candidate of iceCandidatesQueue) {
+        try {
+            await peerConnection.addIceCandidate(candidate);
+        } catch (error) {
+            console.error('Error adding queued ICE candidate:', error);
+        }
+    }
+
+    iceCandidatesQueue = [];
+};
+
+const createOffer = async () => {
+    if (!peerConnection) return;
+
+    try {
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        await sendSignal({
+            type: 'offer',
+            sdp: offer.sdp,
+        });
+    } catch (error) {
+        console.error('Error creating offer:', error);
+    }
+};
+
+const toggleVideo = () => {
+    if (localStream) {
+        const videoTrack = localStream.getVideoTracks()[0];
+        if (videoTrack) {
+            videoTrack.enabled = !videoTrack.enabled;
+            isVideoEnabled.value = videoTrack.enabled;
+        }
+    }
+};
+
+const toggleAudio = () => {
+    if (localStream) {
+        const audioTrack = localStream.getAudioTracks()[0];
+        if (audioTrack) {
+            audioTrack.enabled = !audioTrack.enabled;
+            isAudioEnabled.value = audioTrack.enabled;
+        }
+    }
+};
+
+const startCallTimer = () => {
+    if (callStartTime.value) return;
+
+    callStartTime.value = new Date();
+    setInterval(() => {
+        if (callStartTime.value && callStatus.value === 'connected') {
+            callDuration.value = Math.floor((Date.now() - callStartTime.value.getTime()) / 1000);
+        }
+    }, 1000);
+};
+
+const endCall = async () => {
+    try {
+        await axios.post(`/api/video-calls/${props.roomId}/end`);
+        cleanup();
+        router.visit('/dashboard');
+    } catch (error) {
+        console.error('Error ending call:', error);
+        cleanup();
+        router.visit('/dashboard');
+    }
+};
+
+const cleanup = () => {
+    if (localStream) {
+        localStream.getTracks().forEach((track) => track.stop());
+        localStream = null;
+    }
+
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+    }
+
+    if (websocket) {
+        websocket.stopListening('.participant.joined');
+        websocket.stopListening('.webrtc.signal');
+        websocket.stopListening('.call.ended');
+        websocket = null;
+    }
+
+    iceCandidatesQueue = [];
+
+    callStatus.value = 'ended';
+};
+
+const joinCall = async () => {
+    try {
+        await axios.post(`/api/video-calls/${props.roomId}/join`);
+
+        if (isDoctor.value) {
+            isDoctorConnected.value = true;
+        } else {
+            isPatientConnected.value = true;
+        }
+    } catch (error) {
+        console.error('Error joining call:', error);
+    }
+};
+
+onMounted(async () => {
+    await initializeWebRTC();
+    initializeWebSocket();
+    await joinCall();
+});
+
+onUnmounted(() => {
+    cleanup();
+});
+</script>
+
 <template>
     <Head title="Video Consultation" />
 
     <div class="min-h-screen bg-black">
-        <div class="border-b bg-white shadow-sm">
+        <div class="border-b bg-black shadow-sm">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between py-4">
                     <div class="flex items-center space-x-4">
-                        <h1 class="text-xl font-semibold text-gray-900">Video Consultation</h1>
+                        <h1 class="text-xl font-semibold text-white">Video Consultation</h1>
                         <div class="flex items-center space-x-2">
                             <div :class="['h-3 w-3 rounded-full', callStatus === 'connected' ? 'bg-green-500' : 'bg-yellow-500']"></div>
-                            <span class="text-sm text-gray-600">
+                            <span class="text-sm text-white">
                                 {{ callStatus === 'connected' ? 'Connected' : 'Connecting...' }}
                             </span>
                         </div>
@@ -159,348 +513,3 @@
         </div>
     </div>
 </template>
-
-<script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
-import axios from 'axios';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
-
-// TypeScript declarations
-declare global {
-    interface Window {
-        Echo: any;
-    }
-}
-
-// Props
-interface Props {
-    roomId: string;
-    doctor: {
-        id: number;
-        name: string;
-    };
-    patient: {
-        id: number;
-        name: string;
-    };
-    currentUser: {
-        id: number;
-        name: string;
-        role: string;
-    };
-}
-
-const props = defineProps<Props>();
-
-// Refs
-const localVideo = ref<HTMLVideoElement>();
-const remoteVideo = ref<HTMLVideoElement>();
-
-// State
-const callStatus = ref<'connecting' | 'connected' | 'ended'>('connecting');
-const isVideoEnabled = ref(true);
-const isAudioEnabled = ref(true);
-const isDoctorConnected = ref(false);
-const isPatientConnected = ref(false);
-const callDuration = ref(0);
-const callStartTime = ref<Date | null>(null);
-
-// WebRTC
-let localStream: MediaStream | null = null;
-let peerConnection: RTCPeerConnection | null = null;
-let websocket: any = null;
-let iceCandidatesQueue: RTCIceCandidate[] = [];
-
-// Computed
-const isDoctor = computed(() => props.currentUser.role === 'doctor');
-
-// Methods
-const formatDuration = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-
-    if (hours > 0) {
-        return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
-};
-
-const initializeWebRTC = async () => {
-    try {
-        localStream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true,
-        });
-
-        if (localVideo.value) {
-            localVideo.value.srcObject = localStream;
-            localVideo.value.muted = true;
-        }
-
-        peerConnection = new RTCPeerConnection({
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-        });
-
-        localStream.getTracks().forEach((track) => {
-            if (peerConnection && localStream) {
-                peerConnection.addTrack(track, localStream);
-            }
-        });
-
-        peerConnection.ontrack = (event) => {
-            const [remoteStream] = event.streams;
-            if (remoteVideo.value) {
-                remoteVideo.value.srcObject = remoteStream;
-                callStatus.value = 'connected';
-                startCallTimer();
-            }
-        };
-
-        peerConnection.onicecandidate = (event) => {
-            if (event.candidate) {
-                sendSignal({
-                    type: 'ice-candidate',
-                    candidate: event.candidate,
-                });
-            }
-        };
-
-        peerConnection.onconnectionstatechange = () => {
-            if (peerConnection) {
-                if (peerConnection.connectionState === 'connected') {
-                    callStatus.value = 'connected';
-                    startCallTimer();
-                }
-            }
-        };
-    } catch {
-        alert('Failed to access camera and microphone. Please check permissions and refresh the page.');
-    }
-};
-
-const initializeWebSocket = () => {
-    websocket = window.Echo.private(`video-call.${props.roomId}`)
-        .listen('.participant.joined', (e: any) => {
-            if (e.user_id === props.doctor.id) {
-                isDoctorConnected.value = true;
-            }
-            if (e.user_id === props.patient.id) {
-                isPatientConnected.value = true;
-            }
-
-            if (isDoctorConnected.value && isPatientConnected.value && isDoctor.value) {
-                setTimeout(() => createOffer(), 1000);
-            }
-        })
-        .listen('.webrtc.signal', (e: any) => {
-            handleSignal(e.signal);
-        })
-        .listen('.call.ended', () => {
-            endCall();
-        });
-};
-
-const sendSignal = async (signal: any) => {
-    try {
-        const otherParticipantId = isDoctor.value ? props.patient.id : props.doctor.id;
-
-        if (signal.sdp) {
-            signal.sdp = cleanSDP(signal.sdp);
-        }
-
-        await axios.post(`/api/video-calls/${props.roomId}/signal`, {
-            signal,
-            to_user_id: otherParticipantId,
-        });
-    } catch (error) {
-        console.error('Error sending signal:', error);
-    }
-};
-
-const cleanSDP = (sdp: string): string => {
-    const lines = sdp.split('\r\n');
-    const cleanedLines: string[] = [];
-
-    for (const line of lines) {
-        if (line.startsWith('a=ssrc-group:')) {
-            continue;
-        }
-
-        if (line.startsWith('a=ssrc:') && line.includes('msid:')) {
-            continue;
-        }
-
-        cleanedLines.push(line);
-    }
-
-    return cleanedLines.join('\r\n');
-};
-
-const handleSignal = async (signal: any) => {
-    if (!peerConnection || !signal) return;
-
-    try {
-        switch (signal.type) {
-            case 'offer':
-                const cleanedOffer = {
-                    type: signal.type,
-                    sdp: cleanSDP(signal.sdp),
-                };
-
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(cleanedOffer));
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-
-                await processQueuedIceCandidates();
-
-                await sendSignal({
-                    type: 'answer',
-                    sdp: answer.sdp,
-                });
-                break;
-
-            case 'answer':
-                const cleanedAnswer = {
-                    type: signal.type,
-                    sdp: cleanSDP(signal.sdp),
-                };
-
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(cleanedAnswer));
-
-                await processQueuedIceCandidates();
-                break;
-
-            case 'ice-candidate':
-                if (peerConnection.remoteDescription) {
-                    await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
-                } else {
-                    iceCandidatesQueue.push(new RTCIceCandidate(signal.candidate));
-                }
-                break;
-        }
-    } catch (error) {
-        if (error instanceof Error && error.message.includes('Failed to parse SessionDescription')) {
-        }
-    }
-};
-
-const processQueuedIceCandidates = async () => {
-    if (!peerConnection || iceCandidatesQueue.length === 0) return;
-
-    for (const candidate of iceCandidatesQueue) {
-        try {
-            await peerConnection.addIceCandidate(candidate);
-        } catch (error) {
-            console.error('Error adding queued ICE candidate:', error);
-        }
-    }
-
-    iceCandidatesQueue = [];
-};
-
-const createOffer = async () => {
-    if (!peerConnection) return;
-
-    try {
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
-        await sendSignal({
-            type: 'offer',
-            sdp: offer.sdp,
-        });
-    } catch (error) {
-        console.error('Error creating offer:', error);
-    }
-};
-
-const toggleVideo = () => {
-    if (localStream) {
-        const videoTrack = localStream.getVideoTracks()[0];
-        if (videoTrack) {
-            videoTrack.enabled = !videoTrack.enabled;
-            isVideoEnabled.value = videoTrack.enabled;
-        }
-    }
-};
-
-const toggleAudio = () => {
-    if (localStream) {
-        const audioTrack = localStream.getAudioTracks()[0];
-        if (audioTrack) {
-            audioTrack.enabled = !audioTrack.enabled;
-            isAudioEnabled.value = audioTrack.enabled;
-        }
-    }
-};
-
-const startCallTimer = () => {
-    if (callStartTime.value) return;
-
-    callStartTime.value = new Date();
-    setInterval(() => {
-        if (callStartTime.value && callStatus.value === 'connected') {
-            callDuration.value = Math.floor((Date.now() - callStartTime.value.getTime()) / 1000);
-        }
-    }, 1000);
-};
-
-const endCall = async () => {
-    try {
-        await axios.post(`/api/video-calls/${props.roomId}/end`);
-        cleanup();
-        router.visit('/dashboard');
-    } catch (error) {
-        console.error('Error ending call:', error);
-        cleanup();
-        router.visit('/dashboard');
-    }
-};
-
-const cleanup = () => {
-    if (localStream) {
-        localStream.getTracks().forEach((track) => track.stop());
-        localStream = null;
-    }
-
-    if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-    }
-
-    if (websocket) {
-        websocket.stopListening('.participant.joined');
-        websocket.stopListening('.webrtc.signal');
-        websocket.stopListening('.call.ended');
-        websocket = null;
-    }
-
-    iceCandidatesQueue = [];
-
-    callStatus.value = 'ended';
-};
-
-const joinCall = async () => {
-    try {
-        await axios.post(`/api/video-calls/${props.roomId}/join`);
-
-        if (isDoctor.value) {
-            isDoctorConnected.value = true;
-        } else {
-            isPatientConnected.value = true;
-        }
-    } catch (error) {
-        console.error('Error joining call:', error);
-    }
-};
-
-onMounted(async () => {
-    await initializeWebRTC();
-    initializeWebSocket();
-    await joinCall();
-});
-
-onUnmounted(() => {
-    cleanup();
-});
-</script>
