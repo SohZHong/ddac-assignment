@@ -139,8 +139,8 @@ class HealthcareDashboardController extends Controller
         $validated['author_id'] = auth()->id();
 
         if ($request->hasFile('cover_image')) {
-            // Store in public folder for now
-            $validated['cover_image'] = $request->file('cover_image')->store('blogs', 'public');
+            $disk = config('filesystems.default');
+            $validated['cover_image'] = $request->file('cover_image')->store('blogs', $disk);
         }
 
         if ($validated['status'] === Blog::STATUS_PUBLISHED) {
@@ -203,9 +203,9 @@ class HealthcareDashboardController extends Controller
         }
 
         if ($request->hasFile('cover_image')) {
-            // Delete image in public folder (Will be replaced later)
-            Storage::disk('public')->delete($blog->cover_image);
-            $validated['cover_image'] = $request->file('cover_image')->store('blogs', 'public');
+            $disk = config('filesystems.default');
+            Storage::disk($disk)->delete($blog->cover_image);
+            $validated['cover_image'] = $request->file('cover_image')->store('blogs', $disk);
         }
 
         if (isset($validated['status']) && $validated['status'] === Blog::STATUS_PUBLISHED) {
