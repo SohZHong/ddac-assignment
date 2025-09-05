@@ -4,9 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\VideoCall;
 use App\Models\Booking;
-use App\Events\VideoCallCreated;
-use App\Events\ParticipantJoined;
-use App\Events\VideoCallEnded;
+use App\Models\User;
+use App\Notifications\MeetingLinkNotification;
 use App\Events\WebRTCSignal;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -173,7 +172,9 @@ class VideoCallController extends Controller
         ));
 
         return response()->json(['success' => true]);
-    }    /**
+    }    
+    
+    /**
      * Get call information
      */
     public function getCallInfo(string $roomId)
@@ -235,5 +236,57 @@ class VideoCallController extends Controller
                 'started_at' => $videoCall->started_at,
             ]
         ]);
+    }
+
+    public function sendMeetingLink(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'patient_id' => 'required|integer|exists:users,id',
+                'doctor_id' => 'required|integer|exists:users,id', 
+                'room_id' => 'required|string',
+                'patient_name' => 'required|string',
+                'doctor_name' => 'required|string',
+            ]);
+
+            // Ensure the authenticated user is the doctor
+            if (Auth::id() !== $validated['doctor_id']) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+
+            $patient = User::findOrFail($validated['patient_id']);
+
+            $patient->notify(new MeetingLinkNotification([
+                'doctor_name' => $validated['doctor_name'],
+                'room_id' => $validated['room_id'],
+            ]));
+
+            // Log the notification for debugging
+            Log::info('Meeting link notification sent', [
+                'patient_id' => $validated['patient_id'],
+                'doctor_id' => $validated['doctor_id'],
+                'room_id' => $validated['room_id'],
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Meeting link notification sent successfully',
+                'data' => [
+                    'patient_name' => $validated['patient_name'],
+                    'room_id' => $validated['room_id'],
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send meeting link notification', [
+                'error' => $e->getMessage(),
+                'request_data' => $request->all(),
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to send notification',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 }

@@ -208,9 +208,26 @@
 import Toast from '@/components/Toast.vue';
 import { huddleClient } from '@/utils/huddle01Client';
 import { usePage } from '@inertiajs/vue3';
+import axios from 'axios';
 import { computed, onUnmounted, ref } from 'vue';
+interface Props {
+    roomId: string;
+    doctor: {
+        id: number;
+        name: string;
+    };
+    patient: {
+        id: number;
+        name: string;
+    };
+    currentUser: {
+        id: number;
+        name: string;
+        role: 'doctor' | 'patient';
+    };
+}
 
-// Reactive state
+const props = defineProps<Props>();
 const { props: pageProps } = usePage();
 const user = computed(() => pageProps.auth?.user);
 const isDoctor = computed(() => pageProps.auth?.user?.role === '2');
@@ -241,16 +258,14 @@ const toastRef = ref(null);
 const roomId = ref('');
 const accessToken = ref('');
 const roomIdInput = ref('');
-const currentRole = ref<'host' | 'guest'>('guest'); // track role
+const currentRole = ref<'host' | 'guest'>('guest');
 
-// update roomId from input
 const setRoomId = () => {
     if (roomIdInput.value.trim()) {
         roomId.value = roomIdInput.value.trim();
     }
 };
 
-// Helper function to decode JWT token
 const decodeToken = (token: string) => {
     try {
         const payload = token.split('.')[1];
@@ -285,6 +300,23 @@ const createRoom = async () => {
     const decodedToken = decodeToken(accessToken.value);
     if (decodedToken) {
         currentRole.value = decodedToken.role || 'host';
+    }
+
+    try {
+        await axios.post('/api/video-calls/notifications/meeting-link', {
+            room_id: roomId.value,
+            doctor_id: props.doctor.id,
+            patient_id: props.patient.id,
+            doctor_name: props.doctor.name,
+            patient_name: props.patient.name,
+        });
+
+        if (toastRef.value) {
+            (toastRef.value as any).showToast();
+        }
+    } catch (error) {
+        console.error('Error creating room:', error);
+        errorMessage.value = error?.message || 'Failed to create room';
     }
 
     await joinRoom();
@@ -421,7 +453,6 @@ const toggleScreenShare = async () => {
 };
 
 const setupEventListeners = () => {
-    // Connection status events
     try {
         huddleClient.room.on('room-joined' as any, () => {
             connectionStatus.value = 'connected';
@@ -440,7 +471,7 @@ const setupEventListeners = () => {
             errorMessage.value = 'Failed to connect to room';
         });
     } catch {
-        // Connection events not available
+        console.error('Event listener error');
     }
 
     // Peer joined events
@@ -463,7 +494,7 @@ const setupEventListeners = () => {
                 }
             });
         } catch {
-            // Event not available
+            console.error(`Peer joined event ${eventName} not available`);
         }
     });
 
@@ -483,11 +514,10 @@ const setupEventListeners = () => {
                 }
             });
         } catch {
-            // Lobby events not available
+            console.error(`Lobby event ${eventName} not available`);
         }
     });
 
-    // Periodic lobby check for hosts
     const checkLobbyPeers = () => {
         try {
             const lobbyPeerIds = (huddleClient.room as any).lobbyPeerIds || [];
@@ -498,7 +528,7 @@ const setupEventListeners = () => {
                 });
             }
         } catch {
-            // Lobby check failed
+            console.error('Lobby check failed');
         }
     };
 

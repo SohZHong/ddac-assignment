@@ -13,6 +13,8 @@ Route::middleware(['auth:web'])->prefix('video-calls')->group(function () {
     Route::post('/{roomId}/signal', [VideoCallController::class, 'signal']);
     
     Route::get('/{roomId}', [VideoCallController::class, 'getCallInfo']);
+
+    Route::post('/notifications/meeting-link', [VideoCallController::class, 'sendMeetingLink']);
 });
 
 Route::middleware(['auth:web'])->prefix('bookings')->group(function () {
