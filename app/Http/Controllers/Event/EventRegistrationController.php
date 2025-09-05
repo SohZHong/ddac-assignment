@@ -12,6 +12,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Notifications\EventRegistrationConfirmed;
 
 class EventRegistrationController extends Controller
 {
@@ -76,6 +77,13 @@ class EventRegistrationController extends Controller
             ],
             $defaults
         );
+
+        // Notify the user when they register (or already registered)
+        try {
+            $registration->user->notify(new EventRegistrationConfirmed($event));
+        } catch (\Throwable $e) {
+            // swallow errors to not block UX
+        }
 
         if ($request->wantsJson()) {
             return response()->json(['registration' => $registration->only(['id', 'status'])]);

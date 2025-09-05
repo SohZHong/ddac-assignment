@@ -12,6 +12,9 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use App\Models\User;
+use App\Notifications\EventPublishedNotification;
 
 class EventController extends Controller
 {
@@ -148,6 +151,17 @@ class EventController extends Controller
                     'error' => $e->getMessage(),
                     'event_data' => $event->toArray(),
                 ]);
+            }
+        }
+
+        // Send notification if event is published
+        if ($event->status === 'published') {
+            // Notify all users that a new event is published
+            try {
+                $users = User::all(['id']);
+                Notification::send($users, new EventPublishedNotification($event));
+            } catch (\Throwable $e) {
+                Log::warning('Failed to send EventPublished notifications', ['event_id' => $event->id, 'error' => $e->getMessage()]);
             }
         }
 

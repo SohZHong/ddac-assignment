@@ -17,6 +17,16 @@ Route::middleware(['auth', 'role:system_admin'])->group(function () {
     
     Route::get('/admin/users', [UserManagementController::class, 'index'])
         ->name('admin.users');
+    Route::post('/admin/users', [UserManagementController::class, 'store'])
+        ->name('admin.users.store');
+    Route::patch('/admin/users/{user}/role', [UserManagementController::class, 'updateRole'])
+        ->name('admin.users.update-role');
+    Route::patch('/admin/users/{user}/verify', [UserManagementController::class, 'verify'])
+        ->name('admin.users.verify');
+    Route::patch('/admin/users/{user}/unverify', [UserManagementController::class, 'unverify'])
+        ->name('admin.users.unverify');
+    Route::delete('/admin/users/{user}', [UserManagementController::class, 'destroy'])
+        ->name('admin.users.destroy');
     
     // Content management
     Route::get('/admin/content', [ContentController::class, 'index'])
