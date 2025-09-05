@@ -46,11 +46,6 @@ const mainNavItems = computed((): NavItem[] => {
     if (user.value.role === UserRole.PUBLIC_USER) {
         items.push(
             {
-                title: 'Dashboard',
-                href: '/dashboard',
-                icon: LayoutGrid,
-            },
-            {
                 title: 'Health Progress',
                 href: '/health/progress',
                 icon: TrendingUp,
