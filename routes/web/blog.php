@@ -12,7 +12,7 @@ Route::prefix('blogs')->group(function () {
 
         Route::post('/', [BlogController::class, 'store'])
             ->name('blog.store');       // Create blog
-        Route::put('/{blog}', [BlogController::class, 'update'])
+        Route::patch('/{blog}', [BlogController::class, 'update'])
             ->name('blog.update');       // Update blog
         Route::delete('/{blog}', [BlogController::class, 'destroy'])
             ->name('blog.softdelete');   // Soft delete blog

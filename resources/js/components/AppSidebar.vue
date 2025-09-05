@@ -45,6 +45,11 @@ const mainNavItems = computed((): NavItem[] => {
     if (user.value.role === UserRole.PUBLIC_USER) {
         items.push(
             {
+                title: 'Dashboard',
+                href: '/dashboard',
+                icon: LayoutGrid,
+            },
+            {
                 title: 'Blog',
                 href: '/blogs',
                 icon: BookHeartIcon,
@@ -58,6 +63,11 @@ const mainNavItems = computed((): NavItem[] => {
                 title: 'Appointments',
                 href: '/bookings',
                 icon: List,
+            },
+            {
+                title: 'Health Assessment',
+                href: '/assessments',
+                icon: MessageCircleQuestion,
             },
         );
     }
@@ -81,6 +91,11 @@ const mainNavItems = computed((): NavItem[] => {
             },
             {
                 title: 'Blog',
+                href: '/blogs',
+                icon: BookHeartIcon,
+            },
+            {
+                title: 'My Blogs',
                 href: '/healthcare/blogs',
                 icon: BookOpen,
             },

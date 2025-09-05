@@ -5,6 +5,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\ApprovalController;
 use App\Http\Controllers\Admin\SystemActivityController;
+use App\Http\Controllers\DashboardController;
 use App\Models\User;
 
 Route::get('/', function () {
@@ -15,9 +16,9 @@ Route::get('/approval-pending', function () {
     return Inertia::render('auth/PendingApproval');
 })->name('approval.pending');
 
-Route::get('dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 Route::get('/livekit-test', function () {
     return Inertia::render('LivekitTest');
@@ -136,6 +137,15 @@ Route::middleware(['auth', 'role:system_admin'])->group(function () {
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
+
+// Include web route files
+require __DIR__.'/web/assessment.php';
+require __DIR__.'/web/blog.php';
+require __DIR__.'/web/booking.php';
+require __DIR__.'/web/campaign.php';
+require __DIR__.'/web/healthcare.php';
+require __DIR__.'/web/schedule.php';
+require __DIR__.'/web/admin.php';
 require __DIR__.'/web/blog.php';
 require __DIR__.'/web/booking.php';
 require __DIR__.'/web/schedule.php';
@@ -143,3 +153,4 @@ require __DIR__.'/web/healthcare.php';
 require __DIR__.'/web/campaign.php';
 require __DIR__.'/web/event.php';
 require __DIR__.'/web/admin.php';
+require __DIR__.'/web/video-call.php';

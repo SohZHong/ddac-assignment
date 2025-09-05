@@ -23,7 +23,7 @@ Route::prefix('/healthcare')->group(function () {
         Route::post('/blogs/store', [HealthcareDashboardController::class, 'storeBlog'])
             ->name('healthcare.blog.store');
 
-        Route::put('/blogs/{blog}/update', [HealthcareDashboardController::class, 'updateBlog'])
+        Route::post('/blogs/{blog}/update', [HealthcareDashboardController::class, 'updateBlog'])
             ->name('healthcare.blog.update');
 
         // Schedule

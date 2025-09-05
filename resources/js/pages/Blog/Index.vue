@@ -1,19 +1,16 @@
 <script setup lang="ts">
-// import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { User } from '@/types';
 import { Blog } from '@/types/blog';
 import { LaravelPagination } from '@/types/pagination';
 // import { UserRole } from '@/types/role';
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 // import { Plus } from 'lucide-vue-next';
 
 const props = defineProps<{
     blogs: LaravelPagination<Blog>;
 }>();
 
-const page = usePage();
-const user = page.props.auth.user as User;
 console.log(props.blogs);
 </script>
 
@@ -27,6 +24,11 @@ console.log(props.blogs);
                     <h1 class="text-3xl font-bold tracking-tight">Educational Resources</h1>
                     <p class="text-muted-foreground">Enrich yourself with knowledge</p>
                 </div>
+                <Link :href="'/healthcare/blogs'" class="inline-flex items-center cursor-pointer">
+                    <Button class="cursor-pointer">
+                        My Blogs
+                    </Button>
+                </Link>
                 <!-- <Link
                     v-if="user.role === UserRole.HEALTHCARE_PROFESSIONAL || user.role === UserRole.HEALTH_CAMPAIGN_MANAGER"
                     :href="route('blog.create')"
@@ -42,6 +44,7 @@ console.log(props.blogs);
                 <div v-for="blog in blogs.data" :key="blog.id" class="group cursor-pointer">
                     <Link :href="route('blog.show', blog.id)" class="block overflow-hidden rounded-lg">
                         <img
+                            v-if="blog.cover_image"
                             :src="blog.cover_image"
                             :alt="blog.title"
                             class="h-56 w-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -57,8 +60,8 @@ console.log(props.blogs);
                         </Link>
 
                         <p class="mt-1 text-sm text-gray-500">
-                            By {{ blog.author.name }} —
-                            {{ blog.published_at }}
+                            By {{ blog.author.name }}
+                            {{ blog.published_at ? ' - ' + new Date(blog.published_at).toLocaleString() : null }}
                         </p>
                     </div>
                 </div>

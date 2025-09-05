@@ -30,6 +30,7 @@ class ApprovalController extends Controller
             ->paginate(10);
 
         $pendingApprovalsCount = User::where('approval_status', 'pending')->count();
+        $disk = config('filesystems.default');
 
         return Inertia::render('Admin/Approvals/Index', [
             'pendingUsers' => $pendingUsers->through(fn ($user) => [
@@ -47,7 +48,7 @@ class ApprovalController extends Controller
                     'issuer' => $credential->issuing_authority,
                     'issued_at' => $credential->issue_date->format('M j, Y'),
                     'expires_at' => $credential->expiry_date?->format('M j, Y'),
-                    'document_url' => $credential->document_path ? Storage::disk('public')->url($credential->document_path) : null,
+                    'document_url' => $credential->document_path ? Storage::disk($disk)->url($credential->document_path) : null,
                     'is_expired' => $credential->isExpired(),
                     'is_expiring_soon' => $credential->isExpiringSoon(),
                 ]),
@@ -75,6 +76,7 @@ class ApprovalController extends Controller
                 $requestedRoleLabel = $user->requested_role;
             }
         }
+        $disk = config('filesystems.default');
 
         return Inertia::render('Admin/Approvals/Show', [
             'user' => [
@@ -93,7 +95,7 @@ class ApprovalController extends Controller
                     'issuer' => $credential->issuing_authority,
                     'issued_at' => $credential->issue_date->format('M j, Y'),
                     'expires_at' => $credential->expiry_date?->format('M j, Y'),
-                    'document_url' => $credential->document_path ? Storage::disk('public')->url($credential->document_path) : null,
+                    'document_url' => $credential->document_path ? Storage::disk($disk)->url($credential->document_path) : null,
                     'is_expired' => $credential->isExpired(),
                     'is_expiring_soon' => $credential->isExpiringSoon(),
                     'additional_info' => $credential->additional_info,

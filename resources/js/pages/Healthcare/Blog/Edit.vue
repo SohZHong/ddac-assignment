@@ -5,11 +5,10 @@ import { Button } from '@/components/ui/button';
 import Input from '@/components/ui/input/Input.vue';
 import Label from '@/components/ui/label/Label.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { urlToFile } from '@/lib/utils';
 import { BreadcrumbItem } from '@/types';
 import { Blog, BlogStatus } from '@/types/blog';
 import { Head, useForm } from '@inertiajs/vue3';
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 
 const props = defineProps<{
     blog: Blog;
@@ -24,8 +23,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 const toastRef = ref<InstanceType<typeof Toast> | null>(null);
 const toastMessage = ref({ title: '', description: '', variant: 'default' as 'default' | 'success' | 'destructive' });
 
-let coverFile: File | null = null;
-
 const form = useForm<{
     title: string;
     cover_image: File | null;
@@ -33,7 +30,7 @@ const form = useForm<{
     status: BlogStatus;
 }>({
     title: props.blog.title,
-    cover_image: coverFile,
+    cover_image: null,
     content: props.blog.content!,
     status: props.blog.status,
 });
@@ -53,7 +50,12 @@ const handleUpdate = (html: string) => {
 
 const submit = () => {
     processing.value = true;
-    form.put(route('blog.update', props.blog.id), {
+
+    form.post(route('healthcare.blog.update', props.blog.id), {
+        data: {
+            ...form.data(),
+            _method: 'PATCH',
+        },
         onSuccess: () => {
             toastMessage.value = {
                 title: 'Blog Updated',
@@ -75,12 +77,6 @@ const submit = () => {
         },
     });
 };
-
-onMounted(async () => {
-    if (props.blog.cover_image) {
-        coverFile = await urlToFile(props.blog.cover_image, 'cover.jpg', 'image/jpeg');
-    }
-});
 </script>
 
 <template>
@@ -124,6 +120,12 @@ onMounted(async () => {
                 <!-- Cover Image -->
                 <div class="mb-4">
                     <Label class="mb-1 block">Cover Image</Label>
+
+                    <!-- Show current image if exists -->
+                    <div v-if="props.blog.cover_image" class="mb-2">
+                        <img :src="props.blog.cover_image" alt="Current cover" class="h-32 rounded object-cover" />
+                    </div>
+
                     <Input type="file" @change="handleFile" class="w-full" />
                 </div>
 

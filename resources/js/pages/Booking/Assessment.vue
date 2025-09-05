@@ -2,7 +2,7 @@
 import QuizResponseUpdateConfirmDialog from '@/components/QuizResponseUpdateConfirmDialog.vue';
 import Toast from '@/components/Toast.vue';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { BreadcrumbItem } from '@/types';
@@ -66,7 +66,7 @@ function handleSubmitAnswer() {
             onSuccess: () => {
                 router.visit(route('booking.index'));
             },
-            onError: (errors) => {
+            onError: (errors: any) => {
                 console.error(errors);
                 // Add toast
                 toastMessage.value = {
@@ -100,47 +100,62 @@ onMounted(() => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-6 p-6">
             <!-- Header -->
-            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div class="flex flex-col gap-4">
                 <div>
-                    <h1 class="text-3xl font-bold tracking-tight">Assessment Quiz</h1>
-                    <p class="text-muted-foreground">Complete an assessment before your appointment</p>
+                    <h1 class="text-3xl font-bold tracking-tight">{{ localQuiz.title }}</h1>
+                    <p class="text-muted-foreground">{{ localQuiz.description }}</p>
+                    <p class="mt-1 text-sm text-muted-foreground">Created by {{ localBooking.healthcare?.name }}</p>
+                </div>
+
+                <!-- Existing Response Warning -->
+                <div v-if="response" class="rounded-md border border-amber-200 bg-amber-50 p-4">
+                    <p class="text-amber-800">You have already completed this assessment. Submitting again will update your previous responses.</p>
                 </div>
             </div>
 
+            <!-- Questions -->
             <div class="flex flex-col gap-4">
-                <Card v-for="q in localQuiz.questions" :key="q.id" class="w-full">
+                <Card v-for="(question, index) in localQuiz.questions" :key="question.id" class="w-full">
+                    <CardHeader>
+                        <CardTitle class="text-lg"> {{ index + 1 }}. {{ question.question_text }} </CardTitle>
+                    </CardHeader>
                     <CardContent class="flex flex-col gap-4">
-                        <!-- Question -->
-                        <div class="text-lg font-semibold">{{ q.question_text }}</div>
-
-                        <!-- Answer field depending on type -->
-                        <div v-if="q.type === QuestionType.MCQ" class="flex flex-col gap-2">
-                            <label v-for="opt in q.options" :key="opt" class="flex items-center gap-2">
-                                <Input type="radio" :name="`q-${q.id}`" :value="opt" v-model="answers[Number(q.id)]" class="h-3 w-3" />
-                                {{ opt }}
+                        <!-- Multiple Choice Questions -->
+                        <div v-if="question.type === QuestionType.MCQ" class="flex flex-col gap-2">
+                            <label
+                                v-for="opt in question.options"
+                                :key="opt"
+                                class="flex cursor-pointer items-center gap-2 rounded p-2 hover:bg-gray-600"
+                            >
+                                <Input type="radio" :name="`q-${question.id}`" :value="opt" v-model="answers[Number(question.id)]" class="h-4 w-4" />
+                                <span>{{ opt }}</span>
                             </label>
                         </div>
 
-                        <div v-else-if="q.type === QuestionType.TRUE_FALSE" class="flex gap-4">
-                            <label class="flex items-center gap-2">
-                                <Input type="radio" :name="`q-${q.id}`" value="true" v-model="answers[Number(q.id)]" />
-                                True
+                        <!-- True/False Questions -->
+                        <div v-else-if="question.type === QuestionType.TRUE_FALSE" class="flex gap-4">
+                            <label class="flex cursor-pointer items-center gap-2 rounded p-2 hover:bg-gray-600">
+                                <Input type="radio" :name="`q-${question.id}`" value="true" v-model="answers[Number(question.id)]" class="h-4 w-4" />
+                                <span>True</span>
                             </label>
-                            <label class="flex items-center gap-2">
-                                <Input type="radio" :name="`q-${q.id}`" value="false" v-model="answers[Number(q.id)]" />
-                                False
+                            <label class="flex cursor-pointer items-center gap-2 rounded p-2 hover:bg-gray-600">
+                                <Input type="radio" :name="`q-${question.id}`" value="false" v-model="answers[Number(question.id)]" class="h-4 w-4" />
+                                <span>False</span>
                             </label>
                         </div>
 
-                        <div v-else-if="q.type === QuestionType.TEXT">
-                            <Input type="text" v-model="answers[Number(q.id)]" placeholder="Your answer" />
+                        <!-- Text Questions -->
+                        <div v-else-if="question.type === QuestionType.TEXT">
+                            <Input type="text" v-model="answers[Number(question.id)]" placeholder="Enter your answer..." class="w-full" />
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
-            <div class="flex justify-end">
-                <Button @click="submitAnswers">Submit Assessment</Button>
+            <!-- Submit Button -->
+            <div class="flex items-center justify-between">
+                <Button variant="outline" @click="router.visit(route('booking.index'))"> Back to Appointments </Button>
+                <Button @click="submitAnswers" class="px-8"> Submit Assessment </Button>
             </div>
         </div>
     </AppLayout>

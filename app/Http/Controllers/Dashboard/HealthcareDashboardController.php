@@ -95,6 +95,7 @@ class HealthcareDashboardController extends Controller
 
     public function blog(): Response
     {
+        $disk = config('filesystems.default');
         $blogs = Blog::where('author_id', auth()->id())
             ->orderByDesc('published_at')
             ->paginate(15)
@@ -102,7 +103,7 @@ class HealthcareDashboardController extends Controller
                 'id'            => $blog->id,
                 'title'         => $blog->title,
                 'slug'          => $blog->slug,
-                'cover_image'   => $blog->cover_image,
+                'cover_image'   => $blog->cover_image ? Storage::disk($disk)->url($blog->cover_image) : $blog->cover_image,
                 'author'        => [
                     'id'   => optional($blog->author)->id   ?? 1,
                     'name' => optional($blog->author)->name ?? 'Anonymous',
@@ -139,8 +140,8 @@ class HealthcareDashboardController extends Controller
         $validated['author_id'] = auth()->id();
 
         if ($request->hasFile('cover_image')) {
-            // Store in public folder for now
-            $validated['cover_image'] = $request->file('cover_image')->store('blogs', 'public');
+            $disk = config('filesystems.default');
+            $validated['cover_image'] = $request->file('cover_image')->store('blogs', $disk);
         }
 
         if ($validated['status'] === Blog::STATUS_PUBLISHED) {
@@ -160,13 +161,13 @@ class HealthcareDashboardController extends Controller
         $blog = Blog::findOrFail($id);
         // Check authorization
         $this->authorize('update', $blog);
-
+        $disk = config('filesystems.default');
         return Inertia::render('Healthcare/Blog/Edit', [
             'blog' => [
                 'id'           => $blog->id,
                 'title'        => $blog->title,
                 'slug'         => $blog->slug,
-                'cover_image'  => $blog->cover_image,
+                'cover_image'   => $blog->cover_image ? Storage::disk($disk)->url($blog->cover_image) : $blog->cover_image,
                 'content'      => $blog->content,
                 'author'       => [
                     'id'   => $blog->author?->id ?? 0,
@@ -203,9 +204,9 @@ class HealthcareDashboardController extends Controller
         }
 
         if ($request->hasFile('cover_image')) {
-            // Delete image in public folder (Will be replaced later)
-            Storage::disk('public')->delete($blog->cover_image);
-            $validated['cover_image'] = $request->file('cover_image')->store('blogs', 'public');
+            $disk = config('filesystems.default');
+            Storage::disk($disk)->delete($blog->cover_image);
+            $validated['cover_image'] = $request->file('cover_image')->store('blogs', $disk);
         }
 
         if (isset($validated['status']) && $validated['status'] === Blog::STATUS_PUBLISHED) {
@@ -250,6 +251,9 @@ class HealthcareDashboardController extends Controller
     public function appointment(): Response
     {
         $bookings = Booking::with('patient:id,name,email')
+            ->whereHas('schedule', function ($query) {
+                $query->where('healthcare_id', auth()->id());
+            })
             ->orderBy('start_time', 'asc')
             ->paginate(15)
             ->through(fn ($booking) => [

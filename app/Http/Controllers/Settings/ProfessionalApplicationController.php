@@ -78,9 +78,11 @@ class ProfessionalApplicationController extends Controller
             'approved_at' => null,
         ]);
 
+        $disk = config('filesystems.default');
+
         // Store credentials
         foreach ($request->credentials as $credential) {
-            $path = $credential['document']->store('credentials', 'public');
+            $path = $credential['document']->store('credentials', $disk);
 
             $user->professionalCredentials()->create([
                 'credential_type' => $credential['type'],

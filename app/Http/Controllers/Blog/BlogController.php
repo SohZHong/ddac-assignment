@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Blog;
 
 use App\Http\Controllers\Controller;
 use App\Models\Blog;
+use App\Models\AdminLog;
 use App\UserRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,8 @@ class BlogController extends Controller
      */
     public function index(): Response
     {
+        $disk = config('filesystems.default');
+
         $blogs = Blog::with('author:id,name')
             ->where('status', Blog::STATUS_PUBLISHED)
             ->orderByDesc('published_at')
@@ -30,7 +33,7 @@ class BlogController extends Controller
                 'id'            => $blog->id,
                 'title'         => $blog->title,
                 'slug'          => $blog->slug,
-                'cover_image'   => $blog->cover_image,
+                'cover_image'   => $blog->cover_image ? Storage::disk($disk)->url($blog->cover_image) : null,
                 'author'        => [
                     'id'   => optional($blog->author)->id   ?? 1,
                     'name' => optional($blog->author)->name ?? 'Anonymous',
@@ -62,8 +65,8 @@ class BlogController extends Controller
         $validated['author_id'] = auth()->id();
 
         if ($request->hasFile('cover_image')) {
-            // Store in public folder for now
-            $validated['cover_image'] = $request->file('cover_image')->store('blogs', 'public');
+            $disk = config('filesystems.default');
+            $validated['cover_image'] = $request->file('cover_image')->store('blogs', $disk);
         }
 
         if ($validated['status'] === Blog::STATUS_PUBLISHED) {
@@ -85,13 +88,14 @@ class BlogController extends Controller
         $blog = Blog::with('author:id,name')
             ->where('status', Blog::STATUS_PUBLISHED)
             ->findOrFail($id);
+        $disk = config('filesystems.default');
 
         return \Inertia\Inertia::render('Blog/Show', [
             'blog' => [
                 'id'           => $blog->id,
                 'title'        => $blog->title,
                 'slug'         => $blog->slug,
-                'cover_image'  => $blog->cover_image,
+                'cover_image'   => $blog->cover_image ? Storage::disk($disk)->url($blog->cover_image) : null,
                 'content'      => $blog->content,
                 'author'       => [
                     'id'   => $blog->author?->id ?? 0,
@@ -127,10 +131,16 @@ class BlogController extends Controller
             $validated['slug'] = Str::slug($validated['title']);
         }
 
+        $disk = config('filesystems.default');
+
+        
         if ($request->hasFile('cover_image')) {
             // Delete image in public folder (Will be replaced later)
-            Storage::disk('public')->delete($blog->cover_image);
-            $validated['cover_image'] = $request->file('cover_image')->store('blogs', 'public');
+            
+            Storage::disk($disk)->delete($blog->cover_image);
+            $validated['cover_image'] = $request->file('cover_image')->store('blogs', $disk);
+        } else {
+            unset($validated['cover_image']);
         }
 
         if (isset($validated['status']) && $validated['status'] === Blog::STATUS_PUBLISHED) {
@@ -139,9 +149,7 @@ class BlogController extends Controller
 
         $blog->update($validated);
 
-        return Inertia::render('Blog/Show', [
-            'blog' => $blog->load('author:id,name'),
-        ]);
+        return redirect()->route('healthcare.blog.index');
     }
 
     /**
@@ -198,6 +206,22 @@ class BlogController extends Controller
 
         $blog->delete();
 
+        // Log admin soft delete action
+        if (optional(Auth::user())->role === UserRole::SYSTEM_ADMIN) {
+            AdminLog::create([
+                'user_id'     => Auth::id(),
+                'action'      => 'blog.soft_deleted',
+                'target_type' => Blog::class,
+                'target_id'   => $blog->id,
+                'metadata'    => [
+                    'target_name' => $blog->title,
+                    'title'     => $blog->title,
+                    'author_id' => $blog->author_id,
+                ],
+                'ip_address'  => request()->ip(),
+            ]);
+        }
+
         return response()->json([
             'message'  => 'Blog deleted successfully!',
         ], 201);
@@ -214,6 +238,22 @@ class BlogController extends Controller
         $this->authorize('restore', $blog);
 
         $blog->restore();
+
+        // Log admin restore action
+        if (optional(Auth::user())->role === UserRole::SYSTEM_ADMIN) {
+            AdminLog::create([
+                'user_id'     => Auth::id(),
+                'action'      => 'blog.restored',
+                'target_type' => Blog::class,
+                'target_id'   => $blog->id,
+                'metadata'    => [
+                    'target_name' => $blog->title,
+                    'title'     => $blog->title,
+                    'author_id' => $blog->author_id,
+                ],
+                'ip_address'  => request()->ip(),
+            ]);
+        }
         return response()->json(['message' => 'Restored successfully']);
     }
 
@@ -227,7 +267,26 @@ class BlogController extends Controller
         // Check if user is authorized to hard delete
         $this->authorize('forceDelete', $blog);
 
+        $blogTitle = $blog->title;
+        $blogAuthorId = $blog->author_id;
+
         $blog->forceDelete();
+
+        // Log admin hard delete action
+        if (optional(Auth::user())->role === UserRole::SYSTEM_ADMIN) {
+            AdminLog::create([
+                'user_id'     => Auth::id(),
+                'action'      => 'blog.hard_deleted',
+                'target_type' => Blog::class,
+                'target_id'   => $blog->id,
+                'metadata'    => [
+                    'target_name' => $blogTitle,
+                    'title'       => $blogTitle,
+                    'author_id'   => $blogAuthorId,
+                ],
+                'ip_address'  => request()->ip(),
+            ]);
+        }
         return response()->json(['message' => 'Hard Deleted successfully']);
     }
 }
