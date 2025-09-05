@@ -1,209 +1,3 @@
-<template>
-    <div class="min-h-screen bg-gray-100 py-6">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <!-- Header -->
-            <div class="mb-6 rounded-lg bg-white p-6 shadow">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900">Video Call Room</h1>
-                        <p class="text-sm text-gray-600">Room ID: {{ roomId }}</p>
-                        <p v-if="user" class="text-sm text-gray-500">
-                            Logged in as: {{ user.name }}
-                            <span
-                                :class="[
-                                    'ml-2 inline-flex rounded-full px-2 py-1 text-xs font-medium',
-                                    isDoctor ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800',
-                                ]"
-                            >
-                                {{ isDoctor ? 'Doctor' : 'Patient' }}
-                            </span>
-                        </p>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <span
-                            :class="[
-                                'rounded-full px-3 py-1 text-sm font-medium',
-                                connectionStatus === 'connected'
-                                    ? 'bg-green-100 text-green-800'
-                                    : connectionStatus === 'connecting'
-                                      ? 'bg-yellow-100 text-yellow-800'
-                                      : 'bg-red-100 text-red-800',
-                            ]"
-                        >
-                            {{ connectionStatus }}
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Control Panel -->
-            <div class="mb-6 rounded-lg bg-white p-6 shadow">
-                <div class="flex flex-wrap justify-center gap-4">
-                    <!-- Create Room - Only for Doctors -->
-                    <button
-                        v-if="isDoctor"
-                        @click="createRoom"
-                        :disabled="isLoading"
-                        :class="[
-                            'rounded-lg px-6 py-3 font-medium transition-colors',
-                            'bg-blue-600 text-white hover:bg-blue-700',
-                            isLoading ? 'cursor-not-allowed opacity-50' : '',
-                        ]"
-                    >
-                        Create Room
-                    </button>
-                    <div class="mb-4">
-                        <input v-model="roomIdInput" placeholder="Enter Room ID" class="rounded border px-2 py-1 text-black" />
-                        <button @click="setRoomId" class="ml-2 rounded bg-blue-500 px-3 py-1 text-black">Set Room</button>
-                    </div>
-                    <button
-                        @click="isInRoom ? leaveRoom() : joinRoom()"
-                        :disabled="isLoading"
-                        :class="[
-                            'rounded-lg px-6 py-3 font-medium transition-colors',
-                            isInRoom ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-blue-600 text-white hover:bg-blue-700',
-                            isLoading ? 'cursor-not-allowed opacity-50' : '',
-                        ]"
-                    >
-                        {{ isInRoom ? 'Leave Room' : 'Join Room' }}
-                    </button>
-
-                    <button
-                        @click="toggleAudio"
-                        :disabled="!isInRoom"
-                        :class="[
-                            'rounded-lg px-6 py-3 font-medium transition-colors',
-                            isAudioEnabled ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-600 text-white hover:bg-gray-700',
-                            !isInRoom ? 'cursor-not-allowed opacity-50' : '',
-                        ]"
-                    >
-                        {{ isAudioEnabled ? 'Disable Audio' : 'Enable Audio' }}
-                    </button>
-
-                    <!-- Video Control -->
-                    <button
-                        @click="toggleVideo"
-                        :disabled="!isInRoom"
-                        :class="[
-                            'rounded-lg px-6 py-3 font-medium transition-colors',
-                            isVideoEnabled ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-600 text-white hover:bg-gray-700',
-                            !isInRoom ? 'cursor-not-allowed opacity-50' : '',
-                        ]"
-                    >
-                        {{ isVideoEnabled ? 'Disable Video' : 'Enable Video' }}
-                    </button>
-
-                    <!-- Screen Share Control - Only for Doctors -->
-                    <button
-                        v-if="isDoctor"
-                        @click="toggleScreenShare"
-                        :disabled="!isInRoom"
-                        :class="[
-                            'rounded-lg px-6 py-3 font-medium transition-colors',
-                            isScreenSharing ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-gray-600 text-white hover:bg-gray-700',
-                            !isInRoom ? 'cursor-not-allowed opacity-50' : '',
-                        ]"
-                    >
-                        {{ isScreenSharing ? 'Stop Sharing' : 'Share Screen' }}
-                    </button>
-                </div>
-            </div>
-
-            <!-- Video Grid -->
-            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <!-- Local Video -->
-                <div class="rounded-lg bg-white p-4 shadow">
-                    <h3 class="mb-4 text-lg font-medium text-gray-900">Your Video</h3>
-                    <div class="relative aspect-video overflow-hidden rounded-lg bg-gray-900">
-                        <video ref="localVideoRef" :srcObject="localVideoStream" autoplay muted playsinline class="h-full w-full object-cover" />
-                        <div v-if="!localVideoStream" class="absolute inset-0 flex items-center justify-center">
-                            <div class="text-center text-white">
-                                <div class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-gray-600">
-                                    <svg class="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                                <p class="text-sm">Video Disabled</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Screen Share -->
-                <div v-if="localScreenStream" class="rounded-lg bg-white p-4 shadow">
-                    <h3 class="mb-4 text-lg font-medium text-gray-900">Screen Share</h3>
-                    <div class="relative aspect-video overflow-hidden rounded-lg bg-gray-900">
-                        <video ref="localScreenRef" :srcObject="localScreenStream" autoplay muted playsinline class="h-full w-full object-cover" />
-                    </div>
-                </div>
-            </div>
-
-            <!-- Remote Participants -->
-            <div v-if="remotePeers.length > 0" class="mt-6">
-                <div class="rounded-lg bg-white p-6 shadow">
-                    <h3 class="mb-4 text-lg font-medium text-gray-900">Other Participants</h3>
-                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        <div v-for="peer in remotePeers" :key="peer.peerId" class="relative aspect-video overflow-hidden rounded-lg bg-gray-900">
-                            <!-- Video Stream -->
-                            <video
-                                v-if="peer.videoStream"
-                                :ref="`remotePeer-${peer.peerId}-video`"
-                                :srcObject="peer.videoStream"
-                                autoplay
-                                playsinline
-                                class="h-full w-full object-cover"
-                            />
-
-                            <!-- Audio Stream -->
-                            <audio v-if="peer.audioStream" :ref="`remotePeer-${peer.peerId}-audio`" :srcObject="peer.audioStream" autoplay />
-
-                            <!-- Peer Info -->
-                            <div class="bg-opacity-50 absolute bottom-2 left-2 rounded bg-black px-2 py-1 text-sm text-white">
-                                Peer {{ peer.peerId.slice(-6) }}
-                            </div>
-
-                            <!-- No Video Placeholder -->
-                            <div v-if="!peer.videoStream" class="absolute inset-0 flex items-center justify-center">
-                                <div class="text-center text-white">
-                                    <div class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-gray-600">
-                                        <svg class="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                                        </svg>
-                                    </div>
-                                    <p class="text-sm">No Video</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Error Display -->
-            <div v-if="errorMessage" class="mt-6">
-                <div class="rounded-lg border border-red-200 bg-red-50 p-4">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path
-                                    fill-rule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                    clip-rule="evenodd"
-                                />
-                            </svg>
-                        </div>
-                        <div class="ml-3">
-                            <h3 class="text-sm font-medium text-red-800">Error</h3>
-                            <p class="mt-1 text-sm text-red-700">{{ errorMessage }}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <Toast ref="toastRef" title="Room Created Successfully!" :description="`Room ID: ${roomId}`" variant="success" />
-    </div>
-</template>
-
 <script setup lang="ts">
 import Toast from '@/components/Toast.vue';
 import { huddleClient } from '@/utils/huddle01Client';
@@ -211,7 +5,6 @@ import { usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { computed, onUnmounted, ref } from 'vue';
 interface Props {
-    roomId: string;
     doctor: {
         id: number;
         name: string;
@@ -284,7 +77,6 @@ const createRoom = async () => {
     const data = await res.json();
     roomId.value = data.roomId;
 
-    // Show toast notification with room ID
     if (toastRef.value) {
         (toastRef.value as any).showToast();
     }
@@ -322,7 +114,6 @@ const createRoom = async () => {
     await joinRoom();
 };
 
-// Join as guest
 const joinRoom = async () => {
     if (!roomId.value) return;
 
@@ -337,7 +128,6 @@ const joinRoom = async () => {
         currentRole.value = 'guest';
     }
 
-    // Decode token to check role and permissions
     const decodedToken = decodeToken(accessToken.value);
     if (decodedToken) {
         currentRole.value = decodedToken.role || 'guest';
@@ -349,30 +139,25 @@ const joinRoom = async () => {
     });
     isInRoom.value = true;
 
-    // Immediate peer discovery
     updateRemotePeersFromRoom();
 
     setupEventListeners();
 
-    // Start peer discovery after a short delay
     setTimeout(() => {
         updateRemotePeersFromRoom();
     }, 2000);
 
-    // Periodically sync peers from room.remotePeers
     const peerSyncInterval = setInterval(() => {
         if (isInRoom.value) {
             updateRemotePeersFromRoom();
         }
-    }, 5000); // Check every 5 seconds
+    }, 5000);
 
-    // Store interval ID for cleanup
     (window as any).peerSyncInterval = peerSyncInterval;
 };
 const leaveRoom = async () => {
     if (!isInRoom.value) return;
     try {
-        // Clean up peer sync interval
         if ((window as any).peerSyncInterval) {
             clearInterval((window as any).peerSyncInterval);
             (window as any).peerSyncInterval = null;
@@ -474,7 +259,6 @@ const setupEventListeners = () => {
         console.error('Event listener error');
     }
 
-    // Peer joined events
     const peerJoinedEvents = ['new-peer-joined', 'peer-joined', 'peerJoined'];
     peerJoinedEvents.forEach((eventName) => {
         try {
@@ -489,7 +273,6 @@ const setupEventListeners = () => {
                         });
                     }
                 } else {
-                    // Update remote peers from room
                     updateRemotePeersFromRoom();
                 }
             });
@@ -498,7 +281,6 @@ const setupEventListeners = () => {
         }
     });
 
-    // Lobby events for auto-admission
     const lobbyEvents = ['lobby-peers-updated', 'lobby-peer-joined', 'lobby-peer-left'];
     lobbyEvents.forEach((eventName) => {
         try {
@@ -532,10 +314,8 @@ const setupEventListeners = () => {
         }
     };
 
-    // Check lobby peers periodically
     setInterval(checkLobbyPeers, 2000);
 
-    // Peer left events
     const peerLeftEvents = ['peer-left', 'peerLeft', 'user-left', 'userLeft', 'participant-left'];
     peerLeftEvents.forEach((eventName) => {
         try {
@@ -545,11 +325,10 @@ const setupEventListeners = () => {
                 }
             });
         } catch {
-            // Event not available
+            console.error('Event unavailable');
         }
     });
 
-    // Stream events
     const streamAddedEvents = ['stream-added', 'streamAdded', 'track-added', 'trackAdded'];
     streamAddedEvents.forEach((eventName) => {
         try {
@@ -582,7 +361,7 @@ const setupEventListeners = () => {
                 }
             });
         } catch {
-            // Event not available
+            console.error('Event unavailable');
         }
     });
 
@@ -609,16 +388,14 @@ const setupEventListeners = () => {
                 }
             });
         } catch {
-            // Event not available
+            console.error('Stream event closed not available');
         }
     });
 };
 
-// Update remote peers from room.remotePeers (v2 API)
 const updateRemotePeersFromRoom = () => {
     try {
         if (huddleClient.room.remotePeers) {
-            // In v2, remotePeers is a Map<string, RemotePeer>
             if (huddleClient.room.remotePeers instanceof Map) {
                 huddleClient.room.remotePeers.forEach((remotePeer, peerId) => {
                     const existingPeer = remotePeers.value.find((p) => p.peerId === peerId);
@@ -631,7 +408,6 @@ const updateRemotePeersFromRoom = () => {
                     }
                 });
             } else {
-                // Try to iterate as object
                 Object.entries(huddleClient.room.remotePeers as any).forEach(([peerId]) => {
                     const existingPeer = remotePeers.value.find((p) => p.peerId === peerId);
                     if (!existingPeer) {
@@ -645,19 +421,17 @@ const updateRemotePeersFromRoom = () => {
             }
         }
     } catch {
-        // Failed to update remote peers
+        console.error('Failed to update remote peers');
     }
 };
 
-// Function to admit lobby peers (for hosts)
 const admitLobbyPeer = async (peerId: string) => {
     try {
-        // Use the admitPeer method to move peer from lobby to main room
         if (typeof (huddleClient.room as any).admitPeer === 'function') {
             await (huddleClient.room as any).admitPeer(peerId);
         }
     } catch {
-        // Failed to admit peer
+        console.error('Failed to admit peer');
     }
 };
 
@@ -667,3 +441,205 @@ onUnmounted(async () => {
     }
 });
 </script>
+
+<template>
+    <div class="min-h-screen bg-gray-900 py-6">
+        <div class="mx-auto flex max-w-7xl flex-col px-4 sm:px-6 lg:px-8">
+            <div class="mb-6 rounded-lg border border-gray-700 bg-gray-800 p-6 shadow-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">Video Call Room</h1>
+                        <p class="text-sm text-gray-300">Room ID: {{ roomId }}</p>
+                        <p v-if="user" class="text-sm text-gray-400">
+                            Logged in as: {{ user.name }}
+                            <span
+                                :class="[
+                                    'ml-2 inline-flex rounded-full px-2 py-1 text-xs font-medium',
+                                    isDoctor ? 'bg-blue-600 text-blue-100' : 'bg-green-600 text-green-100',
+                                ]"
+                            >
+                                {{ isDoctor ? 'Doctor' : 'Patient' }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span
+                            :class="[
+                                'rounded-full px-3 py-1 text-sm font-medium',
+                                connectionStatus === 'connected'
+                                    ? 'bg-green-600 text-green-100'
+                                    : connectionStatus === 'connecting'
+                                      ? 'bg-yellow-600 text-yellow-100'
+                                      : 'bg-red-600 text-red-100',
+                            ]"
+                        >
+                            {{ connectionStatus }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-4 self-end">
+                <input
+                    v-model="roomIdInput"
+                    placeholder="Enter Room ID"
+                    class="rounded border border-gray-600 bg-gray-700 px-2 py-1 text-white placeholder-gray-400"
+                />
+                <button @click="setRoomId" class="ml-2 max-h-full rounded bg-blue-600 px-3 py-1 text-white hover:bg-blue-700">Set Room</button>
+            </div>
+            <div class="mb-6 rounded-lg border border-gray-700 bg-gray-800 p-6 shadow-lg">
+                <div class="flex flex-wrap justify-center gap-4">
+                    <button
+                        v-if="isDoctor"
+                        @click="createRoom"
+                        :disabled="isLoading"
+                        :class="[
+                            'rounded-lg px-6 py-3 font-medium transition-colors',
+                            'bg-blue-600 text-white hover:bg-blue-700',
+                            isLoading ? 'cursor-not-allowed opacity-50' : '',
+                        ]"
+                    >
+                        Create Room
+                    </button>
+
+                    <button
+                        @click="isInRoom ? leaveRoom() : joinRoom()"
+                        :disabled="isLoading"
+                        :class="[
+                            'rounded-lg px-6 py-3 font-medium transition-colors',
+                            isInRoom ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-blue-600 text-white hover:bg-blue-700',
+                            isLoading ? 'cursor-not-allowed opacity-50' : '',
+                        ]"
+                    >
+                        {{ isInRoom ? 'Leave Room' : 'Join Room' }}
+                    </button>
+
+                    <button
+                        @click="toggleAudio"
+                        :disabled="!isInRoom"
+                        :class="[
+                            'rounded-lg px-6 py-3 font-medium transition-colors',
+                            isAudioEnabled ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-600 text-white hover:bg-gray-500',
+                            !isInRoom ? 'cursor-not-allowed opacity-50' : '',
+                        ]"
+                    >
+                        {{ isAudioEnabled ? 'Disable Audio' : 'Enable Audio' }}
+                    </button>
+
+                    <button
+                        @click="toggleVideo"
+                        :disabled="!isInRoom"
+                        :class="[
+                            'rounded-lg px-6 py-3 font-medium transition-colors',
+                            isVideoEnabled ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-600 text-white hover:bg-gray-500',
+                            !isInRoom ? 'cursor-not-allowed opacity-50' : '',
+                        ]"
+                    >
+                        {{ isVideoEnabled ? 'Disable Video' : 'Enable Video' }}
+                    </button>
+
+                    <button
+                        v-if="isDoctor"
+                        @click="toggleScreenShare"
+                        :disabled="!isInRoom"
+                        :class="[
+                            'rounded-lg px-6 py-3 font-medium transition-colors',
+                            isScreenSharing ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-gray-600 text-white hover:bg-gray-500',
+                            !isInRoom ? 'cursor-not-allowed opacity-50' : '',
+                        ]"
+                    >
+                        {{ isScreenSharing ? 'Stop Sharing' : 'Share Screen' }}
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <div class="rounded-lg border border-gray-700 bg-gray-800 p-4 shadow-lg">
+                    <h3 class="mb-4 text-lg font-medium text-white">Your Video</h3>
+                    <div class="relative aspect-video overflow-hidden rounded-lg border border-gray-700 bg-gray-900">
+                        <video ref="localVideoRef" :srcObject="localVideoStream" autoplay muted playsinline class="h-full w-full object-cover" />
+                        <div v-if="!localVideoStream" class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center text-gray-300">
+                                <div class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-gray-700">
+                                    <svg class="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <p class="text-sm">Video Disabled</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="localScreenStream" class="rounded-lg border border-gray-700 bg-gray-800 p-4 shadow-lg">
+                    <h3 class="mb-4 text-lg font-medium text-white">Screen Share</h3>
+                    <div class="relative aspect-video overflow-hidden rounded-lg border border-gray-700 bg-gray-900">
+                        <video ref="localScreenRef" :srcObject="localScreenStream" autoplay muted playsinline class="h-full w-full object-cover" />
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="remotePeers.length > 0" class="mt-6">
+                <div class="rounded-lg border border-gray-700 bg-gray-800 p-6 shadow-lg">
+                    <h3 class="mb-4 text-lg font-medium text-white">Other Participants</h3>
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        <div
+                            v-for="peer in remotePeers"
+                            :key="peer.peerId"
+                            class="relative aspect-video overflow-hidden rounded-lg border border-gray-700 bg-gray-900"
+                        >
+                            <video
+                                v-if="peer.videoStream"
+                                :ref="`remotePeer-${peer.peerId}-video`"
+                                :srcObject="peer.videoStream"
+                                autoplay
+                                playsinline
+                                class="h-full w-full object-cover"
+                            />
+
+                            <audio v-if="peer.audioStream" :ref="`remotePeer-${peer.peerId}-audio`" :srcObject="peer.audioStream" autoplay />
+
+                            <div
+                                class="bg-opacity-75 absolute bottom-2 left-2 rounded border border-gray-600 bg-gray-800 px-2 py-1 text-sm text-white"
+                            >
+                                Peer {{ peer.peerId.slice(-6) }}
+                            </div>
+
+                            <div v-if="!peer.videoStream" class="absolute inset-0 flex items-center justify-center">
+                                <div class="text-center text-gray-300">
+                                    <div class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-gray-700">
+                                        <svg class="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <p class="text-sm">No Video</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="errorMessage" class="mt-6">
+                <div class="rounded-lg border border-red-600 bg-red-900 p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-300">Error</h3>
+                            <p class="mt-1 text-sm text-red-200">{{ errorMessage }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <Toast ref="toastRef" title="Room Created Successfully!" :description="`Room ID: ${roomId}`" variant="success" />
+    </div>
+</template>
