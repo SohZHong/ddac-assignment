@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type User } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Check, MoreHorizontal, Trash2, UserCog, X } from 'lucide-vue-next';
+import { Check, MoreHorizontal, Plus, Trash2, UserCog, X } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 interface UserData {
@@ -76,11 +76,31 @@ const selectedUser = ref<UserData | null>(null);
 const isRoleDialogOpen = ref(false);
 const isVerificationDialogOpen = ref(false);
 
+// Add user functionality
+const isAddUserDialogOpen = ref(false);
+
 const roleUpdateForm = useForm({
     role: '',
 });
 
 const verificationForm = useForm({});
+
+const addUserForm = useForm({
+    name: '',
+    email: '',
+    role: '1', // Default to Public User
+    work_email: '',
+    // Healthcare Professional fields
+    license_number: '',
+    medical_specialty: '',
+    institution_name: '',
+    registration_body: '',
+    // Health Campaign Manager fields
+    organization_name: '',
+    job_title: '',
+    organization_type: '',
+    focus_areas: '',
+});
 
 const openRoleDialog = (user: UserData) => {
     selectedUser.value = user;
@@ -137,6 +157,30 @@ const unverifyUser = (user: UserData) => {
     }
 };
 
+// Add user functions
+const openAddUserDialog = () => {
+    addUserForm.reset();
+    addUserForm.role = '1'; // Reset to Public User
+    isAddUserDialogOpen.value = true;
+};
+
+const addUser = () => {
+    addUserForm.post(route('admin.users.store'), {
+        onSuccess: () => {
+            isAddUserDialogOpen.value = false;
+            addUserForm.reset();
+        },
+    });
+};
+
+const isHealthcareProfessional = () => {
+    return addUserForm.role === '2';
+};
+
+const isHealthCampaignManager = () => {
+    return addUserForm.role === '3';
+};
+
 // Helper functions
 const getUserInitials = (name: string) => {
     return name
@@ -187,15 +231,21 @@ const canManageUser = (user: UserData) => {
                     <h1 class="text-3xl font-bold tracking-tight">User Management</h1>
                     <p class="text-muted-foreground">Manage user accounts and roles</p>
                 </div>
-                <form class="flex items-center gap-2" @submit.prevent="() => router.get(route('admin.users'), { q: searchQuery }, { preserveState: true, preserveScroll: true })">
+                <div class="flex items-center gap-2">
+                    <Button @click="openAddUserDialog" class="cursor-pointer">
+                        <Plus class="mr-2 h-4 w-4" />
+                        Add User
+                    </Button>
+                    <form class="flex items-center gap-2" @submit.prevent="() => router.get(route('admin.users'), { q: searchQuery }, { preserveState: true, preserveScroll: true })">
                     <input
                         v-model="searchQuery"
                         type="text"
                         placeholder="Search name or email..."
                         class="h-9 w-64 rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     />
-                    <Button type="submit" size="sm">Search</Button>
-                </form>
+                        <Button type="submit" size="sm">Search</Button>
+                    </form>
+                </div>
             </div>
 
             <Card>
@@ -385,6 +435,177 @@ const canManageUser = (user: UserData) => {
                     <Button variant="outline" @click="isVerificationDialogOpen = false">Cancel</Button>
                     <Button @click="verifyUser" :disabled="verificationForm.processing" class="bg-green-600 hover:bg-green-700">
                         {{ verificationForm.processing ? 'Verifying...' : 'Verify Professional' }}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Add User Dialog -->
+        <Dialog v-model:open="isAddUserDialogOpen">
+            <DialogContent class="max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Add New User</DialogTitle>
+                    <DialogDescription>Create a new user account with appropriate role and permissions.</DialogDescription>
+                </DialogHeader>
+
+                <form @submit.prevent="addUser" class="grid gap-4 py-4">
+                    <!-- Basic Information -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid gap-2">
+                            <Label for="add-name">Full Name *</Label>
+                            <input
+                                id="add-name"
+                                v-model="addUserForm.name"
+                                type="text"
+                                required
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="Enter full name"
+                            />
+                            <div v-if="addUserForm.errors.name" class="text-sm text-red-600">{{ addUserForm.errors.name }}</div>
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label for="add-email">Email Address *</Label>
+                            <input
+                                id="add-email"
+                                v-model="addUserForm.email"
+                                type="email"
+                                required
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="Enter email address"
+                            />
+                            <div v-if="addUserForm.errors.email" class="text-sm text-red-600">{{ addUserForm.errors.email }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Role Selection -->
+                    <div class="grid gap-2">
+                        <Label for="add-role">Role *</Label>
+                        <select
+                            id="add-role"
+                            v-model="addUserForm.role"
+                            required
+                            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <option v-for="role in props.available_roles" :key="role.value" :value="role.value">
+                                {{ role.label }}
+                            </option>
+                        </select>
+                        <div v-if="addUserForm.errors.role" class="text-sm text-red-600">{{ addUserForm.errors.role }}</div>
+                    </div>
+
+                    <!-- Work Email -->
+                    <div class="grid gap-2">
+                        <Label for="add-work-email">Work Email (Optional)</Label>
+                        <input
+                            id="add-work-email"
+                            v-model="addUserForm.work_email"
+                            type="email"
+                            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                            placeholder="Enter work email (optional)"
+                        />
+                        <div v-if="addUserForm.errors.work_email" class="text-sm text-red-600">{{ addUserForm.errors.work_email }}</div>
+                    </div>
+
+                    <!-- Healthcare Professional Fields -->
+                    <div v-if="isHealthcareProfessional()" class="space-y-4 border-t pt-4">
+                        <h4 class="font-medium text-sm">Healthcare Professional Details</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="grid gap-2">
+                                <Label for="add-license">License Number</Label>
+                                <input
+                                    id="add-license"
+                                    v-model="addUserForm.license_number"
+                                    type="text"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter license number"
+                                />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="add-specialty">Medical Specialty</Label>
+                                <input
+                                    id="add-specialty"
+                                    v-model="addUserForm.medical_specialty"
+                                    type="text"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter medical specialty"
+                                />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="add-institution">Institution Name</Label>
+                                <input
+                                    id="add-institution"
+                                    v-model="addUserForm.institution_name"
+                                    type="text"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter institution name"
+                                />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="add-registration">Registration Body</Label>
+                                <input
+                                    id="add-registration"
+                                    v-model="addUserForm.registration_body"
+                                    type="text"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter registration body"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Health Campaign Manager Fields -->
+                    <div v-if="isHealthCampaignManager()" class="space-y-4 border-t pt-4">
+                        <h4 class="font-medium text-sm">Health Campaign Manager Details</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="grid gap-2">
+                                <Label for="add-organization">Organization Name</Label>
+                                <input
+                                    id="add-organization"
+                                    v-model="addUserForm.organization_name"
+                                    type="text"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter organization name"
+                                />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="add-job-title">Job Title</Label>
+                                <input
+                                    id="add-job-title"
+                                    v-model="addUserForm.job_title"
+                                    type="text"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter job title"
+                                />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="add-org-type">Organization Type</Label>
+                                <input
+                                    id="add-org-type"
+                                    v-model="addUserForm.organization_type"
+                                    type="text"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter organization type"
+                                />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="add-focus">Primary Focus Area</Label>
+                                <input
+                                    id="add-focus"
+                                    v-model="addUserForm.focus_areas"
+                                    type="text"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter focus areas"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <DialogFooter>
+                    <Button variant="outline" @click="isAddUserDialogOpen = false">Cancel</Button>
+                    <Button @click="addUser" :disabled="addUserForm.processing" class="cursor-pointer">
+                        {{ addUserForm.processing ? 'Creating User...' : 'Create User' }}
                     </Button>
                 </DialogFooter>
             </DialogContent>
