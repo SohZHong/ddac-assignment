@@ -7,6 +7,7 @@ use App\Models\QuizResponse;
 use App\Models\Booking;
 use Illuminate\Http\Request;
 use App\Models\Schedule;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class AssessmentController extends Controller
@@ -144,15 +145,29 @@ class AssessmentController extends Controller
         $answers = $response->answers ?? [];
         
         $questionsWithAnswers = $quiz->questions->map(function ($question) use ($answers) {
-            $userAnswer = $answers[$question->id] ?? null;
+            $userAnswer = null;
+            
+            if (is_array($answers)) {
+                $userAnswer = $answers[$question->id] ?? null;
+                
+                if (!$userAnswer) {
+                    foreach ($answers as $answer) {
+                        if (is_array($answer) && isset($answer['question_id']) && $answer['question_id'] == $question->id) {
+                            $userAnswer = $answer['answer'] ?? null;
+                            break;
+                        }
+                    }
+                }
+            }
+            
             $selectedOptionText = null;
             $optionsWithSelection = [];
             
-            if ($question->type == 0) {
+            if ($question->type == 0) { 
                 $options = $question->options ?? [];
                 
                 foreach ($options as $index => $optionText) {
-                    $isSelected = $userAnswer == $index;
+                    $isSelected = $userAnswer == $optionText;
                     if ($isSelected) {
                         $selectedOptionText = $optionText;
                     }
@@ -166,7 +181,13 @@ class AssessmentController extends Controller
             } elseif ($question->type == 1) {
                 $options = $question->options ?? ['Yes', 'No'];
                 foreach ($options as $index => $optionText) {
-                    $isSelected = $userAnswer == $index;
+                    $isSelected = $userAnswer == $optionText || 
+                                 ($userAnswer == 'true' && ($optionText == 'True' || $optionText == 'Yes')) ||
+                                 ($userAnswer == 'false' && ($optionText == 'False' || $optionText == 'No')) ||
+                                 ($userAnswer == 'True' && $optionText == 'True') ||
+                                 ($userAnswer == 'False' && $optionText == 'False') ||
+                                 ($userAnswer == 'Yes' && $optionText == 'Yes') ||
+                                 ($userAnswer == 'No' && $optionText == 'No');
                     if ($isSelected) {
                         $selectedOptionText = $optionText;
                     }
@@ -178,7 +199,6 @@ class AssessmentController extends Controller
                     ];
                 }
             } else {
-                // Text Question (type 2) - handle differently if needed
                 $selectedOptionText = $userAnswer;
             }
             
