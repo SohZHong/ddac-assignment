@@ -12,6 +12,8 @@ use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Models\AdminLog;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class UserManagementController extends Controller
 {
@@ -69,6 +71,82 @@ class UserManagementController extends Controller
             'pendingApprovalsCount' => $pendingApprovalsCount,
             'q' => $query,
         ]);
+    }
+
+    /**
+     * Store a newly created user.
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        /** @var User $currentUser */
+        $currentUser = Auth::user();
+
+        // Only system admins can create users
+        if (!$currentUser->isSystemAdmin()) {
+            abort(403, 'You do not have permission to create users.');
+        }
+
+        // Validate the request
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'role' => ['required', 'string', Rule::in(array_map(fn($role) => $role->value, UserRole::all()))],
+            'work_email' => 'nullable|email|max:255',
+            // Healthcare Professional fields
+            'license_number' => 'nullable|string|max:255',
+            'medical_specialty' => 'nullable|string|max:255',
+            'institution_name' => 'nullable|string|max:255',
+            'registration_body' => 'nullable|string|max:255',
+            // Health Campaign Manager fields
+            'organization_name' => 'nullable|string|max:255',
+            'job_title' => 'nullable|string|max:255',
+            'organization_type' => 'nullable|string|max:255',
+            'focus_areas' => 'nullable|string|max:255',
+        ]);
+
+        $role = UserRole::from($request->role);
+
+        // Create the user
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make(Str::random(12)), // Generate random password
+            'role' => $role,
+            'work_email' => $request->work_email,
+            'email_verified_at' => now(), // Auto-verify admin-created users
+            'approval_status' => 'approved', // Auto-approve admin-created users
+            'approved_at' => now(),
+            // Healthcare Professional fields
+            'license_number' => $request->license_number,
+            'medical_specialty' => $request->medical_specialty,
+            'institution_name' => $request->institution_name,
+            'registration_body' => $request->registration_body,
+            // Health Campaign Manager fields
+            'organization_name' => $request->organization_name,
+            'job_title' => $request->job_title,
+            'organization_type' => $request->organization_type,
+            'focus_areas' => $request->focus_areas,
+        ]);
+
+        // Log user creation
+        AdminLog::create([
+            'user_id' => $currentUser->id,
+            'action' => 'user.created',
+            'target_type' => User::class,
+            'target_id' => $user->id,
+            'metadata' => [
+                'actor_id' => $currentUser->id,
+                'actor_name' => $currentUser->name,
+                'target_id' => $user->id,
+                'target_name' => $user->name,
+                'target_email' => $user->email,
+                'role' => $role->value,
+                'role_label' => $role->label(),
+            ],
+            'ip_address' => $request->ip(),
+        ]);
+
+        return back()->with('success', "User {$user->name} created successfully with role {$role->label()}.");
     }
 
     /**
