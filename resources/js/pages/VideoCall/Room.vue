@@ -181,13 +181,23 @@ const leaveRoom = async () => {
 const toggleAudio = async () => {
     try {
         if (!isInRoom.value) return;
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('Microphone access is not available in this environment');
+        }
 
-        if (isAudioEnabled.value) {
-            await huddleClient.localPeer.disableAudio();
-            isAudioEnabled.value = false;
-        } else {
+        if (!isAudioEnabled.value) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach((track) => track.stop());
+            } catch (err) {
+                errorMessage.value = 'Microphone permission denied. Please allow microphone access and try again.';
+                return;
+            }
             await huddleClient.localPeer.enableAudio();
             isAudioEnabled.value = true;
+        } else {
+            await huddleClient.localPeer.disableAudio();
+            isAudioEnabled.value = false;
         }
     } catch (err: any) {
         console.error('toggleAudio error:', err);
@@ -198,17 +208,28 @@ const toggleAudio = async () => {
 const toggleVideo = async () => {
     try {
         if (!isInRoom.value) return;
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('Camera access is not available in this environment');
+        }
 
-        if (isVideoEnabled.value) {
-            await huddleClient.localPeer.disableVideo();
-            localVideoStream.value = null;
-            isVideoEnabled.value = false;
-        } else {
+        if (!isVideoEnabled.value) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                stream.getTracks().forEach((track) => track.stop());
+            } catch (err) {
+                errorMessage.value = 'Camera permission denied. Please allow camera access and try again.';
+                return;
+            }
+
             const stream = await huddleClient.localPeer.enableVideo();
             if (stream) {
                 localVideoStream.value = stream;
                 isVideoEnabled.value = true;
             }
+            isVideoEnabled.value = true;
+        } else {
+            await huddleClient.localPeer.disableVideo();
+            isVideoEnabled.value = false;
         }
     } catch (err: any) {
         console.error('toggleVideo error:', err);
