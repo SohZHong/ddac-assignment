@@ -268,7 +268,7 @@ async function startVideoCallForBooking(booking: Booking) {
                         <div
                             v-for="booking in filteredPast"
                             :key="booking.id"
-                            class="grid grid-cols-3 items-center border-t bg-white text-sm hover:bg-stone-50 dark:bg-black dark:hover:bg-accent"
+                            class="grid grid-cols-4 items-center border-t bg-white text-sm hover:bg-stone-50 dark:bg-black dark:hover:bg-accent"
                         >
                             <!-- Doctor -->
                             <div class="px-4 py-3 font-medium">{{ booking.healthcare?.name }}</div>

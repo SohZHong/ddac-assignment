@@ -97,6 +97,8 @@ class BookingController extends Controller
             'start_time'  => $booking->start_time,
             'end_time'    => $booking->end_time,
             'status'      => $booking->status,
+            'healthcare_comments' => $booking->healthcare_comments,
+            'risk_level'  => $booking->risk_level,
             'healthcare'  => [
                 'id'   => $booking->schedule->healthcare->id,
                 'name' => $booking->schedule->healthcare->name,

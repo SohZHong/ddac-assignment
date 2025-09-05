@@ -37,7 +37,7 @@ const metricUnits: Record<string, string> = {
     cholesterol: 'mg/dL',
     temperature: '°C',
     bmi: '',
-    oxygen_saturation: '%'
+    oxygen_saturation: '%',
 };
 
 const updateUnit = () => {
@@ -123,10 +123,10 @@ const getPriorityColor = (priority: string) => {
 
                 <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     <div class="lg:col-span-2">
-                        <div class="mb-6 rounded-lg border border-gray-700 bg-gray-800 p-6 shadow-lg">
+                        <div class="mb-6 rounded-lg border border-gray-700 bg-gray-900 p-6 shadow-lg">
                             <h2 class="mb-4 text-xl font-semibold text-white">Health Summary</h2>
                             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                <div v-for="(metric, type) in summary" :key="type" class="rounded-lg bg-gray-700 p-4">
+                                <div v-for="(metric, type) in summary" :key="type" class="rounded-lg bg-gray-800 p-4">
                                     <div class="flex items-center justify-between">
                                         <div>
                                             <p class="text-sm font-medium text-gray-300">{{ formatMetricType(type) }}</p>
@@ -144,16 +144,16 @@ const getPriorityColor = (priority: string) => {
                             </div>
                         </div>
 
-                        <div class="rounded-lg border border-gray-700 bg-gray-800 p-6 shadow-lg">
+                        <div class="rounded-lg border border-gray-700 bg-gray-900 p-6 shadow-lg">
                             <h2 class="mb-4 text-xl font-semibold text-white">Add New Metric</h2>
                             <form @submit.prevent="submitMetric" class="space-y-4">
                                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-300 mb-2">Metric Type</label>
+                                        <label class="mb-2 block text-sm font-medium text-gray-300">Metric Type</label>
                                         <select
                                             v-model="newMetric.metric_type"
                                             @change="updateUnit"
-                                            class="mt-1 block w-full rounded-lg border-0 bg-gray-700 text-white shadow-sm ring-1 ring-inset ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-blue-500 py-2.5 px-3"
+                                            class="mt-1 block w-full rounded-lg border-0 bg-gray-600 px-3 py-2.5 text-white shadow-sm ring-1 ring-gray-600 ring-inset focus:ring-2 focus:ring-blue-500 focus:ring-inset"
                                         >
                                             <option value="weight">Weight</option>
                                             <option value="blood_pressure_systolic">Blood Pressure (Systolic)</option>
@@ -167,45 +167,45 @@ const getPriorityColor = (priority: string) => {
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-300 mb-2">Value</label>
+                                        <label class="mb-2 block text-sm font-medium text-gray-300">Value</label>
                                         <input
                                             v-model="newMetric.value"
                                             type="number"
                                             step="0.1"
                                             placeholder="Enter value"
-                                            class="mt-1 block w-full rounded-lg border-0 bg-gray-700 text-white shadow-sm ring-1 ring-inset ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-blue-500 py-2.5 px-3"
+                                            class="mt-1 block w-full rounded-lg border-0 bg-gray-600 px-3 py-2.5 text-white shadow-sm ring-1 ring-gray-600 ring-inset focus:ring-2 focus:ring-blue-500 focus:ring-inset"
                                         />
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-300 mb-2">Unit</label>
+                                        <label class="mb-2 block text-sm font-medium text-gray-300">Unit</label>
                                         <input
                                             v-model="newMetric.unit"
                                             type="text"
                                             readonly
-                                            class="mt-1 block w-full rounded-lg border-0 bg-gray-600 text-gray-300 shadow-sm ring-1 ring-inset ring-gray-500 py-2.5 px-3 cursor-not-allowed"
+                                            class="mt-1 block w-full cursor-not-allowed rounded-lg border-0 bg-gray-600 px-3 py-2.5 text-gray-300 shadow-sm ring-1 ring-gray-500 ring-inset"
                                         />
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-300 mb-2">Date</label>
+                                        <label class="mb-2 block text-sm font-medium text-gray-300">Date</label>
                                         <input
                                             v-model="newMetric.recorded_at"
                                             type="datetime-local"
-                                            class="mt-1 block w-full rounded-lg border-0 bg-gray-700 text-white shadow-sm ring-1 ring-inset ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-blue-500 py-2.5 px-3"
+                                            class="mt-1 block w-full rounded-lg border-0 bg-gray-600 px-3 py-2.5 text-white shadow-sm ring-1 ring-gray-600 ring-inset focus:ring-2 focus:ring-blue-500 focus:ring-inset"
                                         />
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-300 mb-2">Notes</label>
+                                    <label class="mb-2 block text-sm font-medium text-gray-300">Notes</label>
                                     <textarea
                                         v-model="newMetric.notes"
                                         rows="3"
                                         placeholder="Optional notes about this measurement"
-                                        class="mt-1 block w-full rounded-lg border-0 bg-gray-700 text-white shadow-sm ring-1 ring-inset ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-blue-500 py-2.5 px-3"
+                                        class="mt-1 block w-full rounded-lg border-0 bg-gray-600 px-3 py-2.5 text-white shadow-sm ring-1 ring-gray-600 ring-inset focus:ring-2 focus:ring-blue-500 focus:ring-inset"
                                     ></textarea>
                                 </div>
-                                <button 
-                                    type="submit" 
-                                    class="w-full rounded-lg bg-blue-600 px-4 py-3 text-white font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition-colors"
+                                <button
+                                    type="submit"
+                                    class="w-full rounded-lg bg-blue-600 px-4 py-3 font-medium text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800 focus:outline-none"
                                 >
                                     Add Metric
                                 </button>
@@ -217,7 +217,7 @@ const getPriorityColor = (priority: string) => {
                         <div class="rounded-lg border border-gray-700 bg-gray-800 p-6 shadow-lg">
                             <h2 class="mb-4 text-xl font-semibold text-white">Recommendations</h2>
                             <div v-if="recommendations && recommendations.length > 0" class="space-y-4">
-                                <div v-for="recommendation in recommendations" :key="recommendation.id" class="rounded-lg bg-gray-700 p-4">
+                                <div v-for="recommendation in recommendations" :key="recommendation.id" class="rounded-lg bg-gray-900 p-4">
                                     <div class="flex flex-col items-start justify-between">
                                         <div class="flex-1">
                                             <div class="flex items-center gap-2">
