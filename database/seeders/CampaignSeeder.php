@@ -6,6 +6,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Campaign;
 use App\Models\User;
+use App\UserRole;
 
 class CampaignSeeder extends Seeder
 {
@@ -18,7 +19,7 @@ class CampaignSeeder extends Seeder
             'name' => 'Campaign Manager',
             'email' => 'campaign@example.com',
             'password' => bcrypt('password'),
-            'role' => 3,
+            'role' => UserRole::HEALTH_CAMPAIGN_MANAGER,
             'approval_status' => 'approved',
             'email_verified_at' => now(),
         ]);

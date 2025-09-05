@@ -20,6 +20,10 @@ Route::get('dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
+Route::get('/health/progress', [\App\Http\Controllers\HealthProgressController::class, 'index'])
+    ->middleware(['auth'])
+    ->name('health.progress');
+
 Route::get('/livekit-test', function () {
     return Inertia::render('LivekitTest');
 })->middleware(['auth', 'verified'])->name('livekit.test');

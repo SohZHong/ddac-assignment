@@ -19,6 +19,7 @@ import {
     Megaphone,
     MessageCircleQuestion,
     Shield,
+    TrendingUp,
     Users,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -45,9 +46,9 @@ const mainNavItems = computed((): NavItem[] => {
     if (user.value.role === UserRole.PUBLIC_USER) {
         items.push(
             {
-                title: 'Dashboard',
-                href: '/dashboard',
-                icon: LayoutGrid,
+                title: 'Health Progress',
+                href: '/health/progress',
+                icon: TrendingUp,
             },
             {
                 title: 'Blog',
@@ -83,6 +84,11 @@ const mainNavItems = computed((): NavItem[] => {
                 title: 'Healthcare',
                 href: '/healthcare',
                 icon: Heart,
+            },
+            {
+                title: 'Health Progress',
+                href: '/health/progress',
+                icon: TrendingUp,
             },
             {
                 title: 'Patients',
