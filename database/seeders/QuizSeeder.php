@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Quiz;
 use App\Models\QuizQuestion;
 use App\Models\User;
+use App\UserRole;
 use Illuminate\Database\Seeder;
 
 class QuizSeeder extends Seeder
@@ -15,7 +16,7 @@ class QuizSeeder extends Seeder
     public function run(): void
     {
         // Get healthcare professionals, or create one if none exist
-        $healthcareProfessionals = User::where('role', '2')->get(); // '2' is healthcare_professional
+        $healthcareProfessionals = User::where('role', UserRole::HEALTHCARE_PROFESSIONAL)->get(); // '2' is healthcare_professional
         
         if ($healthcareProfessionals->isEmpty()) {
             // Create a sample healthcare professional if none exist
@@ -23,7 +24,7 @@ class QuizSeeder extends Seeder
                 'name' => 'Dr. Sarah Johnson',
                 'email' => 'dr.sarah@example.com',
                 'password' => bcrypt('password'),
-                'role' => '2', // healthcare_professional
+                'role' => UserRole::HEALTHCARE_PROFESSIONAL,
                 'approval_status' => 'approved',
                 'email_verified_at' => now(),
             ]);
