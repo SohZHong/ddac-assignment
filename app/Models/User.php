@@ -274,4 +274,36 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(ConsultationReport::class, 'uploaded_by');
     }
+
+    /**
+     * Get campaigns created by this user (for campaign managers)
+     */
+    public function campaigns()
+    {
+        return $this->hasMany(Campaign::class, 'created_by');
+    }
+
+    /**
+     * Get events created by this user
+     */
+    public function events()
+    {
+        return $this->hasMany(Event::class, 'created_by');
+    }
+
+    /**
+     * Get event registrations for this user
+     */
+    public function eventRegistrations()
+    {
+        return $this->hasMany(EventRegistration::class);
+    }
+
+    /**
+     * Get event attendances for this user
+     */
+    public function eventAttendances()
+    {
+        return $this->hasMany(EventAttendance::class);
+    }
 }

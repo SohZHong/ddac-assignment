@@ -24,6 +24,8 @@ class DatabaseSeeder extends Seeder
             BlogSeeder::class,
             ScheduleSeeder::class,
             BookingSeeder::class,
+            CampaignSeeder::class,
+            EventSeeder::class,
         ]);
     }
 }
