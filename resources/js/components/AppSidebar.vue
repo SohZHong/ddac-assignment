@@ -29,16 +29,15 @@ const page = usePage();
 const user = computed(() => page.props.auth.user as User);
 
 const mainNavItems = computed((): NavItem[] => {
-    const items: NavItem[] = [
-        {
-            title: 'Dashboard',
-            href: '/dashboard',
-            icon: LayoutGrid,
-        },
-    ];
+    const items: NavItem[] = [];
 
     if (user.value.role === UserRole.PUBLIC_USER) {
         items.push(
+            {
+                title: 'Dashboard',
+                href: '/dashboard',
+                icon: LayoutGrid,
+            },
             {
                 title: 'Blog',
                 href: '/blogs',
@@ -81,6 +80,11 @@ const mainNavItems = computed((): NavItem[] => {
             },
             {
                 title: 'Blog',
+                href: '/blogs',
+                icon: BookHeartIcon,
+            },
+            {
+                title: 'My Blogs',
                 href: '/healthcare/blogs',
                 icon: BookOpen,
             },
