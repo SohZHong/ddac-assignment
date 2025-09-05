@@ -19,6 +19,8 @@ Route::middleware(['auth', 'role:system_admin'])->group(function () {
         ->name('admin.users');
     Route::post('/admin/users', [UserManagementController::class, 'store'])
         ->name('admin.users.store');
+    Route::put('/admin/users/{user}', [UserManagementController::class, 'update'])
+        ->name('admin.users.update');
     Route::patch('/admin/users/{user}/role', [UserManagementController::class, 'updateRole'])
         ->name('admin.users.update-role');
     Route::patch('/admin/users/{user}/verify', [UserManagementController::class, 'verify'])

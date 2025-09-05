@@ -288,4 +288,70 @@ class UserManagementController extends Controller
 
         return back()->with('success', 'User deleted successfully.');
     }
+
+    /**
+     * Update user data.
+     */
+    public function update(Request $request, User $user): RedirectResponse
+    {
+        /** @var User $currentUser */
+        $currentUser = Auth::user();
+
+        // Only system admins can edit user data
+        if (!$currentUser->isSystemAdmin()) {
+            abort(403, 'You do not have permission to edit user data.');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'work_email' => 'nullable|email|max:255',
+            'role' => ['required', 'string', Rule::in(array_map(fn($role) => $role->value, UserRole::all()))],
+            // Healthcare Professional fields
+            'license_number' => 'nullable|string|max:255',
+            'medical_specialty' => 'nullable|string|max:255',
+            'institution_name' => 'nullable|string|max:255',
+            'registration_body' => 'nullable|string|max:255',
+            // Health Campaign Manager fields
+            'organization_name' => 'nullable|string|max:255',
+            'job_title' => 'nullable|string|max:255',
+            'organization_type' => 'nullable|string|max:255',
+            'focus_areas' => 'nullable|string|max:1000',
+        ]);
+
+        $role = UserRole::from($request->role);
+
+        // Update user data
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'work_email' => $request->work_email,
+            'role' => $role,
+            // Healthcare Professional fields
+            'license_number' => $request->license_number,
+            'medical_specialty' => $request->medical_specialty,
+            'institution_name' => $request->institution_name,
+            'registration_body' => $request->registration_body,
+            // Health Campaign Manager fields
+            'organization_name' => $request->organization_name,
+            'job_title' => $request->job_title,
+            'organization_type' => $request->organization_type,
+            'focus_areas' => $request->focus_areas,
+        ]);
+
+        // Log the admin action
+        AdminLog::create([
+            'user_id' => $currentUser->id,
+            'action' => 'user.updated',
+            'target_type' => User::class,
+            'target_id' => $user->id,
+            'metadata' => [
+                'updated_fields' => array_keys($request->except(['_token', '_method'])),
+                'target_name' => $user->name,
+            ],
+            'ip_address' => request()->ip(),
+        ]);
+
+        return back()->with('success', "User {$user->name} updated successfully.");
+    }
 }

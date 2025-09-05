@@ -56,7 +56,7 @@ class ApprovalController extends Controller
             'pendingApprovalsCount' => $pendingApprovalsCount,
         ]);
     }
-
+a
     /**
      * Show a specific pending approval.
      */

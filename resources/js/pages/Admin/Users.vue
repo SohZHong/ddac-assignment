@@ -79,6 +79,9 @@ const isVerificationDialogOpen = ref(false);
 // Add user functionality
 const isAddUserDialogOpen = ref(false);
 
+// Edit user functionality
+const isEditUserDialogOpen = ref(false);
+
 const roleUpdateForm = useForm({
     role: '',
 });
@@ -91,6 +94,23 @@ const addUserForm = useForm({
     password: '',
     role: '1', // Default to Public User
     work_email: '',
+    // Healthcare Professional fields
+    license_number: '',
+    medical_specialty: '',
+    institution_name: '',
+    registration_body: '',
+    // Health Campaign Manager fields
+    organization_name: '',
+    job_title: '',
+    organization_type: '',
+    focus_areas: '',
+});
+
+const editUserForm = useForm({
+    name: '',
+    email: '',
+    work_email: '',
+    role: '',
     // Healthcare Professional fields
     license_number: '',
     medical_specialty: '',
@@ -180,6 +200,44 @@ const isHealthcareProfessional = () => {
 
 const isHealthCampaignManager = () => {
     return addUserForm.role === '3';
+};
+
+// Edit user functions
+const openEditUserDialog = (user: UserData) => {
+    selectedUser.value = user;
+    editUserForm.name = user.name;
+    editUserForm.email = user.email;
+    editUserForm.work_email = user.work_email || '';
+    editUserForm.role = user.role;
+    editUserForm.license_number = user.license_number || '';
+    editUserForm.medical_specialty = user.medical_specialty || '';
+    editUserForm.institution_name = user.institution_name || '';
+    editUserForm.registration_body = user.registration_body || '';
+    editUserForm.organization_name = user.organization_name || '';
+    editUserForm.job_title = user.job_title || '';
+    editUserForm.organization_type = user.organization_type || '';
+    editUserForm.focus_areas = user.focus_areas || '';
+    isEditUserDialogOpen.value = true;
+};
+
+const updateUser = () => {
+    if (!selectedUser.value) return;
+
+    editUserForm.put(route('admin.users.update', selectedUser.value.id), {
+        onSuccess: () => {
+            isEditUserDialogOpen.value = false;
+            selectedUser.value = null;
+            editUserForm.reset();
+        },
+    });
+};
+
+const isEditHealthcareProfessional = () => {
+    return editUserForm.role === '2';
+};
+
+const isEditHealthCampaignManager = () => {
+    return editUserForm.role === '3';
 };
 
 // Helper functions
@@ -323,6 +381,10 @@ const canManageUser = (user: UserData) => {
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                 <DropdownMenuSeparator />
+                                                <DropdownMenuItem @click="openEditUserDialog(user)">
+                                                    <UserCog class="mr-2 h-4 w-4" />
+                                                    Edit User
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem @click="openRoleDialog(user)">
                                                     <UserCog class="mr-2 h-4 w-4" />
                                                     Change Role
@@ -622,6 +684,177 @@ const canManageUser = (user: UserData) => {
                     <Button variant="outline" @click="isAddUserDialogOpen = false">Cancel</Button>
                     <Button @click="addUser" :disabled="addUserForm.processing" class="cursor-pointer">
                         {{ addUserForm.processing ? 'Creating User...' : 'Create User' }}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Edit User Dialog -->
+        <Dialog v-model:open="isEditUserDialogOpen">
+            <DialogContent class="max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Edit User</DialogTitle>
+                    <DialogDescription>Update user information and role details.</DialogDescription>
+                </DialogHeader>
+
+                <form @submit.prevent="updateUser" class="grid gap-4 py-4">
+                    <!-- Basic Information -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid gap-2">
+                            <Label for="edit-name">Full Name *</Label>
+                            <input
+                                id="edit-name"
+                                v-model="editUserForm.name"
+                                type="text"
+                                required
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="Enter full name"
+                            />
+                            <div v-if="editUserForm.errors.name" class="text-sm text-red-600">{{ editUserForm.errors.name }}</div>
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label for="edit-email">Email Address *</Label>
+                            <input
+                                id="edit-email"
+                                v-model="editUserForm.email"
+                                type="email"
+                                required
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="Enter email address"
+                            />
+                            <div v-if="editUserForm.errors.email" class="text-sm text-red-600">{{ editUserForm.errors.email }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Role Selection -->
+                    <div class="grid gap-2">
+                        <Label for="edit-role">Role *</Label>
+                        <select
+                            id="edit-role"
+                            v-model="editUserForm.role"
+                            required
+                            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <option v-for="role in props.available_roles" :key="role.value" :value="role.value">
+                                {{ role.label }}
+                            </option>
+                        </select>
+                        <div v-if="editUserForm.errors.role" class="text-sm text-red-600">{{ editUserForm.errors.role }}</div>
+                    </div>
+
+                    <!-- Work Email -->
+                    <div class="grid gap-2">
+                        <Label for="edit-work-email">Work Email (Optional)</Label>
+                        <input
+                            id="edit-work-email"
+                            v-model="editUserForm.work_email"
+                            type="email"
+                            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                            placeholder="Enter work email (optional)"
+                        />
+                        <div v-if="editUserForm.errors.work_email" class="text-sm text-red-600">{{ editUserForm.errors.work_email }}</div>
+                    </div>
+
+                    <!-- Healthcare Professional Fields -->
+                    <div v-if="isEditHealthcareProfessional()" class="space-y-4 border-t pt-4">
+                        <h4 class="font-medium text-sm">Healthcare Professional Details</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="grid gap-2">
+                                <Label for="edit-license">License Number</Label>
+                                <input
+                                    id="edit-license"
+                                    v-model="editUserForm.license_number"
+                                    type="text"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter license number"
+                                />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="edit-specialty">Medical Specialty</Label>
+                                <input
+                                    id="edit-specialty"
+                                    v-model="editUserForm.medical_specialty"
+                                    type="text"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter medical specialty"
+                                />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="edit-institution">Institution Name</Label>
+                                <input
+                                    id="edit-institution"
+                                    v-model="editUserForm.institution_name"
+                                    type="text"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter institution name"
+                                />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="edit-registration">Registration Body</Label>
+                                <input
+                                    id="edit-registration"
+                                    v-model="editUserForm.registration_body"
+                                    type="text"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter registration body"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Health Campaign Manager Fields -->
+                    <div v-if="isEditHealthCampaignManager()" class="space-y-4 border-t pt-4">
+                        <h4 class="font-medium text-sm">Health Campaign Manager Details</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="grid gap-2">
+                                <Label for="edit-organization">Organization Name</Label>
+                                <input
+                                    id="edit-organization"
+                                    v-model="editUserForm.organization_name"
+                                    type="text"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter organization name"
+                                />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="edit-job-title">Job Title</Label>
+                                <input
+                                    id="edit-job-title"
+                                    v-model="editUserForm.job_title"
+                                    type="text"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter job title"
+                                />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="edit-org-type">Organization Type</Label>
+                                <input
+                                    id="edit-org-type"
+                                    v-model="editUserForm.organization_type"
+                                    type="text"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter organization type"
+                                />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="edit-focus">Primary Focus Area</Label>
+                                <input
+                                    id="edit-focus"
+                                    v-model="editUserForm.focus_areas"
+                                    type="text"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter focus areas"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <DialogFooter>
+                    <Button variant="outline" @click="isEditUserDialogOpen = false">Cancel</Button>
+                    <Button @click="updateUser" :disabled="editUserForm.processing" class="cursor-pointer">
+                        {{ editUserForm.processing ? 'Updating User...' : 'Update User' }}
                     </Button>
                 </DialogFooter>
             </DialogContent>
