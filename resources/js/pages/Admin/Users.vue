@@ -88,6 +88,7 @@ const verificationForm = useForm({});
 const addUserForm = useForm({
     name: '',
     email: '',
+    password: '',
     role: '1', // Default to Public User
     work_email: '',
     // Healthcare Professional fields
@@ -476,6 +477,21 @@ const canManageUser = (user: UserData) => {
                             />
                             <div v-if="addUserForm.errors.email" class="text-sm text-red-600">{{ addUserForm.errors.email }}</div>
                         </div>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="grid gap-2">
+                        <Label for="add-password">Password *</Label>
+                        <input
+                            id="add-password"
+                            v-model="addUserForm.password"
+                            type="password"
+                            required
+                            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                            placeholder="Enter password (minimum 8 characters)"
+                        />
+                        <div v-if="addUserForm.errors.password" class="text-sm text-red-600">{{ addUserForm.errors.password }}</div>
+                        <p class="text-sm text-muted-foreground">Password must be at least 8 characters long</p>
                     </div>
 
                     <!-- Role Selection -->

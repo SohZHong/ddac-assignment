@@ -37,7 +37,7 @@ return [
 
     'livekit' => [
         'url' => env('LIVEKIT_URL'),
-        'http_url' => str_replace('wss://', 'https://', env('LIVEKIT_URL')),
+        'http_url' => str_replace('wss://', 'https://', env('LIVEKIT_URL', '')),
         'api_key' => env('LIVEKIT_API_KEY'),
         'api_secret' => env('LIVEKIT_API_SECRET'),
     ],

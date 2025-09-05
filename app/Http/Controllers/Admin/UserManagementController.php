@@ -90,6 +90,7 @@ class UserManagementController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|max:255',
             'role' => ['required', 'string', Rule::in(array_map(fn($role) => $role->value, UserRole::all()))],
             'work_email' => 'nullable|email|max:255',
             // Healthcare Professional fields
@@ -110,7 +111,7 @@ class UserManagementController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make(Str::random(12)), // Generate random password
+            'password' => Hash::make($request->password), // Use provided password
             'role' => $role,
             'work_email' => $request->work_email,
             'email_verified_at' => now(), // Auto-verify admin-created users
