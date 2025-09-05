@@ -28,6 +28,28 @@
         </CardContent>
       </Card>
 
+      <!-- Rejected banner -->
+      <Card v-if="application_status === 'rejected'" class="border-red-400 bg-red-50 text-red-900">
+        <CardContent class="py-4">
+          <p class="text-sm">
+            Your application to become
+            <strong>{{ pending_application?.requested_role_label || pending_application?.requested_role }}</strong>
+            has been rejected. You may submit a new application with updated credentials.
+          </p>
+        </CardContent>
+      </Card>
+
+      <!-- Approved banner -->
+      <Card v-if="application_status === 'approved'" class="border-green-400 bg-green-50 text-green-900">
+        <CardContent class="py-4">
+          <p class="text-sm">
+            Congratulations! Your application to become
+            <strong>{{ pending_application?.requested_role_label || pending_application?.requested_role }}</strong>
+            has been approved. You now have access to all features available to your role.
+          </p>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Professional Role Application</CardTitle>
@@ -190,7 +212,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useForm } from '@inertiajs/vue3'
-import type { FormDataConvertible } from '@inertiajs/core'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Button } from '@/components/ui/button'
 import {
@@ -224,6 +245,7 @@ interface Props {
     requested_role: string | null
     requested_role_label: string | null
   }
+  application_status?: string
 }
 
 defineProps<Props>()
@@ -240,7 +262,7 @@ interface Credential {
 
 const credentials = ref<Credential[]>([])
 
-const form = useForm<{ role: string } & Record<string, FormDataConvertible>>({
+const form = useForm<{ role: string } & Record<string, any>>({
   role: ''
 })
 

@@ -12,7 +12,7 @@ import UserMenuContent from '@/components/UserMenuContent.vue';
 import { getInitials } from '@/composables/useInitials';
 import type { BreadcrumbItem, NavItem, User } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, ClipboardList, Folder, Heart, LayoutGrid, Megaphone, Menu, Search, Shield } from 'lucide-vue-next';
+import { ClipboardList, Folder, Heart, LayoutGrid, Megaphone, Menu, Search, Shield } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 interface Props {
@@ -79,14 +79,9 @@ const mainNavItems = computed((): NavItem[] => {
 
 const rightNavItems: NavItem[] = [
     {
-        title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
+        title: 'Github Repo',
+        href: 'https://github.com/SohZHong/ddac-assignment#',
         icon: Folder,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
     },
 ];
 </script>

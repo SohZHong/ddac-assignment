@@ -45,6 +45,7 @@ class ProfessionalApplicationController extends Controller
                 'requested_role' => $user->requested_role,
                 'requested_role_label' => $requestedRoleLabel,
             ],
+            'application_status' => $user->approval_status,
         ]);
     }
 
@@ -76,6 +77,7 @@ class ProfessionalApplicationController extends Controller
             'requested_role' => $request->role,
             'approval_status' => 'pending',
             'approved_at' => null,
+            'rejection_reason' => null, // Clear any previous rejection reason
         ]);
 
         $disk = config('filesystems.default');

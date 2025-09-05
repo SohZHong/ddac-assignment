@@ -24,21 +24,9 @@ console.log(props.blogs);
                     <h1 class="text-3xl font-bold tracking-tight">Educational Resources</h1>
                     <p class="text-muted-foreground">Enrich yourself with knowledge</p>
                 </div>
-                <Link :href="'/healthcare/blogs'" class="inline-flex items-center cursor-pointer">
-                    <Button class="cursor-pointer">
-                        My Blogs
-                    </Button>
+                <Link :href="'/healthcare/blogs'" class="inline-flex cursor-pointer items-center">
+                    <Button class="cursor-pointer"> My Blogs </Button>
                 </Link>
-                <!-- <Link
-                    v-if="user.role === UserRole.HEALTHCARE_PROFESSIONAL || user.role === UserRole.HEALTH_CAMPAIGN_MANAGER"
-                    :href="route('blog.create')"
-                    class="inline-flex items-center"
-                >
-                    <Button>
-                        <Plus class="mr-2 h-4 w-4" />
-                        Publish Your Blog
-                    </Button>
-                </Link> -->
             </div>
             <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                 <div v-for="blog in blogs.data" :key="blog.id" class="group cursor-pointer">
