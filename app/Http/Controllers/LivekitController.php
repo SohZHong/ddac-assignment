@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Event;
 use App\Models\LivekitRoom;
 use App\Models\LivekitParticipant;
+use App\Models\ChatMessage;
 use App\Services\LivekitRoomService;
 use App\Services\LivekitTokenService;
 use Illuminate\Http\Request;
@@ -111,6 +112,8 @@ class LivekitController extends Controller
             'token' => $token,
             'room_name' => $room->room_name,
             'participant_identity' => $participantIdentity,
+            'ws_url' => config('services.livekit.url'),
+            'can_publish' => $room->created_by === Auth::id(),
         ]);
     }
 
@@ -175,6 +178,57 @@ class LivekitController extends Controller
         ]);
     }
 
+    public function getChat(LivekitRoom $room): JsonResponse
+    {
+        if (!$this->canAccessRoom($room)) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $messages = ChatMessage::where('room_id', $room->id)
+            ->orderBy('sent_at', 'asc')
+            ->limit(200)
+            ->get()
+            ->map(fn ($m) => [
+                'id' => $m->id,
+                'sender_id' => $m->sender_id,
+                'sender_identity' => $m->sender_identity,
+                'text' => $m->text,
+                'sent_at' => $m->sent_at?->format('Y-m-d H:i:s'),
+            ]);
+
+        return response()->json(['messages' => $messages]);
+    }
+
+    public function postChat(Request $request, LivekitRoom $room): JsonResponse
+    {
+        if (!$this->canAccessRoom($room)) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'text' => 'required|string|max:4000',
+            'participant_identity' => 'nullable|string|max:255',
+        ]);
+
+        $message = ChatMessage::create([
+            'room_id' => $room->id,
+            'sender_id' => Auth::id(),
+            'sender_identity' => $validated['participant_identity'] ?? null,
+            'text' => $validated['text'],
+            'sent_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => [
+                'id' => $message->id,
+                'sender_id' => $message->sender_id,
+                'sender_identity' => $message->sender_identity,
+                'text' => $message->text,
+                'sent_at' => $message->sent_at?->format('Y-m-d H:i:s'),
+            ],
+        ], 201);
+    }
+
     private function canAccessRoom(LivekitRoom $room): bool
     {
         Log::info('Checking room access', [
@@ -190,8 +244,14 @@ class LivekitController extends Controller
             return true;
         }
 
-        // Check if user is registered for the event
+        // For public events, all authenticated users can join livestreams
         $event = $room->event;
+        if ($event->status === 'published') {
+            Log::info('Event is published, allowing all authenticated users');
+            return true;
+        }
+
+        // For non-public events, check if user is registered for the event
         $isRegistered = $event->registrations()->where('user_id', Auth::id())->exists();
         
         Log::info('User event registration check', [

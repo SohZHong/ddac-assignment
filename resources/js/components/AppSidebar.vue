@@ -35,6 +35,11 @@ const mainNavItems = computed((): NavItem[] => {
             href: '/dashboard',
             icon: LayoutGrid,
         },
+        {
+            title: 'Public Events',
+            href: '/public/events',
+            icon: Calendar,
+        },
     ];
 
     if (user.value.role === UserRole.PUBLIC_USER) {

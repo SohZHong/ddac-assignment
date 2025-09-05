@@ -16,4 +16,8 @@ Route::prefix('livekit')->middleware(['auth:sanctum'])->group(function () {
     Route::post('/rooms/{room}/start', [LivekitController::class, 'startRoom']);
     Route::post('/rooms/{room}/end', [LivekitController::class, 'endRoom']);
     Route::get('/rooms/{room}/participants', [LivekitController::class, 'getParticipants']);
+
+    // Chat history & persistence
+    Route::get('/rooms/{room}/chat', [LivekitController::class, 'getChat']);
+    Route::post('/rooms/{room}/chat', [LivekitController::class, 'postChat']);
 });

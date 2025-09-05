@@ -377,4 +377,164 @@ class EventController extends Controller
 
         return response()->json(['events' => $events]);
     }
+
+    /**
+     * Display a listing of published events (public access).
+     */
+    public function publicIndex(): Response|JsonResponse
+    {
+        $events = Event::with(['creator', 'campaign'])
+            ->where('status', 'published')
+            ->where('start_datetime', '>=', now())
+            ->latest()
+            ->get()
+            ->map(function ($event) {
+                return [
+                    'id' => $event->id,
+                    'title' => $event->title,
+                    'description' => $event->description,
+                    'type' => $event->type,
+                    'status' => $event->status,
+                    'start_datetime' => $event->start_datetime->format('Y-m-d H:i:s'),
+                    'end_datetime' => $event->end_datetime->format('Y-m-d H:i:s'),
+                    'location' => $event->location,
+                    'online_meeting_url' => $event->online_meeting_url,
+                    'capacity' => $event->capacity,
+                    'is_online' => $event->is_online,
+                    'requires_registration' => $event->requires_registration,
+                    'campaign' => $event->campaign ? [
+                        'id' => $event->campaign->id,
+                        'title' => $event->campaign->title,
+                    ] : null,
+                    'creator' => $event->creator->name,
+                    'registration_count' => $event->getRegistrationCount(),
+                    'remaining_capacity' => $event->getRemainingCapacity(),
+                    'is_at_capacity' => $event->isAtCapacity(),
+                    'duration_minutes' => $event->getDurationInMinutes(),
+                ];
+            });
+
+        // Return JSON for API requests
+        if (request()->is('api/*') || request()->expectsJson()) {
+            return response()->json($events);
+        }
+
+        return Inertia::render('Events/PublicIndex', [
+            'events' => $events,
+        ]);
+    }
+
+    /**
+     * Display the specified published event (public access).
+     */
+    public function publicShow(Event $event): Response|JsonResponse
+    {
+        // Check if event is published
+        if ($event->status !== 'published') {
+            abort(404, 'Event not found or not available for public viewing.');
+        }
+
+        $event->load(['creator', 'campaign', 'livestreamRoom']);
+
+        // Get current user's registration status if authenticated
+        $currentUserRegistration = null;
+        $currentUserAttendance = null;
+        
+        if (auth()->check()) {
+            $currentUserRegistration = $event->registrations()
+                ->where('user_id', auth()->id())
+                ->first();
+            
+            $currentUserAttendance = $event->attendances()
+                ->where('user_id', auth()->id())
+                ->first();
+        }
+
+        $eventData = [
+            'id' => $event->id,
+            'title' => $event->title,
+            'description' => $event->description,
+            'type' => $event->type,
+            'status' => $event->status,
+            'start_datetime' => $event->start_datetime->format('Y-m-d H:i:s'),
+            'end_datetime' => $event->end_datetime->format('Y-m-d H:i:s'),
+            'location' => $event->location,
+            'online_meeting_url' => $event->online_meeting_url,
+            'capacity' => $event->capacity,
+            'is_online' => $event->is_online,
+            'requires_registration' => $event->requires_registration,
+            'campaign' => $event->campaign ? [
+                'id' => $event->campaign->id,
+                'title' => $event->campaign->title,
+            ] : null,
+            'creator' => $event->creator->name,
+            'registration_count' => $event->getRegistrationCount(),
+            'remaining_capacity' => $event->getRemainingCapacity(),
+            'is_at_capacity' => $event->isAtCapacity(),
+            'duration_minutes' => $event->getDurationInMinutes(),
+            'can_register' => $event->requires_registration && !$event->isAtCapacity(),
+            'user_registration' => $currentUserRegistration ? [
+                'id' => $currentUserRegistration->id,
+                'status' => $currentUserRegistration->status,
+            ] : null,
+            'user_attendance' => $currentUserAttendance ? [
+                'id' => $currentUserAttendance->id,
+                'status' => $currentUserAttendance->status,
+                'check_in_time' => optional($currentUserAttendance->check_in_time)?->format('Y-m-d H:i:s'),
+            ] : null,
+            'can_check_in' => false, // Only managers can check people in
+            'livestream_room' => $event->livestreamRoom ? [
+                'id' => $event->livestreamRoom->id,
+                'room_name' => $event->livestreamRoom->room_name,
+                'status' => $event->livestreamRoom->status,
+                'started_at' => $event->livestreamRoom->started_at?->format('Y-m-d H:i:s'),
+                'ended_at' => $event->livestreamRoom->ended_at?->format('Y-m-d H:i:s'),
+                'max_participants' => $event->livestreamRoom->max_participants,
+                'current_participants' => $event->livestreamRoom->participants()->whereNull('left_at')->count(),
+            ] : null,
+            // Add user role and event creator status for management features
+            'current_user_role' => auth()->user()?->role ?? null,
+            'is_event_creator' => auth()->user()?->id === $event->created_by,
+        ];
+
+        // Return JSON for API requests
+        if (request()->is('api/*') || request()->expectsJson()) {
+            return response()->json(['event' => $eventData]);
+        }
+
+        return Inertia::render('Events/PublicShow', [
+            'event' => $eventData,
+        ]);
+    }
+
+    /**
+     * Public events feed for calendar (JSON only, no authentication required).
+     */
+    public function publicFeed(Request $request): JsonResponse
+    {
+        $from = Carbon::parse($request->query('from', now()->startOfMonth()->toDateString()))->startOfDay();
+        $to = Carbon::parse($request->query('to', now()->endOfMonth()->toDateString()))->endOfDay();
+
+        $events = Event::where('status', 'published')
+            ->where('start_datetime', '>=', now())
+            // overlap condition: end >= from AND start <= to
+            ->where('end_datetime', '>=', $from)
+            ->where('start_datetime', '<=', $to)
+            ->orderBy('start_datetime')
+            ->get()
+            ->map(function (Event $event) {
+                return [
+                    'id' => $event->id,
+                    'title' => $event->title,
+                    'type' => $event->type,
+                    'status' => $event->status,
+                    'start' => $event->start_datetime->toIso8601String(),
+                    'end' => $event->end_datetime->toIso8601String(),
+                    'is_online' => $event->is_online,
+                    'location' => $event->location,
+                ];
+            });
+
+        return response()->json(['events' => $events]);
+    }
 }

@@ -6,6 +6,34 @@ use App\Http\Controllers\Event\EventController;
 use App\Http\Controllers\Event\EventRegistrationController;
 use App\Http\Controllers\Event\EventAttendanceController;
 
+// Public routes for viewing published events (authentication required, but accessible to all users)
+Route::middleware(['auth'])->group(function () {
+    Route::get('public/events', [EventController::class, 'publicIndex'])->name('public.events.index');
+    Route::get('public/events/{event}', [EventController::class, 'publicShow'])->name('public.events.show');
+    Route::get('public/events-feed', [EventController::class, 'publicFeed'])->name('public.events.feed');
+    
+    // Public livestream route for published events
+    Route::get('public/events/{event}/livestream', function ($event) {
+        $eventModel = \App\Models\Event::findOrFail($event);
+        
+        // Check if event is published
+        if ($eventModel->status !== 'published') {
+            abort(404, 'Event not found or not available for public viewing.');
+        }
+        
+        $livestreamRoom = $eventModel->livestreamRoom;
+        if (!$livestreamRoom) {
+            abort(404, 'Livestream not available for this event');
+        }
+        
+        return Inertia::render('Events/Livestream', [
+            'eventId' => $eventModel->id,
+            'roomId' => $livestreamRoom->id,
+            'eventTitle' => $eventModel->title,
+        ]);
+    })->name('public.events.livestream');
+});
+
 Route::middleware(['auth', 'role:health_campaign_manager,system_admin'])
     ->group(function () {
         // Static routes must come before resource to avoid conflicts with events/{event}
@@ -29,6 +57,7 @@ Route::get('events/{event}/livestream', function ($event) {
     }
     
     return Inertia::render('Events/Livestream', [
+        'eventId' => $eventModel->id,
         'roomId' => $livestreamRoom->id,
         'eventTitle' => $eventModel->title,
     ]);

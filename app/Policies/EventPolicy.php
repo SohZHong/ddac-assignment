@@ -21,6 +21,11 @@ class EventPolicy
      */
     public function view(User $user, Event $event): bool
     {
+        // All authenticated users can view published events
+        if ($event->status === 'published') {
+            return true;
+        }
+
         // Campaign managers can view their own events
         if ($user->isHealthCampaignManager()) {
             return $event->created_by === $user->id;
@@ -28,6 +33,15 @@ class EventPolicy
 
         // System admins can view all events
         return $user->isSystemAdmin();
+    }
+
+    /**
+     * Determine whether the user can view published events (authenticated access).
+     */
+    public function viewPublished(User $user): bool
+    {
+        // All authenticated users can view published events
+        return true;
     }
 
     /**

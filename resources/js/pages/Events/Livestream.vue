@@ -33,6 +33,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { ArrowLeft } from 'lucide-vue-next';
 
 interface Props {
+    eventId: number;
     roomId: number;
     eventTitle: string;
 }
@@ -46,15 +47,15 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
     {
         title: props.eventTitle,
-        href: `/events/${props.roomId}`,
+        href: `/public/events/${props.eventId}`,
     },
     {
         title: 'Livestream',
-        href: `/events/${props.roomId}/livestream`,
+        href: `/public/events/${props.eventId}/livestream`,
     },
 ];
 
 const goBack = () => {
-    router.visit(`/events/${props.roomId}`);
+    router.visit(`/public/events/${props.eventId}`);
 };
 </script>

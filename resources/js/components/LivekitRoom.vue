@@ -16,8 +16,8 @@
             <!-- Video Grid -->
             <div class="video-container">
                 <div class="video-grid">
-                    <!-- Local Participant (always show) -->
-                    <div v-if="localParticipant" :key="localParticipant.identity" class="video-item">
+                    <!-- Local Participant (only show for publishers) -->
+                    <div v-if="canPublish && localParticipant" :key="localParticipant.identity" class="video-item">
                         <video
                             :ref="`video-${localParticipant.identity}`"
                             :id="`video-${localParticipant.identity}`"
@@ -74,15 +74,23 @@
 
                 <!-- Controls -->
                 <div class="controls">
-                    <button @click="toggleMicrophone" :class="['control-btn', { active: isMicrophoneEnabled }]">
+                    <!-- Streaming controls - only show for users who can publish (event creators) -->
+                    <button v-if="canPublish" @click="toggleMicrophone" :class="['control-btn', { active: isMicrophoneEnabled }]">
                         {{ isMicrophoneEnabled ? '🔇' : '🎤' }}
                     </button>
-                    <button @click="toggleCamera" :class="['control-btn', { active: isCameraEnabled }]">
+                    <button v-if="canPublish" @click="toggleCamera" :class="['control-btn', { active: isCameraEnabled }]">
                         {{ isCameraEnabled ? '🚫' : '📷' }}
                     </button>
-                    <button @click="toggleScreenShare" :class="['control-btn', { active: isScreenSharing }]">
+                    <button v-if="canPublish" @click="toggleScreenShare" :class="['control-btn', { active: isScreenSharing }]">
                         {{ isScreenSharing ? '📺' : '🖥️' }}
                     </button>
+
+                    <!-- Viewer indicator for users who can't publish -->
+                    <span v-if="!canPublish" class="viewer-indicator">👁️ Viewer Mode</span>
+
+                    <!-- Join audio button to satisfy autoplay policies -->
+                    <button v-if="!hasStartedAudio" @click="joinAudio" class="control-btn">🔊 Join Audio</button>
+
                     <button @click="leaveRoom" class="control-btn leave-btn">❌ Leave</button>
                     <div class="connection-status">
                         <span :class="['status-indicator', statusClass]">{{ roomStatus }}</span>
@@ -128,7 +136,7 @@
 
 <script setup>
 import { Room, RoomEvent, Track } from 'livekit-client';
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps({
     roomId: {
@@ -163,6 +171,9 @@ const chatMessagesRef = ref(null);
 const errorMessage = ref('');
 
 let livekitRoom = null;
+const serverCanPublish = ref(false);
+const participantIdentity = ref('');
+const hasStartedAudio = ref(false);
 
 const statusClass = computed(() => {
     switch (roomStatus.value) {
@@ -177,9 +188,78 @@ const statusClass = computed(() => {
     }
 });
 
+// Save chat messages to localStorage
+const saveChatMessages = () => {
+    try {
+        localStorage.setItem(`chat-${props.roomId}`, JSON.stringify(chatMessages.value));
+    } catch (error) {
+        console.error('Failed to save chat messages:', error);
+    }
+};
+
+// Load chat messages from localStorage
+const loadChatMessages = () => {
+    try {
+        const saved = localStorage.getItem(`chat-${props.roomId}`);
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) {
+                chatMessages.value = parsed;
+                console.log('Loaded chat messages from localStorage:', parsed.length);
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load chat messages:', error);
+    }
+};
+
+// Watch for changes in chat messages and save to localStorage
+watch(
+    chatMessages,
+    () => {
+        saveChatMessages();
+    },
+    { deep: true },
+);
+
+// Check if user can publish (event creators can stream)
+const canPublish = computed(() => {
+    const sdkFlag = livekitRoom?.localParticipant?.canPublish || false;
+    const resolved = serverCanPublish.value || sdkFlag;
+
+    if (livekitRoom?.localParticipant) {
+        console.log('Local participant:', livekitRoom.localParticipant);
+        console.log('Can publish (SDK):', sdkFlag);
+        console.log('Can publish (server):', serverCanPublish.value);
+        console.log('Can publish (resolved):', resolved);
+    }
+
+    return resolved;
+});
+
+// Add a watcher to update permissions when room state changes
+watch(
+    () => livekitRoom?.localParticipant,
+    (participant) => {
+        if (participant) {
+            console.log('Participant updated:', participant);
+            console.log('Can publish:', participant.canPublish);
+
+            // Update UI based on permissions
+            if (!participant.canPublish) {
+                isCameraEnabled.value = false;
+                isMicrophoneEnabled.value = false;
+                isScreenSharing.value = false;
+            }
+        }
+    },
+    { immediate: true },
+);
+
 onMounted(async () => {
     // Ensure chatMessages is properly initialized
     ensureChatMessagesArray();
+    loadChatMessages(); // Load messages on mount
 
     await connectToRoom();
 });
@@ -188,6 +268,7 @@ onUnmounted(() => {
     if (livekitRoom) {
         livekitRoom.disconnect();
     }
+    saveChatMessages(); // Save messages on unmount
 });
 
 const connectToRoom = async () => {
@@ -208,7 +289,17 @@ const connectToRoom = async () => {
             throw new Error('Failed to get room access');
         }
 
-        const { token, room_name, participant_identity } = await response.json();
+        const { token, room_name, participant_identity, ws_url, can_publish } = await response.json();
+
+        // Debug: Log token details
+        console.log('Token received:', token);
+        console.log('Room name:', room_name);
+        console.log('Participant identity:', participant_identity);
+        console.log('WS URL:', ws_url);
+        console.log('can_publish (server):', can_publish);
+
+        serverCanPublish.value = !!can_publish;
+        participantIdentity.value = participant_identity || '';
 
         // Create LiveKit room
         livekitRoom = new Room({
@@ -221,11 +312,15 @@ const connectToRoom = async () => {
 
         // Pre-warm connection (this speeds up the actual connection)
         console.log('Preparing connection...');
-        await livekitRoom.prepareConnection('wss://ddac-ouxj9q3f.livekit.cloud', token);
+        const connectUrl = ws_url || import.meta.env.VITE_LIVEKIT_URL || '';
+        if (!connectUrl) {
+            throw new Error('Missing LiveKit URL');
+        }
+        await livekitRoom.prepareConnection(connectUrl, token);
 
         // Connect to room
         console.log('Connecting to room...');
-        await livekitRoom.connect('wss://ddac-ouxj9q3f.livekit.cloud', token, {
+        await livekitRoom.connect(connectUrl, token, {
             timeout: 15000, // 15 second timeout
         });
 
@@ -320,6 +415,13 @@ const handleConnected = async () => {
     roomStatus.value = 'Connected';
     errorMessage.value = '';
 
+    // Load chat history once connected
+    try {
+        await loadChatHistory();
+    } catch (err) {
+        console.error('Failed to load chat history:', err);
+    }
+
     // Ensure chatMessages is an array before adding welcome message
     ensureChatMessagesArray();
 
@@ -332,24 +434,40 @@ const handleConnected = async () => {
     });
     console.log('Welcome message added, chat messages count:', chatMessages.value.length);
 
-    // Start audio after connection
-    try {
-        await livekitRoom.startAudio();
-        console.log('Audio started successfully');
-    } catch (error) {
-        console.error('Failed to start audio:', error);
-    }
+    // Do not call startAudio() here; we already attempted after connect.
 
-    // Enable camera and microphone after connection
-    setTimeout(async () => {
-        try {
-            if (!isCameraEnabled.value) {
-                await enableCameraAndMicrophone();
+    // Debug: Log participant permissions
+    console.log('=== PARTICIPANT PERMISSIONS DEBUG ===');
+    console.log('Local participant:', livekitRoom.localParticipant);
+    console.log('Can publish (direct):', livekitRoom.localParticipant.canPublish);
+    console.log('Can subscribe (direct):', livekitRoom.localParticipant.canSubscribe);
+    console.log('Can publish data (direct):', livekitRoom.localParticipant.canPublishData);
+    console.log('Participant identity:', livekitRoom.localParticipant.identity);
+    console.log('Permissions object:', livekitRoom.localParticipant.permissions);
+    console.log('=====================================');
+
+    // Check if user has permission to publish (only event creators can stream)
+    const userCanPublish = livekitRoom.localParticipant.canPublish;
+    console.log('User can publish:', userCanPublish);
+
+    if (userCanPublish) {
+        // Only enable camera and microphone for users who can publish (event creators)
+        setTimeout(async () => {
+            try {
+                if (!isCameraEnabled.value) {
+                    await enableCameraAndMicrophone();
+                }
+            } catch (error) {
+                console.error('Failed to enable camera after connection:', error);
             }
-        } catch (error) {
-            console.error('Failed to enable camera after connection:', error);
-        }
-    }, 1000);
+        }, 1000);
+    } else {
+        // For regular users (viewers), disable controls and show appropriate UI
+        console.log('User is a viewer - camera and microphone controls disabled');
+        isCameraEnabled.value = false;
+        isMicrophoneEnabled.value = false;
+        isScreenSharing.value = false;
+    }
 };
 
 const handleConnecting = () => {
@@ -399,6 +517,10 @@ const handleLocalTrackPublished = (publication) => {
             if (videoElement) {
                 publication.track.attach(videoElement);
                 console.log('Local video element attached');
+                const v = /** @type {HTMLVideoElement} */ (videoElement);
+                if (typeof v.play === 'function') {
+                    v.play().catch(() => {});
+                }
             } else {
                 console.warn('Local video element not found');
             }
@@ -462,14 +584,57 @@ const handleTrackSubscribed = (track, publication, participant) => {
     console.log('Track subscribed:', track.kind, track.source, 'from', participant.identity);
 
     if (track.kind === Track.Kind.Video) {
+        // Ensure a tile exists for this participant; if not, add one locally
+        const exists = remoteParticipants.value.some((p) => p.identity === participant.identity);
+        if (!exists) {
+            remoteParticipants.value.push({
+                identity: participant.identity,
+                name: participant.name,
+                isCameraEnabled: true,
+                isMicrophoneEnabled: false,
+                isScreenSharing: false,
+                isSpeaking: false,
+            });
+        }
+
+        // Retry attach if element isn't ready yet
+        const tryAttach = (attempt = 0) => {
+            nextTick(() => {
+                const videoElement = document.getElementById(`video-${participant.identity}`);
+                if (videoElement) {
+                    track.attach(videoElement);
+                    console.log('Remote video track attached');
+                    const v = /** @type {HTMLVideoElement} */ (videoElement);
+                    if (typeof v.play === 'function') {
+                        v.play().catch((err) => {
+                            console.warn('Video play() blocked; will rely on Join Audio or user gesture.', err);
+                        });
+                    }
+                } else if (attempt < 20) {
+                    console.warn('Video element not found, retrying attach...', participant.identity, 'attempt', attempt + 1);
+                    setTimeout(() => tryAttach(attempt + 1), 200);
+                } else {
+                    console.warn('Video element not found for participant after retries:', participant.identity);
+                }
+            });
+        };
+        tryAttach(0);
+    }
+    if (track.kind === Track.Kind.Audio) {
         nextTick(() => {
-            const videoElement = document.getElementById(`video-${participant.identity}`);
-            if (videoElement) {
-                track.attach(videoElement);
-                console.log('Remote video track attached');
-            } else {
-                console.warn('Video element not found for participant:', participant.identity);
+            let audioElement = /** @type {HTMLAudioElement | null} */ (document.getElementById(`audio-${participant.identity}`));
+            if (!audioElement) {
+                audioElement = document.createElement('audio');
+                audioElement.id = `audio-${participant.identity}`;
+                audioElement.autoplay = true;
+                audioElement.setAttribute('playsinline', 'true');
+                audioElement.style.display = 'none';
+                document.body.appendChild(audioElement);
             }
+            track.attach(audioElement);
+            audioElement.play().catch((err) => {
+                console.warn('Audio play() blocked; needs user gesture. Use Join Audio.', err);
+            });
         });
     }
 };
@@ -478,27 +643,56 @@ const handleTrackUnsubscribed = (track, publication, participant) => {
     console.log('Track unsubscribed:', track.kind, track.source, 'from', participant.identity);
 };
 
-const handleDataReceived = (payload, participant) => {
-    if (payload.topic === 'chat') {
-        try {
-            const message = JSON.parse(new TextDecoder().decode(payload.data));
+const handleDataReceived = (payload, participant, _kind, topic) => {
+    try {
+        if (topic !== 'chat') return;
 
-            // Ensure chatMessages is an array before adding message
-            ensureChatMessagesArray();
-
-            chatMessages.value.push({
-                id: Date.now(),
-                sender: participant.identity,
-                text: message.text,
-                timestamp: new Date(),
-            });
-
-            console.log('Received message from:', participant.identity, 'Total messages:', chatMessages.value.length);
-            scrollToBottom();
-        } catch (error) {
-            console.error('Failed to handle received message:', error);
+        // Avoid duplicating local messages if SDK echoes to sender
+        if (participant?.identity && livekitRoom?.localParticipant?.identity && participant.identity === livekitRoom.localParticipant.identity) {
+            return;
         }
+
+        const decoded = new TextDecoder().decode(payload);
+        const message = JSON.parse(decoded);
+
+        // Ensure chatMessages is an array before adding message
+        ensureChatMessagesArray();
+
+        chatMessages.value.push({
+            id: Date.now(),
+            sender: participant?.identity || 'Unknown',
+            text: message.text,
+            timestamp: new Date(),
+        });
+
+        console.log('Received message from:', participant?.identity, 'Total messages:', chatMessages.value.length);
+        scrollToBottom();
+    } catch (error) {
+        console.error('Failed to handle received message:', error);
     }
+};
+
+const loadChatHistory = async () => {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const resp = await fetch(`/api/livekit/rooms/${props.roomId}/chat`, {
+        method: 'GET',
+        headers: {
+            Accept: 'application/json',
+            ...(csrfToken && { 'X-CSRF-TOKEN': csrfToken }),
+        },
+    });
+    if (!resp.ok) throw new Error('Failed to load chat');
+    const data = await resp.json();
+    const mapped = Array.isArray(data.messages)
+        ? data.messages.map((m) => ({
+              id: m.id,
+              sender: m.sender_identity || (m.sender_id ? `User ${m.sender_id}` : 'Unknown'),
+              text: m.text,
+              timestamp: m.sent_at ? new Date(m.sent_at) : new Date(),
+          }))
+        : [];
+    chatMessages.value = mapped;
+    scrollToBottom();
 };
 
 const updateParticipants = () => {
@@ -653,6 +847,25 @@ const sendMessage = async () => {
         console.log('chatMessages after push:', chatMessages.value);
         newMessage.value = '';
         scrollToBottom();
+
+        // Persist to backend (fire-and-forget)
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            await fetch(`/api/livekit/rooms/${props.roomId}/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    ...(csrfToken && { 'X-CSRF-TOKEN': csrfToken }),
+                },
+                body: JSON.stringify({
+                    text: messageData.text,
+                    participant_identity: participantIdentity.value || livekitRoom.localParticipant.identity,
+                }),
+            });
+        } catch (persistErr) {
+            console.error('Failed to persist chat message:', persistErr);
+        }
     } catch (error) {
         console.error('Failed to send message:', error);
     }
@@ -752,6 +965,29 @@ const testVideoElements = () => {
                 console.log('Remote Video Element Ref:', remoteVideoElement.ref);
             }
         });
+    }
+};
+
+const joinAudio = async () => {
+    if (!livekitRoom) return;
+    try {
+        await livekitRoom.startAudio();
+        hasStartedAudio.value = true;
+        console.log('Audio started after user gesture');
+        if (livekitRoom.participants) {
+            livekitRoom.participants.forEach((p) => {
+                const el = /** @type {HTMLVideoElement | null} */ (document.getElementById(`video-${p.identity}`));
+                if (el && typeof el.play === 'function') {
+                    el.play().catch(() => {});
+                }
+                const audioEl = /** @type {HTMLAudioElement | null} */ (document.getElementById(`audio-${p.identity}`));
+                if (audioEl) {
+                    audioEl.play().catch(() => {});
+                }
+            });
+        }
+    } catch (e) {
+        console.error('Failed to start audio on user gesture:', e);
     }
 };
 </script>
@@ -947,6 +1183,16 @@ const testVideoElements = () => {
 
 .leave-btn:hover {
     background: #dc2626;
+}
+
+.viewer-indicator {
+    padding: 0.5rem 1rem;
+    background: #6b7280;
+    color: white;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-right: 0.5rem;
 }
 
 .connection-status {

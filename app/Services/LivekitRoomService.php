@@ -25,7 +25,15 @@ class LivekitRoomService
 
     public function createRoom(Event $event, User $creator, int $maxParticipants = 100): LivekitRoom
     {
-        $roomName = 'event-' . $event->id . '-' . Str::random(8);
+        // Use consistent room name based on event ID - no random string!
+        $roomName = 'event-' . $event->id;
+
+        // Check if room already exists for this event
+        $existingRoom = LivekitRoom::where('event_id', $event->id)->first();
+        if ($existingRoom) {
+            // Room already exists, return it
+            return $existingRoom;
+        }
 
         // Create room in LiveKit server
         $roomOptions = (new RoomCreateOptions())

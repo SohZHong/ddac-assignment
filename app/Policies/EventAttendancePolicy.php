@@ -18,12 +18,12 @@ class EventAttendancePolicy
 
     public function create(User $user, Event $event, ?int $forUserId = null): bool
     {
-        // Managers/Admins can check in anyone for their own event
+        // Only managers/Admins can check in people for their own event
         if ($user->isSystemAdmin() || ($user->isHealthCampaignManager() && $event->created_by === $user->id)) {
             return true;
         }
-        // Regular users can only check in themselves
-        return $forUserId === null || $forUserId === $user->id;
+        // Regular users cannot check themselves in
+        return false;
     }
 
     public function delete(User $user, EventAttendance|string $attendance, Event $event, ?int $forUserId = null): bool

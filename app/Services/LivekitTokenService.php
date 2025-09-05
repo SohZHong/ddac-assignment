@@ -15,21 +15,23 @@ class LivekitTokenService
         $tokenOptions = (new AccessTokenOptions())
             ->setIdentity($participantIdentity);
 
-        $videoGrant = (new VideoGrant())
-            ->setRoomJoin()
-            ->setRoomName($room->room_name);
-
         // Set permissions based on user role and room ownership
         if ($user->id === $room->created_by) {
-            // Room creator has full permissions
-            $videoGrant->setCanPublish(true)
+            // Room creator (event creator) has full permissions
+            $videoGrant = (new VideoGrant())
+                ->setRoomJoin()
+                ->setRoomName($room->room_name)
+                ->setCanPublish(true)
                 ->setCanSubscribe(true)
                 ->setCanPublishData(true);
         } else {
-            // Regular participants can publish and subscribe
-            $videoGrant->setCanPublish(true)
-                ->setCanSubscribe(true)
-                ->setCanPublishData(true);
+            // Regular participants are viewers only - can watch and chat, but cannot stream
+            $videoGrant = (new VideoGrant())
+                ->setRoomJoin()
+                ->setRoomName($room->room_name)
+                ->setCanPublish(false) // Cannot publish audio/video
+                ->setCanSubscribe(true) // Can watch others
+                ->setCanPublishData(true); // Can chat
         }
 
         return (new AccessToken(
@@ -46,11 +48,12 @@ class LivekitTokenService
         $tokenOptions = (new AccessTokenOptions())
             ->setIdentity($participantIdentity);
 
+        // Viewers only - can watch and chat, but cannot stream
         $videoGrant = (new VideoGrant())
             ->setRoomJoin()
             ->setRoomName($room->room_name)
             ->setCanPublish(false) // Viewers cannot publish
-            ->setCanSubscribe(true)
+            ->setCanSubscribe(true) // Can watch others
             ->setCanPublishData(true); // But they can chat
 
         return (new AccessToken(
