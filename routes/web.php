@@ -20,6 +20,10 @@ Route::get('dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
+Route::get('/health/progress', [\App\Http\Controllers\HealthProgressController::class, 'index'])
+    ->middleware(['auth'])
+    ->name('health.progress');
+
 // Healthcare Professional Routes - UI (GET routes with Inertia::render)
 Route::middleware(['auth', 'role:healthcare_professional,health_campaign_manager,system_admin'])->group(function () {
     Route::get('/healthcare', function () {

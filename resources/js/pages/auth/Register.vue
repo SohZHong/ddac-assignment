@@ -57,7 +57,7 @@ const submit = () => {
                     <InputError :message="form.errors.email" />
                 </div>
 
-                <div class="grid gap-2 hidden">
+                <div class="grid hidden gap-2">
                     <Label for="role">User role</Label>
                     <Select v-model="form.role" default-value="1">
                         <SelectTrigger :tabindex="3" class="w-full">

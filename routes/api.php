@@ -11,3 +11,4 @@ require __DIR__.'/api/quiz.php';
 require __DIR__.'/api/report.php';
 require __DIR__.'/api/video-call.php';
 require __DIR__.'/api/healthcare.php';
+require __DIR__.'/api/health.php';
