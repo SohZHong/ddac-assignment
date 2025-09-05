@@ -30,7 +30,18 @@ const page = usePage();
 const user = computed(() => page.props.auth.user as User);
 
 const mainNavItems = computed((): NavItem[] => {
-    const items: NavItem[] = [];
+    const items: NavItem[] = [
+        {
+            title: 'Dashboard',
+            href: '/dashboard',
+            icon: LayoutGrid,
+        },
+        {
+            title: 'Public Events',
+            href: '/public/events',
+            icon: Calendar,
+        },
+    ];
 
     if (user.value.role === UserRole.PUBLIC_USER) {
         items.push(
@@ -123,6 +134,16 @@ const mainNavItems = computed((): NavItem[] => {
             title: 'Campaigns',
             href: '/campaigns',
             icon: Megaphone,
+        });
+        items.push({
+            title: 'Events',
+            href: '/events',
+            icon: Calendar,
+        });
+        items.push({
+            title: 'Calendar',
+            href: '/events/calendar',
+            icon: Calendar,
         });
     }
 

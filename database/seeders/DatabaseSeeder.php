@@ -25,6 +25,8 @@ class DatabaseSeeder extends Seeder
             ScheduleSeeder::class,
             BookingSeeder::class,
             HealthMetricSeeder::class,
+            CampaignSeeder::class,
+            EventSeeder::class,
         ]);
     }
 }
