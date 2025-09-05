@@ -56,7 +56,7 @@ return [
             'driver' => 'sqs',
             'key' => env('AWS_ACCESS_KEY_ID'),
             'secret' => env('AWS_SECRET_ACCESS_KEY'),
-            'prefix' => env('SQS_PREFIX', 'https://sqs.us-east-1.amazonaws.com/your-account-id'),
+            'prefix' => env('SQS_PREFIX', 'https://sqs.' . env('AWS_DEFAULT_REGION', 'us-east-1') . '.amazonaws.com/' . env('AWS_ACCOUNT_ID')),
             'queue' => env('SQS_QUEUE', 'default'),
             'suffix' => env('SQS_SUFFIX'),
             'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
@@ -86,7 +86,7 @@ return [
     */
 
     'batching' => [
-        'database' => env('DB_CONNECTION', 'sqlite'),
+        'database' => env('DB_CONNECTION', 'rds'),
         'table' => 'job_batches',
     ],
 
@@ -105,7 +105,7 @@ return [
 
     'failed' => [
         'driver' => env('QUEUE_FAILED_DRIVER', 'database-uuids'),
-        'database' => env('DB_CONNECTION', 'sqlite'),
+        'database' => env('DB_CONNECTION', 'rds'),
         'table' => 'failed_jobs',
     ],
 

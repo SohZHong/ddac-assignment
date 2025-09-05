@@ -64,7 +64,7 @@ const submit = () => {
                             id="user-role"
                             type="text"
                             class="mt-1 block w-full"
-                            v-model="user.role"
+                            v-model="user.role_label"
                             required
                             autocomplete="role"
                             placeholder="User role"

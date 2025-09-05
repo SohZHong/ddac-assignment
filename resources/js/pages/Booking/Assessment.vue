@@ -19,7 +19,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Appointments', href: '/appointments' },
     { title: `Assessment: ${props.quiz.title}`, href: '#' },
 ];
-// Keep track of answers
+
 const answers = ref<Record<number, string | number>>({});
 const localQuiz = ref<Quiz>(props.quiz);
 const localBooking = ref<Booking>(props.booking);
@@ -28,7 +28,6 @@ const toastMessage = ref({ title: '', description: '', variant: 'default' as 'de
 const dialogOpen = ref(false);
 
 function submitAnswers() {
-    // Check if the user has answered before
     const unanswered = localQuiz.value.questions?.filter((q) => {
         const ans = answers.value[Number(q.id)];
         return ans === '' || ans === null || ans === undefined;
@@ -68,14 +67,12 @@ function handleSubmitAnswer() {
             },
             onError: (errors: any) => {
                 console.error(errors);
-                // Add toast
                 toastMessage.value = {
                     title: `Assessment Submission Failed`,
                     description: 'Failed to submit assessment',
                     variant: 'destructive',
                 };
 
-                // Show toast
                 toastRef.value?.showToast();
                 console.error('Failed to submit assessment');
             },
@@ -83,13 +80,41 @@ function handleSubmitAnswer() {
     );
 }
 
+function getRiskLevelText(riskLevel: number): string {
+    switch (riskLevel) {
+        case 0:
+            return 'Low Risk';
+        case 1:
+            return 'Medium Risk';
+        case 2:
+            return 'High Risk';
+        default:
+            return 'Unknown';
+    }
+}
+
+function formatDate(dateString: string): string {
+    return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
 onMounted(() => {
-    // Initialize answers
     localQuiz.value.questions?.forEach((q) => {
         if (!(q.id in answers.value)) {
             answers.value[Number(q.id)] = '';
         }
     });
+
+    if (props.response && props.response.answers) {
+        props.response.answers.forEach((answer) => {
+            answers.value[Number(answer.question_id)] = answer.answer;
+        });
+    }
 });
 </script>
 
@@ -127,7 +152,13 @@ onMounted(() => {
                                 :key="opt"
                                 class="flex cursor-pointer items-center gap-2 rounded p-2 hover:bg-gray-600"
                             >
-                                <Input type="radio" :name="`q-${question.id}`" :value="opt" v-model="answers[Number(question.id)]" class="h-4 w-4" />
+                                <input
+                                    type="radio"
+                                    :name="`q-${question.id}`"
+                                    :value="opt"
+                                    v-model="answers[Number(question.id)]"
+                                    class="h-4 w-4 border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
+                                />
                                 <span>{{ opt }}</span>
                             </label>
                         </div>
@@ -135,11 +166,23 @@ onMounted(() => {
                         <!-- True/False Questions -->
                         <div v-else-if="question.type === QuestionType.TRUE_FALSE" class="flex gap-4">
                             <label class="flex cursor-pointer items-center gap-2 rounded p-2 hover:bg-gray-600">
-                                <Input type="radio" :name="`q-${question.id}`" value="true" v-model="answers[Number(question.id)]" class="h-4 w-4" />
+                                <input
+                                    type="radio"
+                                    :name="`q-${question.id}`"
+                                    value="true"
+                                    v-model="answers[Number(question.id)]"
+                                    class="h-4 w-4 border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
+                                />
                                 <span>True</span>
                             </label>
                             <label class="flex cursor-pointer items-center gap-2 rounded p-2 hover:bg-gray-600">
-                                <Input type="radio" :name="`q-${question.id}`" value="false" v-model="answers[Number(question.id)]" class="h-4 w-4" />
+                                <input
+                                    type="radio"
+                                    :name="`q-${question.id}`"
+                                    value="false"
+                                    v-model="answers[Number(question.id)]"
+                                    class="h-4 w-4 border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
+                                />
                                 <span>False</span>
                             </label>
                         </div>
@@ -148,6 +191,43 @@ onMounted(() => {
                         <div v-else-if="question.type === QuestionType.TEXT">
                             <Input type="text" v-model="answers[Number(question.id)]" placeholder="Enter your answer..." class="w-full" />
                         </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <!-- Doctor's Feedback Section -->
+            <div v-if="localBooking.healthcare_comments || localBooking.risk_level !== null" class="mt-8">
+                <Card class="border-black bg-blue-50 dark:border-black dark:bg-black">
+                    <CardHeader>
+                        <CardTitle class="text-lg text-white dark:text-white"> Doctor's Assessment & Feedback </CardTitle>
+                    </CardHeader>
+                    <CardContent class="space-y-4">
+                        <!-- Risk Level -->
+                        <div v-if="localBooking.risk_level !== null" class="flex items-center gap-3">
+                            <span class="text-sm font-medium text-black dark:text-blue-300">Risk Level:</span>
+                            <span
+                                :class="{
+                                    'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200': localBooking.risk_level === 0,
+                                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200': localBooking.risk_level === 1,
+                                    'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200': localBooking.risk_level === 2,
+                                }"
+                                class="rounded-full px-3 py-1 text-sm font-medium"
+                            >
+                                {{ getRiskLevelText(localBooking.risk_level) }}
+                            </span>
+                        </div>
+
+                        <div v-if="localBooking.healthcare_comments" class="space-y-2">
+                            <h4 class="text-sm font-medium text-black dark:text-blue-300">Comments from Dr. {{ localBooking.healthcare?.name }}:</h4>
+                            <div class="rounded-lg border border-black bg-white p-4 dark:border-black dark:bg-gray-800">
+                                <p class="leading-relaxed text-gray-700 dark:text-gray-300">
+                                    {{ localBooking.healthcare_comments }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Assessment Date -->
+                        <div class="dark:white text-dark text-xs">Assessment completed on {{ formatDate(localBooking.start_time) }}</div>
                     </CardContent>
                 </Card>
             </div>

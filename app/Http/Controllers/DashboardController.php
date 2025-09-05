@@ -113,8 +113,8 @@ class DashboardController extends Controller
                     'id' => $report->id,
                     'title' => $report->title ?? 'Consultation Report',
                     'created_at' => $report->created_at,
-                    'doctor_name' => $report->uploadedBy->name ?? 'Unknown Doctor',
-                    'file_path' => $report->file_path ? Storage::disk($disk)->url($report->file_path) : null,
+                    'doctor_name' => $report->doctor->name ?? 'Unknown Doctor',
+                    'file_path' => $report->report_url ? Storage::disk($disk)->url($report->report_url) : null,
                 ];
             }),
             'recentBlogs' => $recentBlogs->map(function ($blog) {
