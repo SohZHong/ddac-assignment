@@ -162,7 +162,7 @@ class QuizSeeder extends Seeder
                 'healthcare_id' => $healthcare->id,
                 'title' => $quizData['title'],
                 'description' => $quizData['description'],
-                'active' => true, // Make all quizzes active
+                'active' => false, // Make all quizzes inactive
             ]);
 
             // Create questions for this quiz
