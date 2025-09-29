@@ -25,7 +25,7 @@ class BookingQueueService
         $this->sqs->sendMessage([
             'QueueUrl'    => $this->queueUrl,
             'MessageBody' => json_encode($message),
-            'MessageGroupId' => 'booking', // FIFO grouping
+            'MessageGroupId' => 'patient-booking', // FIFO grouping
         ]);
     }
 }

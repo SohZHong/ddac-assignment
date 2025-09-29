@@ -31,8 +31,8 @@ export const handler = async (event: SQSEvent) => {
 
         // Insert booking into DB
         await client.query(
-            `INSERT INTO bookings (schedule_id, patient_id, start_time, end_time, status)
-       VALUES ($1,$2,$3,$4,$5)`,
+            `INSERT INTO bookings (schedule_id, patient_id, start_time, end_time, status, created_at)
+             VALUES ($1,$2,$3,$4,$5,NOW())`,
             [booking.schedule_id, booking.patient_id, booking.start_time, booking.end_time, booking.status],
         );
 

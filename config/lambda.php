@@ -13,7 +13,7 @@ return [
     ],
     'sqs' => [
         'region'  => env('AWS_DEFAULT_REGION', 'us-east-1'),
-        'version' => '2010-03-31',
+        'version' => '2012-11-05',
         'credentials' => [
             'key'    => env('AWS_ACCESS_KEY_ID'),
             'secret' => env('AWS_SECRET_ACCESS_KEY'),

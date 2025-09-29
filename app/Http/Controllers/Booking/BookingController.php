@@ -242,7 +242,9 @@ class BookingController extends Controller
             'status'      => Booking::PENDING,
         ]);
 
-        return redirect()->back()->with('success', 'Your booking has been queued. You will be notified shortly.');
+        return response()->json([
+            'message' => 'Your booking has been queued. You will be notified shortly.',
+        ], 201);
     }
 
     public function approve(string $id)
