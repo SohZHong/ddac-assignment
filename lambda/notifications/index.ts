@@ -1,4 +1,7 @@
+import { PublishCommand, SNSClient } from '@aws-sdk/client-sns';
 import { Context, SNSEvent } from 'aws-lambda';
+
+const sns = new SNSClient({ region: process.env.AWS_DEFAULT_REGION });
 
 // Universal Notification Handler
 export const handler = async (event: SNSEvent, context: Context) => {
@@ -7,27 +10,19 @@ export const handler = async (event: SNSEvent, context: Context) => {
 
         console.log('Received SNS message:', snsMessage);
 
-        switch (snsMessage.type) {
-            case 'booking_confirmation':
-                await sendEmail(snsMessage.recipient, 'Booking Confirmation', snsMessage.message);
-                break;
-
-            case 'schedule_reminder':
-                await sendEmail(snsMessage.recipient, 'Schedule Reminder', snsMessage.message);
-                break;
-
-            case 'cancellation':
-                await sendEmail(snsMessage.recipient, 'Booking Cancelled', snsMessage.message);
-                break;
-
-            default:
-                console.warn('Unknown notification type:', snsMessage.type);
-        }
+        await publishToSns(process.env.NOTIFY_TOPIC_ARN!, snsMessage);
     }
 };
 
-// Example: Replace this with SES, Pinpoint, or 3rd-party service later
-async function sendEmail(to: string, subject: string, body: string) {
-    console.log(`📧 Sending email to ${to} | Subject: ${subject} | Body: ${body}`);
-    // TODO: integrate AWS SES or another email/SMS provider here
+// Publishes messages to SNS
+async function publishToSns(topicArn: string, message: any) {
+    await sns.send(
+        new PublishCommand({
+            TopicArn: topicArn,
+            Message: JSON.stringify(message),
+            Subject: message.type ?? 'Notification',
+        }),
+    );
+
+    console.log(`Message forwarded to SNS topic: ${topicArn}`);
 }

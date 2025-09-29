@@ -6,7 +6,6 @@ use App\Models\Booking;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use App\Notifications\Channels\SnsChannel;
 
 class BookingNotification extends Notification
 {
@@ -28,7 +27,8 @@ class BookingNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database', SnsChannel::class];
+        // return ['database', 'sns'];
+        return ['database'];
     }
 
     /**
@@ -59,14 +59,17 @@ class BookingNotification extends Notification
         ];
     }
 
-    public function toSns(object $notifiable) {
-        return [
-            'booking_id'   => $this->booking->id,
-            'patient_name' => $this->booking->patient->name,
-            'schedule_id'  => $this->booking->schedule_id,
-            'start_time'   => $this->booking->start_time,
-            'end_time'     => $this->booking->end_time,
-            'message'      => 'New booking request awaiting your approval.',
-        ];
-    }
+    // public function toSns(object $notifiable): array
+    // {
+    //     return [
+    //         'type'         => 'booking_created',
+    //         'booking_id'   => $this->booking->id,
+    //         'recipient'    => $notifiable->email ?? $notifiable->routeNotificationFor('mail') ?? null,
+    //         'patient_name' => $this->booking->patient->name,
+    //         'schedule_id'  => $this->booking->schedule_id,
+    //         'start_time'   => $this->booking->start_time,
+    //         'end_time'     => $this->booking->end_time,
+    //         'message'      => 'New booking request awaiting your approval.',
+    //     ];
+    // }
 }
