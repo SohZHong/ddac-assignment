@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
 import { Building2, Calendar, Clock, MapPin, Play, Radio, Square, User, Users, Video } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -54,17 +53,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Public Events',
-        href: '/public/events',
-    },
-    {
-        title: props.event.title,
-        href: `/public/events/${props.event.id}`,
-    },
-];
 
 const formatDateTime = (dateString: string) => new Date(dateString).toLocaleString();
 const formatTime = (dateString: string) => new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -193,8 +181,6 @@ const endLivestream = async () => {
         console.error('Failed to end livestream:', error);
     }
 };
-
-const goBack = () => router.visit('/public/events');
 </script>
 
 <template>
@@ -365,11 +351,7 @@ const goBack = () => router.visit('/public/events');
 
                                     <div class="flex gap-2">
                                         <!-- Join Livestream Button -->
-                                        <Button
-                                            v-if="canJoinLivestream"
-                                            @click="goToLivestream"
-                                            class="flex items-center gap-2"
-                                        >
+                                        <Button v-if="canJoinLivestream" @click="goToLivestream" class="flex items-center gap-2">
                                             <Play class="h-4 w-4" />
                                             {{ isLivestreamLive ? 'Join Stream' : 'Join Scheduled Stream' }}
                                         </Button>
@@ -406,10 +388,14 @@ const goBack = () => router.visit('/public/events');
                                         </div>
                                     </div>
                                     <div class="text-sm text-muted-foreground">
-                                        <div v-if="event.livestream_room.started_at">Started: {{ formatDateTime(event.livestream_room.started_at) }}</div>
+                                        <div v-if="event.livestream_room.started_at">
+                                            Started: {{ formatDateTime(event.livestream_room.started_at) }}
+                                        </div>
                                         <div v-if="event.livestream_room.ended_at">Ended: {{ formatDateTime(event.livestream_room.ended_at) }}</div>
                                         <div>
-                                            Participants: {{ event.livestream_room.current_participants }}/{{ event.livestream_room.max_participants }}
+                                            Participants: {{ event.livestream_room.current_participants }}/{{
+                                                event.livestream_room.max_participants
+                                            }}
                                         </div>
                                     </div>
                                 </div>

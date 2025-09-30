@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
 import { Calendar, Clock, Eye, MapPin, Search, Video } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
@@ -42,13 +41,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Public Events',
-        href: '/public/events',
-    },
-];
 
 // Search and filter state
 const searchQuery = ref('');
@@ -136,15 +128,13 @@ const formatDuration = (minutes: number) => {
     <AppLayout>
         <Head title="Public Events" />
 
-        <div class="container mx-auto py-6 space-y-6">
+        <div class="container mx-auto space-y-6 py-6">
             <!-- Header -->
             <div class="flex flex-col gap-4">
                 <div class="flex items-center justify-between">
                     <div>
                         <h1 class="text-3xl font-bold tracking-tight">Public Events</h1>
-                        <p class="text-muted-foreground">
-                            Browse and discover upcoming health events and webinars
-                        </p>
+                        <p class="text-muted-foreground">Browse and discover upcoming health events and webinars</p>
                     </div>
                 </div>
             </div>
@@ -153,21 +143,15 @@ const formatDuration = (minutes: number) => {
             <Card>
                 <CardHeader>
                     <CardTitle>Search & Filters</CardTitle>
-                    <CardDescription>
-                        Find events that match your interests and schedule
-                    </CardDescription>
+                    <CardDescription> Find events that match your interests and schedule </CardDescription>
                 </CardHeader>
                 <CardContent class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <div class="space-y-2">
                             <label class="text-sm font-medium">Search</label>
                             <div class="relative">
-                                <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                    v-model="searchQuery"
-                                    placeholder="Search events..."
-                                    class="pl-10"
-                                />
+                                <Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input v-model="searchQuery" placeholder="Search events..." class="pl-10" />
                             </div>
                         </div>
                         <div class="space-y-2">
@@ -178,11 +162,7 @@ const formatDuration = (minutes: number) => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All types</SelectItem>
-                                    <SelectItem
-                                        v-for="type in eventTypes"
-                                        :key="type"
-                                        :value="type"
-                                    >
+                                    <SelectItem v-for="type in eventTypes" :key="type" :value="type">
                                         {{ type }}
                                     </SelectItem>
                                 </SelectContent>
@@ -196,11 +176,7 @@ const formatDuration = (minutes: number) => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All campaigns</SelectItem>
-                                    <SelectItem
-                                        v-for="campaign in campaigns"
-                                        :key="campaign.id"
-                                        :value="campaign.id.toString()"
-                                    >
+                                    <SelectItem v-for="campaign in campaigns" :key="campaign.id" :value="campaign.id.toString()">
                                         {{ campaign.title }}
                                     </SelectItem>
                                 </SelectContent>
@@ -214,9 +190,7 @@ const formatDuration = (minutes: number) => {
             <Card>
                 <CardHeader>
                     <CardTitle>Available Events</CardTitle>
-                    <CardDescription>
-                        {{ filteredEvents.length }} event{{ filteredEvents.length !== 1 ? 's' : '' }} found
-                    </CardDescription>
+                    <CardDescription> {{ filteredEvents.length }} event{{ filteredEvents.length !== 1 ? 's' : '' }} found </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div class="rounded-md border">
@@ -232,15 +206,11 @@ const formatDuration = (minutes: number) => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                <TableRow
-                                    v-for="event in filteredEvents"
-                                    :key="event.id"
-                                    class="hover:bg-muted/50"
-                                >
+                                <TableRow v-for="event in filteredEvents" :key="event.id" class="hover:bg-muted/50">
                                     <TableCell>
                                         <div class="space-y-1">
                                             <div class="font-medium">{{ event.title }}</div>
-                                            <div class="text-sm text-muted-foreground line-clamp-2">
+                                            <div class="line-clamp-2 text-sm text-muted-foreground">
                                                 {{ event.description }}
                                             </div>
                                             <div class="flex items-center gap-2 text-xs text-muted-foreground">
@@ -253,7 +223,7 @@ const formatDuration = (minutes: number) => {
                                         <Badge :variant="getStatusBadge(event.status)">
                                             {{ event.status }}
                                         </Badge>
-                                        <div class="text-sm text-muted-foreground mt-1">
+                                        <div class="mt-1 text-sm text-muted-foreground">
                                             {{ event.type }}
                                         </div>
                                     </TableCell>
@@ -283,9 +253,7 @@ const formatDuration = (minutes: number) => {
                                                 <MapPin class="h-4 w-4 text-muted-foreground" />
                                                 <span class="text-sm">{{ event.location }}</span>
                                             </div>
-                                            <div v-else class="text-sm text-muted-foreground">
-                                                Location TBD
-                                            </div>
+                                            <div v-else class="text-sm text-muted-foreground">Location TBD</div>
                                         </div>
                                     </TableCell>
                                     <TableCell>

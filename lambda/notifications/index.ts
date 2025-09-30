@@ -1,10 +1,10 @@
 import { PublishCommand, SNSClient } from '@aws-sdk/client-sns';
-import { Context, SNSEvent } from 'aws-lambda';
+import { SNSEvent } from 'aws-lambda';
 
 const sns = new SNSClient({ region: process.env.AWS_DEFAULT_REGION });
 
 // Universal Notification Handler
-export const handler = async (event: SNSEvent, context: Context) => {
+export const handler = async (event: SNSEvent) => {
     for (const record of event.Records) {
         const snsMessage = JSON.parse(record.Sns.Message);
 

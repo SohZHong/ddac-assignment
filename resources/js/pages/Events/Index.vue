@@ -147,10 +147,6 @@ const createNewEvent = () => {
     router.visit('/events/create');
 };
 
-const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
-};
-
 const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
 };

@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/vue3';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Megaphone, Plus, Search, Eye, Edit, Trash2, Calendar, Target, Users } from 'lucide-vue-next';
-import { ref, computed } from 'vue';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { type BreadcrumbItem } from '@/types';
+import { Head, router } from '@inertiajs/vue3';
+import { Calendar, Edit, Eye, Megaphone, Plus, Search, Target, Trash2 } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 
 interface Campaign {
     id: number;
@@ -60,22 +60,23 @@ const filteredCampaigns = computed(() => {
     // Search filter
     if (searchQuery.value) {
         const query = searchQuery.value.toLowerCase();
-        filtered = filtered.filter(campaign =>
-            campaign.title.toLowerCase().includes(query) ||
-            campaign.description.toLowerCase().includes(query) ||
-            campaign.type.toLowerCase().includes(query) ||
-            campaign.target_audience?.toLowerCase().includes(query)
+        filtered = filtered.filter(
+            (campaign) =>
+                campaign.title.toLowerCase().includes(query) ||
+                campaign.description.toLowerCase().includes(query) ||
+                campaign.type.toLowerCase().includes(query) ||
+                campaign.target_audience?.toLowerCase().includes(query),
         );
     }
 
     // Status filter
     if (statusFilter.value !== 'all') {
-        filtered = filtered.filter(campaign => campaign.status === statusFilter.value);
+        filtered = filtered.filter((campaign) => campaign.status === statusFilter.value);
     }
 
     // Type filter
     if (typeFilter.value !== 'all') {
-        filtered = filtered.filter(campaign => campaign.type === typeFilter.value);
+        filtered = filtered.filter((campaign) => campaign.type === typeFilter.value);
     }
 
     return filtered;
@@ -83,7 +84,7 @@ const filteredCampaigns = computed(() => {
 
 // Get unique campaign types for filter
 const campaignTypes = computed(() => {
-    const types = [...new Set(props.campaigns.map(c => c.type))];
+    const types = [...new Set(props.campaigns.map((c) => c.type))];
     return types.sort();
 });
 
@@ -155,19 +156,13 @@ const formatDate = (dateString: string) => {
                         <Search class="h-5 w-5" />
                         Search & Filters
                     </CardTitle>
-                    <CardDescription>
-                        Find campaigns by title, description, or filter by status and type
-                    </CardDescription>
+                    <CardDescription> Find campaigns by title, description, or filter by status and type </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div class="grid gap-4 md:grid-cols-3">
                         <div class="space-y-2">
                             <label class="text-sm font-medium">Search</label>
-                            <Input
-                                v-model="searchQuery"
-                                placeholder="Search campaigns..."
-                                class="w-full"
-                            />
+                            <Input v-model="searchQuery" placeholder="Search campaigns..." class="w-full" />
                         </div>
                         <div class="space-y-2">
                             <label class="text-sm font-medium">Status</label>
@@ -209,18 +204,20 @@ const formatDate = (dateString: string) => {
                         <Megaphone class="h-5 w-5" />
                         Campaigns ({{ filteredCampaigns.length }})
                     </CardTitle>
-                    <CardDescription>
-                        All health awareness campaigns and their current status
-                    </CardDescription>
+                    <CardDescription> All health awareness campaigns and their current status </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div v-if="filteredCampaigns.length === 0" class="text-center py-8">
+                    <div v-if="filteredCampaigns.length === 0" class="py-8 text-center">
                         <Megaphone class="mx-auto h-12 w-12 text-muted-foreground" />
                         <h3 class="mt-2 text-sm font-medium text-muted-foreground">
                             {{ props.campaigns.length === 0 ? 'No campaigns yet' : 'No campaigns match your filters' }}
                         </h3>
                         <p class="mt-1 text-sm text-muted-foreground">
-                            {{ props.campaigns.length === 0 ? 'Get started by creating your first health campaign.' : 'Try adjusting your search or filters.' }}
+                            {{
+                                props.campaigns.length === 0
+                                    ? 'Get started by creating your first health campaign.'
+                                    : 'Try adjusting your search or filters.'
+                            }}
                         </p>
                         <div v-if="props.campaigns.length === 0" class="mt-6">
                             <Button @click="createNewCampaign">
@@ -247,12 +244,10 @@ const formatDate = (dateString: string) => {
                                     <TableCell>
                                         <div>
                                             <div class="font-medium">{{ campaign.title }}</div>
-                                            <div class="text-sm text-muted-foreground line-clamp-2">
+                                            <div class="line-clamp-2 text-sm text-muted-foreground">
                                                 {{ campaign.description }}
                                             </div>
-                                            <div class="text-xs text-muted-foreground mt-1">
-                                                Created by {{ campaign.creator }}
-                                            </div>
+                                            <div class="mt-1 text-xs text-muted-foreground">Created by {{ campaign.creator }}</div>
                                         </div>
                                     </TableCell>
                                     <TableCell>
@@ -268,9 +263,9 @@ const formatDate = (dateString: string) => {
                                     </TableCell>
                                     <TableCell>
                                         <div class="flex items-center gap-2">
-                                            <div class="w-16 bg-secondary rounded-full h-2">
+                                            <div class="h-2 w-16 rounded-full bg-secondary">
                                                 <div
-                                                    class="bg-primary h-2 rounded-full transition-all"
+                                                    class="h-2 rounded-full bg-primary transition-all"
                                                     :style="{ width: `${campaign.progress_percentage}%` }"
                                                 ></div>
                                             </div>
