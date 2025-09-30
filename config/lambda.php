@@ -21,4 +21,7 @@ return [
         ],
         'queue_url' => env('AWS_SQS_QUEUE_URL'),
     ],
+    'api' => [
+        'booking' => env('AWS_API_GATEWAY_BOOKING_URL')
+    ]
 ];

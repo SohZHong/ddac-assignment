@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Booking;
 
 use App\Http\Controllers\Controller;
-use App\Notifications\BookingNotification;
 use App\Models\Booking;
 use App\Models\Quiz;
 use App\Models\QuizResponse;
@@ -18,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Services\BookingQueueService;
+use Illuminate\Support\Facades\Http;
 
 class BookingController extends Controller
 {
@@ -168,48 +168,6 @@ class BookingController extends Controller
         return redirect()->route('booking.index')->with('success', 'Assessment submitted successfully.');
     }
 
-    // public function store(Request $request, BookingQueueService $queueService)
-    // {
-    //     $validated = $request->validate([
-    //         'schedule_id'  => 'required|exists:schedules,id',
-    //         'start_time'   => 'required|date',
-    //         'end_time'     => 'required|date|after:start_time',
-    //     ]);
-
-    //     // Get the corresponding schedule
-    //     $schedule = Schedule::findOrFail($validated['schedule_id']);
-
-    //     $this->authorize('store', [Booking::class, $schedule, $validated['start_time']]);
-
-    //     // $user = Auth::user();
-
-    //     // $booking = Booking::create([
-    //     //     'schedule_id' => $validated['schedule_id'],
-    //     //     'patient_id'  => $user->id,
-    //     //     'start_time'  => $validated['start_time'],
-    //     //     'end_time'    => $validated['end_time'],
-    //     //     'status'      => Booking::PENDING,
-    //     // ]);
-
-    //     // // Notify healthcare professional
-    //     // $healthcare = $schedule->healthcare;
-    //     // $healthcare->notify(new BookingNotification($booking));
-
-    //     // // For Inertia.js requests, return a redirect with flash message
-    //     // return redirect()->back()->with('success', 'Consultation booked successfully! Your appointment is pending confirmation.');
-
-    //     $bookingData = [
-    //         'patient_id' => auth()->id(),
-    //         'schedule_id' => $request->schedule_id,
-    //         'start_time' => $request->start_time,
-    //         'end_time' => $request->end_time,
-    //     ];
-
-    //     $queueService->push($bookingData);
-
-    //     return response()->json(['message' => 'Booking queued. You will be notified shortly.']);
-    // }
-
     public function store(Request $request, BookingQueueService $queueService)
     {
         $validated = $request->validate([
@@ -233,18 +191,28 @@ class BookingController extends Controller
             ]);
         }
 
-        // Push booking to SQS
-        $queueService->push([
-            'schedule_id' => $validated['schedule_id'],
-            'patient_id'  => $user->id,
-            'start_time'  => $validated['start_time'],
-            'end_time'    => $validated['end_time'],
-            'status'      => Booking::PENDING,
-        ]);
+        $response = Http::post(
+            config('lambda.api.booking'),
+            [
+                'schedule_id' => $validated['schedule_id'],
+                'patient_id'  => $user->id,
+                'start_time'  => $validated['start_time'],
+                'end_time'    => $validated['end_time'],
+                'status'      => Booking::PENDING,
+            ]
+        );
+
+        if ($response->successful()) {
+            return response()->json([
+                'message' => 'Your booking has been queued. Please await doctor\'s approval',
+                'gateway_response' => $response->json(),
+            ], 201);
+        }
 
         return response()->json([
-            'message' => 'Your booking has been queued. You will be notified shortly.',
-        ], 201);
+            'error' => 'Failed to queue booking',
+            'details' => $response->json(),
+        ], $response->status());
     }
 
     public function approve(string $id)

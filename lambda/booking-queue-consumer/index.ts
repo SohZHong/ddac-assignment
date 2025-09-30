@@ -1,5 +1,8 @@
+import { PublishCommand, SNSClient } from '@aws-sdk/client-sns';
 import { SQSEvent, SQSRecord } from 'aws-lambda';
 import { Client } from 'pg';
+
+const sns = new SNSClient({ region: process.env.AWS_DEFAULT_REGION });
 
 // Create a single client instance outside handler for reuse across warm starts
 const client = new Client({
@@ -45,6 +48,35 @@ async function processRecord(record: SQSRecord) {
        VALUES ($1,$2,$3,$4,$5,NOW())`,
             [booking.schedule_id, booking.patient_id, booking.start_time, booking.end_time, booking.status ?? 'PENDING'],
         );
+
+        const startTime = new Date(booking.start_time).toLocaleString('en-US', {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+            timeZone: 'Asia/Singapore',
+        });
+
+        const endTime = new Date(booking.end_time).toLocaleString('en-US', {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+            timeZone: 'Asia/Singapore',
+        });
+
+        const message = `
+New Booking Request
+          
+Patient ID: ${booking.patient_id}
+Schedule ID: ${booking.schedule_id}
+Start Time: ${startTime}
+End Time:   ${endTime}
+        `;
+
+        await sns.send(
+            new PublishCommand({
+                TopicArn: process.env.DOCTOR_SNS_TOPIC_ARN,
+                Message: message,
+                Subject: 'New Booking Notification',
+            }),
+        );
         console.log('Booking confirmed:', booking);
     } catch (err: any) {
         // Handle race condition: duplicate insert if two Lambdas race
@@ -69,28 +101,3 @@ export const handler = async (event: SQSEvent) => {
         }
     }
 };
-
-// Optional: Notify patient via SNS
-// await sns.send(
-//     new PublishCommand({
-//         TopicArn: process.env.NOTIFY_TOPIC_ARN,
-//         Message: JSON.stringify({
-//             type: 'booking_confirmation',
-//             recipient: booking.patient_email,
-//             message: 'Your booking has been confirmed.',
-//         }),
-//         Subject: 'Booking Confirmation',
-//     }),
-// );
-
-// await sns.send(new PublishCommand({
-//     TopicArn: process.env.DOCTOR_SNS_TOPIC_ARN,
-//     Message: JSON.stringify({
-//         type: "new_booking",
-//         patient_id: booking.patient_id,
-//         schedule_id: booking.schedule_id,
-//         start_time: booking.start_time,
-//         end_time: booking.end_time
-//     }),
-//     Subject: "New Booking Notification"
-// }));
