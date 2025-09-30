@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
-
+use App\Services\AwsNotificationService;
+use Illuminate\Notifications\ChannelManager;
+use App\Notifications\Channels\SnsChannel;
 class AppServiceProvider extends ServiceProvider
 {
 
@@ -32,5 +34,9 @@ class AppServiceProvider extends ServiceProvider
         if (config('app.env') === 'production') {
             URL::forceScheme('https');
         }
+
+        $this->app->make(ChannelManager::class)->extend('sns', function ($app) {
+            return new SnsChannel($app->make(AwsNotificationService::class));
+        });
     }
 }

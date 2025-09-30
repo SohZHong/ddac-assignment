@@ -1,0 +1,22 @@
+{
+    "name": "ddac-notification",
+    "version": "1.0.0",
+    "main": "dist/index.mjs",
+    "type": "module",
+    "scripts": {
+        "build": "esbuild index.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist/index.mjs"
+    },
+    "devDependencies": {
+        "@types/aws-lambda": "^8.10.152",
+        "esbuild": "^0.21.0",
+        "typescript": "^5.9.2"
+    },
+    "description": "",
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@aws-sdk/client-sns": "^3.896.0",
+        "aws-lambda": "^1.0.7"
+    }
+}

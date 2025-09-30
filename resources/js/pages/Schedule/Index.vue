@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import axios from '@/axios';
 import BookingDialog from '@/components/BookingDialog.vue';
+import Toast from '@/components/Toast.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -17,7 +18,6 @@ import { ref } from 'vue';
 const props = defineProps<{
     schedules: FreeSchedule[];
 }>();
-console.log(props.schedules);
 const selectedSchedule = ref<FreeSchedule | null>(null);
 const dialogOpen = ref(false);
 const events = ref<FreeSchedule[]>(props.schedules);
@@ -52,7 +52,6 @@ async function handleConfirmBooking(e: { eventId: string; scheduleId: string; st
         .post(route('api.booking.store'), payload)
         .then((res) => {
             dialogOpen.value = false;
-            console.log('Booking created:', res.data);
 
             // Remove from events
             events.value = events.value.filter((data) => data.id !== e.eventId);
@@ -63,9 +62,21 @@ async function handleConfirmBooking(e: { eventId: string; scheduleId: string; st
             if (calendarEvent) {
                 calendarEvent.remove();
             }
+            toastMessage.value = {
+                title: 'Success',
+                description: res.data.message,
+                variant: 'success',
+            };
+            toastRef.value?.showToast();
         })
         .catch((err) => {
             console.error('Booking failed:', err);
+            toastMessage.value = {
+                title: 'Error',
+                description: 'Failed to booking appointment: ' + err.message,
+                variant: 'destructive',
+            };
+            toastRef.value?.showToast();
         });
 }
 
@@ -86,6 +97,13 @@ const calendarOptions: CalendarOptions = {
     // When event is clicked to book
     eventClick: handleCalendarClick,
 };
+
+const toastRef = ref<InstanceType<typeof Toast> | null>(null);
+const toastMessage = ref({
+    title: '',
+    description: '',
+    variant: 'default' as 'default' | 'success' | 'destructive',
+});
 </script>
 <style scoped>
 :deep(.fc button),
@@ -105,6 +123,7 @@ const calendarOptions: CalendarOptions = {
 </style>
 <template>
     <Head title="Available Schedules" />
+    <Toast ref="toastRef" :title="toastMessage.title" :description="toastMessage.description" :variant="toastMessage.variant" />
 
     <AppLayout>
         <!-- Booking Dialog -->
