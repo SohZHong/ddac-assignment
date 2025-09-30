@@ -76,7 +76,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import LivekitRoom from '@/components/LivekitRoom.vue';
 import { onMounted, ref } from 'vue';
 

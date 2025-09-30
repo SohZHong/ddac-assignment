@@ -1,13 +1,13 @@
 <script setup lang="ts">
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Megaphone, ArrowLeft, Edit, Trash2, Calendar, Target, Users, DollarSign, MapPin, User, Clock, BarChart3 } from 'lucide-vue-next';
+import { ArrowLeft, BarChart3, Calendar, Clock, DollarSign, Edit, MapPin, Megaphone, Target, Trash2, User, Users } from 'lucide-vue-next';
 
 interface CampaignEvent {
     id: number;
@@ -122,13 +122,6 @@ const getDaysRemaining = () => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
 };
-
-const getProgressColor = (percentage: number) => {
-    if (percentage >= 80) return 'bg-green-500';
-    if (percentage >= 60) return 'bg-yellow-500';
-    if (percentage >= 40) return 'bg-orange-500';
-    return 'bg-red-500';
-};
 </script>
 
 <template>
@@ -162,29 +155,25 @@ const getProgressColor = (percentage: number) => {
             <!-- Campaign Overview -->
             <div class="grid gap-6 md:grid-cols-3">
                 <!-- Main Campaign Info -->
-                <div class="md:col-span-2 space-y-6">
+                <div class="space-y-6 md:col-span-2">
                     <Card>
                         <CardHeader>
                             <CardTitle class="flex items-center gap-2">
                                 <Megaphone class="h-5 w-5" />
                                 Campaign Overview
                             </CardTitle>
-                            <CardDescription>
-                                Detailed information about this health campaign
-                            </CardDescription>
+                            <CardDescription> Detailed information about this health campaign </CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-4">
                             <div class="flex items-center gap-3">
                                 <Badge :variant="getStatusBadge(campaign.status)">
                                     {{ campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1) }}
                                 </Badge>
-                                <span class="text-sm text-muted-foreground">
-                                    Created by {{ campaign.creator }}
-                                </span>
+                                <span class="text-sm text-muted-foreground"> Created by {{ campaign.creator }} </span>
                             </div>
-                            
+
                             <div>
-                                <h3 class="font-medium mb-2">Description</h3>
+                                <h3 class="mb-2 font-medium">Description</h3>
                                 <p class="text-muted-foreground">{{ campaign.description }}</p>
                             </div>
 
@@ -228,9 +217,7 @@ const getProgressColor = (percentage: number) => {
                                 <BarChart3 class="h-5 w-5" />
                                 Progress Tracking
                             </CardTitle>
-                            <CardDescription>
-                                Campaign progress and timeline information
-                            </CardDescription>
+                            <CardDescription> Campaign progress and timeline information </CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-4">
                             <div class="space-y-2">
@@ -246,11 +233,11 @@ const getProgressColor = (percentage: number) => {
                             </div>
 
                             <div class="grid gap-4 md:grid-cols-3">
-                                <div class="text-center p-4 border rounded-lg">
+                                <div class="rounded-lg border p-4 text-center">
                                     <div class="text-2xl font-bold">{{ campaign.duration_days }}</div>
                                     <div class="text-sm text-muted-foreground">Total Days</div>
                                 </div>
-                                <div class="text-center p-4 border rounded-lg">
+                                <div class="rounded-lg border p-4 text-center">
                                     <div class="text-2xl font-bold" :class="getDaysRemaining() >= 0 ? 'text-green-600' : 'text-red-600'">
                                         {{ getDaysRemaining() >= 0 ? getDaysRemaining() : 'Overdue' }}
                                     </div>
@@ -258,7 +245,7 @@ const getProgressColor = (percentage: number) => {
                                         {{ getDaysRemaining() >= 0 ? 'Days Remaining' : 'Days Overdue' }}
                                     </div>
                                 </div>
-                                <div class="text-center p-4 border rounded-lg">
+                                <div class="rounded-lg border p-4 text-center">
                                     <div class="text-2xl font-bold">{{ campaign.target_reach?.toLocaleString() || 'N/A' }}</div>
                                     <div class="text-sm text-muted-foreground">Target Reach</div>
                                 </div>
@@ -273,17 +260,13 @@ const getProgressColor = (percentage: number) => {
                                 <Calendar class="h-5 w-5" />
                                 Associated Events
                             </CardTitle>
-                            <CardDescription>
-                                Events related to this campaign
-                            </CardDescription>
+                            <CardDescription> Events related to this campaign </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div v-if="campaign.events.length === 0" class="text-center py-8">
+                            <div v-if="campaign.events.length === 0" class="py-8 text-center">
                                 <Calendar class="mx-auto h-12 w-12 text-muted-foreground" />
                                 <h3 class="mt-2 text-sm font-medium text-muted-foreground">No events yet</h3>
-                                <p class="mt-1 text-sm text-muted-foreground">
-                                    No events have been associated with this campaign.
-                                </p>
+                                <p class="mt-1 text-sm text-muted-foreground">No events have been associated with this campaign.</p>
                             </div>
                             <div v-else class="rounded-md border">
                                 <Table>

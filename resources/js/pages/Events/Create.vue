@@ -21,8 +21,6 @@ interface Props {
     campaigns: Campaign[];
 }
 
-const props = defineProps<Props>();
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Events',

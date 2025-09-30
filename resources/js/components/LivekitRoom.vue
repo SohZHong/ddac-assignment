@@ -134,7 +134,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { Room, RoomEvent, Track } from 'livekit-client';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
@@ -149,7 +149,6 @@ const props = defineProps({
     },
 });
 
-const room = ref(null);
 const localParticipant = ref(null);
 const remoteParticipants = ref([]);
 const newMessage = ref('');
@@ -517,7 +516,7 @@ const handleLocalTrackPublished = (publication) => {
             if (videoElement) {
                 publication.track.attach(videoElement);
                 console.log('Local video element attached');
-                const v = /** @type {HTMLVideoElement} */ (videoElement);
+                const v = /** @type {HTMLVideoElement} */ videoElement;
                 if (typeof v.play === 'function') {
                     v.play().catch(() => {});
                 }
@@ -604,7 +603,7 @@ const handleTrackSubscribed = (track, publication, participant) => {
                 if (videoElement) {
                     track.attach(videoElement);
                     console.log('Remote video track attached');
-                    const v = /** @type {HTMLVideoElement} */ (videoElement);
+                    const v = /** @type {HTMLVideoElement} */ videoElement;
                     if (typeof v.play === 'function') {
                         v.play().catch((err) => {
                             console.warn('Video play() blocked; will rely on Join Audio or user gesture.', err);
@@ -622,7 +621,7 @@ const handleTrackSubscribed = (track, publication, participant) => {
     }
     if (track.kind === Track.Kind.Audio) {
         nextTick(() => {
-            let audioElement = /** @type {HTMLAudioElement | null} */ (document.getElementById(`audio-${participant.identity}`));
+            let audioElement = /** @type {HTMLAudioElement | null} */ document.getElementById(`audio-${participant.identity}`);
             if (!audioElement) {
                 audioElement = document.createElement('audio');
                 audioElement.id = `audio-${participant.identity}`;
@@ -901,72 +900,72 @@ const leaveRoom = async () => {
     }
 };
 
-const testVideoElements = () => {
-    console.log('Testing video elements...');
-    if (livekitRoom?.localParticipant) {
-        const localVideoElement = document.getElementById(`video-${livekitRoom.localParticipant.identity}`);
-        console.log('Local Video Element:', !!localVideoElement);
-        if (localVideoElement) {
-            console.log('Local Video Element ID:', localVideoElement.id);
-            console.log('Local Video Element Ref:', localVideoElement.ref);
-            console.log('Local Video Element Dimensions:', localVideoElement.offsetWidth, 'x', localVideoElement.offsetHeight);
-            console.log('Local Video Element Style:', {
-                display: localVideoElement.style.display,
-                visibility: localVideoElement.style.visibility,
-                opacity: localVideoElement.style.opacity,
-                zIndex: localVideoElement.style.zIndex,
-            });
-            console.log('Local Video Element Computed Style:', {
-                display: window.getComputedStyle(localVideoElement).display,
-                visibility: window.getComputedStyle(localVideoElement).visibility,
-                opacity: window.getComputedStyle(localVideoElement).opacity,
-                zIndex: window.getComputedStyle(localVideoElement).zIndex,
-            });
+// const testVideoElements = () => {
+//     console.log('Testing video elements...');
+//     if (livekitRoom?.localParticipant) {
+//         const localVideoElement = document.getElementById(`video-${livekitRoom.localParticipant.identity}`);
+//         console.log('Local Video Element:', !!localVideoElement);
+//         if (localVideoElement) {
+//             console.log('Local Video Element ID:', localVideoElement.id);
+//             console.log('Local Video Element Ref:', localVideoElement.ref);
+//             console.log('Local Video Element Dimensions:', localVideoElement.offsetWidth, 'x', localVideoElement.offsetHeight);
+//             console.log('Local Video Element Style:', {
+//                 display: localVideoElement.style.display,
+//                 visibility: localVideoElement.style.visibility,
+//                 opacity: localVideoElement.style.opacity,
+//                 zIndex: localVideoElement.style.zIndex,
+//             });
+//             console.log('Local Video Element Computed Style:', {
+//                 display: window.getComputedStyle(localVideoElement).display,
+//                 visibility: window.getComputedStyle(localVideoElement).visibility,
+//                 opacity: window.getComputedStyle(localVideoElement).opacity,
+//                 zIndex: window.getComputedStyle(localVideoElement).zIndex,
+//             });
 
-            // Check if video has srcObject
-            if (localVideoElement.srcObject) {
-                console.log('Local Video has srcObject:', localVideoElement.srcObject);
-                const tracks = localVideoElement.srcObject.getTracks();
-                console.log('Local Video Tracks:', tracks.length);
-                tracks.forEach((track) => {
-                    console.log('Track:', track.kind, track.enabled, track.readyState);
-                });
-            } else {
-                console.log('Local Video has NO srcObject');
-            }
+//             // Check if video has srcObject
+//             if (localVideoElement.srcObject) {
+//                 console.log('Local Video has srcObject:', localVideoElement.srcObject);
+//                 const tracks = localVideoElement.srcObject.getTracks();
+//                 console.log('Local Video Tracks:', tracks.length);
+//                 tracks.forEach((track) => {
+//                     console.log('Track:', track.kind, track.enabled, track.readyState);
+//                 });
+//             } else {
+//                 console.log('Local Video has NO srcObject');
+//             }
 
-            // Check CSS properties that might hide video
-            const computedStyle = window.getComputedStyle(localVideoElement);
-            console.log('CSS Debug Info:');
-            console.log('- display:', computedStyle.display);
-            console.log('- visibility:', computedStyle.visibility);
-            console.log('- opacity:', computedStyle.opacity);
-            console.log('- width:', computedStyle.width);
-            console.log('- height:', computedStyle.height);
-            console.log('- position:', computedStyle.position);
-            console.log('- z-index:', computedStyle.zIndex);
-            console.log('- overflow:', computedStyle.overflow);
-            console.log('- background:', computedStyle.background);
+//             // Check CSS properties that might hide video
+//             const computedStyle = window.getComputedStyle(localVideoElement);
+//             console.log('CSS Debug Info:');
+//             console.log('- display:', computedStyle.display);
+//             console.log('- visibility:', computedStyle.visibility);
+//             console.log('- opacity:', computedStyle.opacity);
+//             console.log('- width:', computedStyle.width);
+//             console.log('- height:', computedStyle.height);
+//             console.log('- position:', computedStyle.position);
+//             console.log('- z-index:', computedStyle.zIndex);
+//             console.log('- overflow:', computedStyle.overflow);
+//             console.log('- background:', computedStyle.background);
 
-            // Check if video is actually playing
-            console.log('Video readyState:', localVideoElement.readyState);
-            console.log('Video paused:', localVideoElement.paused);
-            console.log('Video ended:', localVideoElement.ended);
-            console.log('Video currentTime:', localVideoElement.currentTime);
-            console.log('Video duration:', localVideoElement.duration);
-        }
-    }
-    if (livekitRoom?.participants) {
-        livekitRoom.participants.forEach((participant) => {
-            const remoteVideoElement = document.getElementById(`video-${participant.identity}`);
-            console.log(`Remote Video Element for ${participant.identity}:`, !!remoteVideoElement);
-            if (remoteVideoElement) {
-                console.log('Remote Video Element ID:', remoteVideoElement.id);
-                console.log('Remote Video Element Ref:', remoteVideoElement.ref);
-            }
-        });
-    }
-};
+//             // Check if video is actually playing
+//             console.log('Video readyState:', localVideoElement.readyState);
+//             console.log('Video paused:', localVideoElement.paused);
+//             console.log('Video ended:', localVideoElement.ended);
+//             console.log('Video currentTime:', localVideoElement.currentTime);
+//             console.log('Video duration:', localVideoElement.duration);
+//         }
+//     }
+//     if (livekitRoom?.participants) {
+//         livekitRoom.participants.forEach((participant) => {
+//             const remoteVideoElement = document.getElementById(`video-${participant.identity}`);
+//             console.log(`Remote Video Element for ${participant.identity}:`, !!remoteVideoElement);
+//             if (remoteVideoElement) {
+//                 console.log('Remote Video Element ID:', remoteVideoElement.id);
+//                 console.log('Remote Video Element Ref:', remoteVideoElement.ref);
+//             }
+//         });
+//     }
+// };
 
 const joinAudio = async () => {
     if (!livekitRoom) return;
@@ -976,11 +975,11 @@ const joinAudio = async () => {
         console.log('Audio started after user gesture');
         if (livekitRoom.participants) {
             livekitRoom.participants.forEach((p) => {
-                const el = /** @type {HTMLVideoElement | null} */ (document.getElementById(`video-${p.identity}`));
+                const el = /** @type {HTMLVideoElement | null} */ document.getElementById(`video-${p.identity}`);
                 if (el && typeof el.play === 'function') {
                     el.play().catch(() => {});
                 }
-                const audioEl = /** @type {HTMLAudioElement | null} */ (document.getElementById(`audio-${p.identity}`));
+                const audioEl = /** @type {HTMLAudioElement | null} */ document.getElementById(`audio-${p.identity}`);
                 if (audioEl) {
                     audioEl.play().catch(() => {});
                 }
