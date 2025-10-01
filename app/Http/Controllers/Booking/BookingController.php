@@ -16,7 +16,6 @@ use App\Notifications\PatientCompleteAssessmentNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
-use App\Services\BookingQueueService;
 use Illuminate\Support\Facades\Http;
 
 class BookingController extends Controller
@@ -168,7 +167,7 @@ class BookingController extends Controller
         return redirect()->route('booking.index')->with('success', 'Assessment submitted successfully.');
     }
 
-    public function store(Request $request, BookingQueueService $queueService)
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'schedule_id' => 'required|exists:schedules,id',
