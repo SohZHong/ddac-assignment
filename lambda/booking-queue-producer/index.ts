@@ -3,7 +3,7 @@ import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import type { APIGatewayProxyHandler } from 'aws-lambda';
 
 // Reuse client across Lambda invocations
-const sqs = new SQSClient({ region: process.env.AWS_REGION });
+const sqs = new SQSClient({ region: process.env.AWS_DEFAULT_REGION });
 
 export const handler: APIGatewayProxyHandler = async (event) => {
     console.log('Incoming event:', JSON.stringify(event));

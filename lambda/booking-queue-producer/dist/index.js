@@ -1,7 +1,7 @@
 'use strict';
 const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');
 
-const sqs = new SQSClient({ region: process.env.AWS_REGION });
+const sqs = new SQSClient({ region: process.env.AWS_DEFAULT_REGION });
 
 module.exports.handler = async (event) => {
     console.log('Incoming event:', JSON.stringify(event));

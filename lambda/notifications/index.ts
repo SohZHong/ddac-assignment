@@ -10,7 +10,7 @@ export const handler = async (event: SNSEvent) => {
 
         console.log('Received SNS message:', snsMessage);
 
-        await publishToSns(process.env.NOTIFY_TOPIC_ARN!, snsMessage);
+        await publishToSns(process.env.AWS_SNS_TOPIC_ARN!, snsMessage);
     }
 };
 
