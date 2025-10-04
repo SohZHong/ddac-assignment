@@ -85,9 +85,9 @@
                 <p class="mt-1 text-sm">{{ credential.additional_info }}</p>
               </div>
 
-              <div class="mt-4">
+              <div class="mt-4 cursor-pointer">
                 <Button asChild variant="outline">
-                  <a :href="credential.document_url" target="_blank" rel="noopener noreferrer">
+                  <a :href="credential.document_url" target="_blank" rel="noopener noreferrer" @click="handleViewDocumentClick(credential)">
                     View Document
                   </a>
                 </Button>
@@ -231,7 +231,7 @@ const rejectDialogOpen = ref(false)
 const approveDialogOpen = ref(false)
 const rejectionReason = ref('')
 
-const approve = () => {
+const approve = (): void => {
   processing.value = true
   router.post(route('admin.approvals.approve', props.user.id), {}, {
     onFinish: () => {
@@ -264,5 +264,47 @@ const reject = () => {
       rejectionReason.value = ''
     },
   })
+}
+
+// Diagnostic logger for View Document clicks
+const handleViewDocumentClick = async (credential: Credential) => {
+  try {
+    // Do not prevent navigation; just log diagnostics in parallel
+    const url = credential.document_url
+    // Basic presence checks
+    console.log('[Approvals] View Document clicked', {
+      credentialId: credential.id,
+      type: credential.type,
+      number: credential.number,
+      url,
+    })
+
+    if (!url) {
+      console.warn('[Approvals] No document_url available for credential', credential.id)
+      return
+    }
+
+    // HEAD request to surface CORS or permissions quickly
+    try {
+      const headResp = await fetch(url, { method: 'HEAD', mode: 'cors' as RequestMode })
+      console.log('[Approvals] HEAD status', headResp.status, Object.fromEntries(headResp.headers.entries()))
+      if (!headResp.ok) {
+        console.warn('[Approvals] HEAD not OK - likely permissions/CORS issue')
+      }
+    } catch (e) {
+      console.error('[Approvals] HEAD request failed (CORS or network)', e)
+    }
+
+    // Try image probe if it looks like an image file
+    const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(url)
+    if (isImage) {
+      const img = new Image()
+      img.onload = () => console.log('[Approvals] Image probe loaded OK', { width: img.width, height: img.height })
+      img.onerror = (err) => console.error('[Approvals] Image probe failed (blocked or not public)', err)
+      img.src = url
+    }
+  } catch (err) {
+    console.error('[Approvals] Unexpected error during View Document diagnostics', err)
+  }
 }
 </script>

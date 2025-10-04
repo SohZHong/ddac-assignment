@@ -8,6 +8,9 @@ use App\UserRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -81,10 +84,62 @@ class ProfessionalApplicationController extends Controller
         ]);
 
         $disk = config('filesystems.default');
+        Log::info('Professional application submission received', [
+            'user_id' => $user->id,
+            'disk' => $disk,
+            'credential_count' => is_array($request->input('credentials')) ? count($request->input('credentials')) : 0,
+        ]);
 
         // Store credentials
-        foreach ($request->credentials as $credential) {
-            $path = $credential['document']->store('credentials', $disk);
+        $credentialsInput = $request->input('credentials', []);
+        foreach ($credentialsInput as $index => $credential) {
+            $file = $request->file("credentials.$index.document");
+
+            if (! $file) {
+                Log::warning('Credential document missing in request', [
+                    'user_id' => $user->id,
+                    'index' => $index,
+                ]);
+                continue;
+            }
+
+            $bucket = config('filesystems.disks.s3.bucket');
+            try {
+                $path = Storage::disk($disk)->putFile('credentials', $file, ['visibility' => 'public']);
+            } catch (\Throwable $e) {
+                Log::error('Exception while storing credential document', [
+                    'user_id' => $user->id,
+                    'index' => $index,
+                    'disk' => $disk,
+                    'bucket' => $bucket,
+                    'error' => $e->getMessage(),
+                ]);
+                throw ValidationException::withMessages([
+                    "credentials.$index.document" => 'Failed to upload document (storage error). Check S3 configuration and permissions.',
+                ]);
+            }
+
+            if (! $path) {
+                Log::error('Failed to store credential document (no path returned)', [
+                    'user_id' => $user->id,
+                    'index' => $index,
+                    'disk' => $disk,
+                    'bucket' => $bucket,
+                    'has_key' => (bool) env('AWS_ACCESS_KEY_ID'),
+                    'has_secret' => (bool) env('AWS_SECRET_ACCESS_KEY'),
+                ]);
+                throw ValidationException::withMessages([
+                    "credentials.$index.document" => 'Failed to upload document. Please verify FILESYSTEM_DISK and AWS_* env vars.',
+                ]);
+            }
+            Log::info('Stored credential document', [
+                'user_id' => $user->id,
+                'index' => $index,
+                'original' => $file->getClientOriginalName(),
+                'mime' => $file->getClientMimeType(),
+                'size' => $file->getSize(),
+                'path' => $path,
+            ]);
 
             $user->professionalCredentials()->create([
                 'credential_type' => $credential['type'],

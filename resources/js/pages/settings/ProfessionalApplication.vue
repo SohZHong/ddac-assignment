@@ -159,9 +159,11 @@
                 <!-- Document Upload -->
                 <div class="space-y-2">
                   <Label :for="'credential-document-' + index">Upload Document*</Label>
-                  <Input
+                  <!-- Use native input to ensure FileList is captured correctly in FormData -->
+                  <input
                     :id="'credential-document-' + index"
                     type="file"
+                    class="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
                     @change="(e: Event) => handleFileUpload(e, index)"
                     accept=".pdf,.jpg,.jpeg,.png"
                   />
@@ -282,11 +284,33 @@ const removeCredential = (index: number) => {
 const handleFileUpload = (event: Event, index: number) => {
   const input = event.target as HTMLInputElement
   if (input.files?.length) {
-    credentials.value[index].document = input.files[0]
+    const file = input.files[0]
+    credentials.value[index].document = file
+    console.log('[ProfessionalApplication] file selected', {
+      index,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+    })
+  } else {
+    console.warn('[ProfessionalApplication] no file selected', { index })
   }
 }
 
 const submit = () => {
+  console.log('[ProfessionalApplication] submitting with', {
+    role: form.role,
+    credentials: credentials.value.map((c, i) => ({
+      i,
+      hasDocument: !!c.document,
+      type: c.type,
+      number: c.number,
+      issuer: c.issuer,
+      issue_date: c.issue_date,
+      expiry_date: c.expiry_date,
+    })),
+  })
+
   form
     .transform(() => {
       const formData = new FormData()
@@ -298,7 +322,11 @@ const submit = () => {
         formData.append(`credentials[${index}][issuer]`, cred.issuer)
         formData.append(`credentials[${index}][issue_date]`, cred.issue_date)
         if (cred.expiry_date) formData.append(`credentials[${index}][expiry_date]`, cred.expiry_date)
-        if (cred.document) formData.append(`credentials[${index}][document]`, cred.document)
+        if (cred.document) {
+          formData.append(`credentials[${index}][document]`, cred.document)
+        } else {
+          console.warn('[ProfessionalApplication] missing document in FormData for index', index)
+        }
         if (cred.additional_info) formData.append(`credentials[${index}][additional_info]`, cred.additional_info)
       })
 
