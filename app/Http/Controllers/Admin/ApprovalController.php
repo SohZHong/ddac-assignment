@@ -17,6 +17,8 @@ use App\UserRole as RoleEnum;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Services\AdminApprovalQueue;
+use App\Services\AdminEventsPublisher;
+use App\Services\CloudWatchMetrics;
 
 class ApprovalController extends Controller
 {
@@ -110,6 +112,7 @@ class ApprovalController extends Controller
      */
     public function approve(Request $request, User $user): RedirectResponse
     {
+        $t0 = microtime(true);
         if (! Auth::user() || ! Auth::user()->isSystemAdmin()) {
             abort(403, 'You do not have permission to review this approval.');
         }
@@ -156,6 +159,27 @@ class ApprovalController extends Controller
             // Do not block user flow if queue publish fails
         }
 
+        // Publish SNS admin event (fan-out to email/SQS/etc.)
+        try {
+            $subject = 'Your application has been approved';
+            $body = "Hi {$user->name},\n\nGreat news! Your professional account application has been approved.\nYou can now access your dashboard: " . url('/dashboard') . "\n\nThanks,\nThe Team";
+            app(AdminEventsPublisher::class)->publish('approval.approved', [
+                'userId' => $user->id,
+                'actorId' => (int) Auth::id(),
+                'email' => $user->email,
+                'name' => $user->name,
+            ], $subject, $body);
+        } catch (\Throwable $e) {
+            // non-blocking
+        }
+
+        // Emit latency metric
+        $latencyMs = (microtime(true) - $t0) * 1000.0;
+        app(CloudWatchMetrics::class)->putTiming('approvalLatencyMs', $latencyMs, [
+            'route' => 'approve',
+            'result' => 'approved',
+        ]);
+
         return back()->with('success', 'User has been approved successfully.');
     }
 
@@ -164,6 +188,7 @@ class ApprovalController extends Controller
      */
     public function reject(Request $request, User $user): RedirectResponse
     {
+        $t0 = microtime(true);
         if (! Auth::user() || ! Auth::user()->isSystemAdmin()) {
             abort(403, 'You do not have permission to review this approval.');
         }
@@ -210,6 +235,28 @@ class ApprovalController extends Controller
         } catch (\Throwable $e) {
             // Do not block user flow if queue publish fails
         }
+
+        // Publish SNS admin event (fan-out to email/SQS/etc.)
+        try {
+            $subject = 'Update on your application';
+            $body = "Hi {$user->name},\n\nWe reviewed your application but could not approve it at this time.\nReason: {$request->reason}\n\nYou may update your profile and reapply here: " . url('/settings/profile') . "\n\nThanks,\nThe Team";
+            app(AdminEventsPublisher::class)->publish('approval.rejected', [
+                'userId' => $user->id,
+                'actorId' => (int) Auth::id(),
+                'email' => $user->email,
+                'name' => $user->name,
+                'reason' => $request->reason,
+            ], $subject, $body);
+        } catch (\Throwable $e) {
+            // non-blocking
+        }
+
+        // Emit latency metric
+        $latencyMs = (microtime(true) - $t0) * 1000.0;
+        app(CloudWatchMetrics::class)->putTiming('approvalLatencyMs', $latencyMs, [
+            'route' => 'reject',
+            'result' => 'rejected',
+        ]);
 
         return back()->with('success', 'User has been rejected.');
     }
