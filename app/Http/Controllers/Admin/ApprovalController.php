@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Storage;
 use App\UserRole as RoleEnum;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Services\AdminApprovalQueue;
 
 class ApprovalController extends Controller
 {
@@ -142,6 +143,19 @@ class ApprovalController extends Controller
         // Notify the user
         $user->notify(new ApprovalStatusChanged('approved'));
 
+        // Publish async side-effects to SQS (non-blocking)
+        try {
+            app(AdminApprovalQueue::class)->publish([
+                'type' => 'approval.approved',
+                'userId' => $user->id,
+                'actorId' => (int) Auth::id(),
+                'email' => $user->email,
+                'at' => now()->toISOString(),
+            ]);
+        } catch (\Throwable $e) {
+            // Do not block user flow if queue publish fails
+        }
+
         return back()->with('success', 'User has been approved successfully.');
     }
 
@@ -182,6 +196,20 @@ class ApprovalController extends Controller
         
         // Notify the user
         $user->notify(new ApprovalStatusChanged('rejected', $request->reason));
+
+        // Publish async side-effects to SQS (non-blocking)
+        try {
+            app(AdminApprovalQueue::class)->publish([
+                'type' => 'approval.rejected',
+                'userId' => $user->id,
+                'actorId' => (int) Auth::id(),
+                'email' => $user->email,
+                'reason' => $request->reason,
+                'at' => now()->toISOString(),
+            ]);
+        } catch (\Throwable $e) {
+            // Do not block user flow if queue publish fails
+        }
 
         return back()->with('success', 'User has been rejected.');
     }
