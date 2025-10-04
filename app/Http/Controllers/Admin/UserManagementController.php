@@ -257,6 +257,28 @@ class UserManagementController extends Controller
     }
 
     /**
+     * Mark a user's email as verified by setting email_verified_at to now (system admin only).
+     */
+    public function verifyEmail(Request $request, User $user): RedirectResponse
+    {
+        /** @var User $currentUser */
+        $currentUser = Auth::user();
+
+        // Only system admins can mark emails as verified
+        if (!$currentUser->isSystemAdmin()) {
+            abort(403, 'You do not have permission to verify user emails.');
+        }
+
+        $request->validate([]);
+
+        $user->update([
+            'email_verified_at' => now(),
+        ]);
+
+        return back()->with('success', "{$user->name}'s email has been marked as verified.");
+    }
+
+    /**
      * Delete a user (system admin only).
      */
     public function destroy(User $user): RedirectResponse

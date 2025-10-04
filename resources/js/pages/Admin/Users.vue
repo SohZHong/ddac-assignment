@@ -87,6 +87,7 @@ const roleUpdateForm = useForm({
 });
 
 const verificationForm = useForm({});
+const emailVerifyForm = useForm({});
 
 const addUserForm = useForm({
     name: '',
@@ -173,6 +174,20 @@ const unverifyUser = (user: UserData) => {
         verificationForm.patch(route('admin.users.unverify', user.id), {
             onSuccess: () => {
                 verificationForm.reset();
+            },
+        });
+    }
+};
+
+// Email verification (mark email_verified_at)
+const markEmailVerified = (user: UserData) => {
+    if (user.email_verified_at) return;
+    if (confirm(`Mark ${user.name}'s email as verified?`)) {
+        emailVerifyForm.patch(route('admin.users.verify-email', user.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                emailVerifyForm.reset();
+                router.reload({ only: ['users'] });
             },
         });
     }
@@ -406,6 +421,17 @@ const canManageUser = (user: UserData) => {
                                                         Revoke Verification
                                                     </DropdownMenuItem>
                                                 </template>
+
+                                                <!-- Email verification (admin only) -->
+                                                <DropdownMenuSeparator v-if="currentUser.role === '4'" />
+                                                <DropdownMenuItem
+                                                    v-if="currentUser.role === '4' && !user.email_verified_at"
+                                                    @click="markEmailVerified(user)"
+                                                    class="text-green-600"
+                                                >
+                                                    <Check class="mr-2 h-4 w-4" />
+                                                    Mark Email Verified
+                                                </DropdownMenuItem>
 
                                                 <DropdownMenuSeparator v-if="currentUser.role === '4'" />
                                                 <DropdownMenuItem v-if="currentUser.role === '4'" @click="deleteUser(user)" class="text-red-600">

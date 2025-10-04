@@ -30,6 +30,18 @@ class User extends Authenticatable implements MustVerifyEmail
         'approval_status',
         'rejection_reason',
         'approved_at',
+        'email_verified_at',
+        'is_verified',
+        'verified_at',
+        'work_email',
+        'license_number',
+        'medical_specialty',
+        'institution_name',
+        'registration_body',
+        'organization_name',
+        'job_title',
+        'organization_type',
+        'focus_areas',
     ];
 
     /**

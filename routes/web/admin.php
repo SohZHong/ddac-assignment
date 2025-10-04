@@ -27,6 +27,8 @@ Route::middleware(['auth', 'role:system_admin'])->group(function () {
         ->name('admin.users.verify');
     Route::patch('/admin/users/{user}/unverify', [UserManagementController::class, 'unverify'])
         ->name('admin.users.unverify');
+    Route::patch('/admin/users/{user}/verify-email', [UserManagementController::class, 'verifyEmail'])
+        ->name('admin.users.verify-email');
     Route::delete('/admin/users/{user}', [UserManagementController::class, 'destroy'])
         ->name('admin.users.destroy');
     
