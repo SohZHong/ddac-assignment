@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AdminLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class SnsController extends Controller
 {
@@ -15,13 +16,24 @@ class SnsController extends Controller
 
         // Basic validation of SNS signature is omitted for brevity; can be added later
         if ($type === 'SubscriptionConfirmation') {
+            // Auto-confirm the HTTPS subscription so SNS can start delivering notifications
+            $confirmed = false;
+            if (!empty($payload['SubscribeURL'])) {
+                try {
+                    $resp = Http::timeout(5)->get($payload['SubscribeURL']);
+                    $confirmed = $resp->successful();
+                } catch (\Throwable $e) {
+                    Log::warning('SNS auto-confirm failed', ['error' => $e->getMessage()]);
+                }
+            }
+
             // Store a log entry for audit
             AdminLog::create([
                 'user_id' => null,
                 'action' => 'sns_subscription_confirmation',
                 'target_type' => 'sns',
                 'target_id' => $payload['TopicArn'] ?? null,
-                'metadata' => $payload,
+                'metadata' => array_merge($payload, ['auto_confirmed' => $confirmed]),
                 'ip_address' => $request->ip(),
             ]);
             // Let SNS know we received it; actual confirm is done by hitting SubscribeURL (optional server-side fetch)
