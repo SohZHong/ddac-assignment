@@ -6,6 +6,7 @@ use App\Models\VideoCall;
 use App\Models\Booking;
 use App\Models\User;
 use App\Notifications\MeetingLinkNotification;
+use App\Services\SNSMeetingLinkService;
 use App\Events\WebRTCSignal;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -172,7 +173,7 @@ class VideoCallController extends Controller
         ));
 
         return response()->json(['success' => true]);
-    }    
+    }
     
     /**
      * Get call information
@@ -254,31 +255,42 @@ class VideoCallController extends Controller
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
 
-            $patient = User::findOrFail($validated['patient_id']);
-
-            $patient->notify(new MeetingLinkNotification([
-                'doctor_name' => $validated['doctor_name'],
-                'room_id' => $validated['room_id'],
-            ]));
-
-            // Log the notification for debugging
-            Log::info('Meeting link notification sent', [
+            $snsService = new SNSMeetingLinkService();
+            $snsResult = $snsService->sendMeetingLinkNotification([
                 'patient_id' => $validated['patient_id'],
+                'patient_name' => $validated['patient_name'],
                 'doctor_id' => $validated['doctor_id'],
+                'doctor_name' => $validated['doctor_name'],
                 'room_id' => $validated['room_id'],
             ]);
 
+            if (!$snsResult) {
+                $patient = User::findOrFail($validated['patient_id']);
+                $patient->notify(new MeetingLinkNotification([
+                    'doctor_name' => $validated['doctor_name'],
+                    'room_id' => $validated['room_id'],
+                ]));
+
+                Log::warning('SNS failed, used fallback notification', [
+                    'patient_id' => $validated['patient_id'],
+                    'doctor_id' => $validated['doctor_id'],
+                    'room_id' => $validated['room_id'],
+                ]);
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Meeting link notification sent successfully',
+                'message' => 'Meeting link notification sent via SNS successfully',
+                'method' => $snsResult ? 'sns' : 'direct',
                 'data' => [
                     'patient_name' => $validated['patient_name'],
                     'room_id' => $validated['room_id'],
+                    'channels' => ['email', 'sms', 'push_notification'], // SNS fan-out channels
                 ]
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Failed to send meeting link notification', [
+            Log::error('Failed to send meeting link notification via SNS', [
                 'error' => $e->getMessage(),
                 'request_data' => $request->all(),
             ]);

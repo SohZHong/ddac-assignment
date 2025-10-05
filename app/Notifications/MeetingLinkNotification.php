@@ -27,7 +27,7 @@ class MeetingLinkNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'mail']; 
     }
 
     /**
@@ -36,12 +36,14 @@ class MeetingLinkNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Video Consultation Meeting Link')
+            ->subject('Video Consultation Meeting Link (Fallback)')
             ->greeting('Hello ' . $notifiable->name . ',')
             ->line('Dr. ' . $this->data['doctor_name'] . ' has started a video consultation session with you.')
             ->line('Please click the button below to join the video call:')
+            ->action('Join Video Call', url('/video-call/' . $this->data['room_id']))
             ->line('Room ID: ' . $this->data['room_id'])
             ->line('If you have any issues joining the call, please contact our support team.')
+            ->line('Note: This is a fallback notification. Primary notifications are sent via SNS.')
             ->salutation('Best regards, Healthcare Team');
     }
 
@@ -53,10 +55,14 @@ class MeetingLinkNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
+            'notification_type' => 'meeting_link_fallback',
             'doctor_name' => $this->data['doctor_name'],
             'room_id' => $this->data['room_id'],
+            'meeting_url' => url('/video-call/' . $this->data['room_id']),
             'timestamp' => now(),
+            'delivery_method' => 'direct_fallback',
             'message' => "Dr. {$this->data['doctor_name']} has started a video consultation session. Copy the room id {$this->data['room_id']} to join",
+            'note' => 'This is a fallback notification. Primary delivery via SNS failed.',
         ];
     }
 }
