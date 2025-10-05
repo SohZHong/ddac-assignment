@@ -1,0 +1,13 @@
+{
+  "name": "campaign-schedule-trigger",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "main": "index.js",
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "@types/aws-lambda": "^8.10.137"
+  },
+  "dependencies": {
+    "@aws-sdk/client-sns": "^3.899.0"
+  }
+}
