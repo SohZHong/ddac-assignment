@@ -95,7 +95,7 @@ const createRoom = async () => {
     }
 
     try {
-        await axios.post('/api/video-calls/notifications/meeting-link', {
+        await axios.post('https://1olu1hlaxb.execute-api.us-east-1.amazonaws.com/default/meeting-notification-service', {
             room_id: roomId.value,
             doctor_id: props.doctor.id,
             patient_id: props.patient.id,
