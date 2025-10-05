@@ -27,33 +27,56 @@ class SnsController extends Controller
                 }
             }
 
-            // Store a log entry for audit
-            AdminLog::create([
-                'user_id' => null,
-                'action' => 'sns_subscription_confirmation',
-                'target_type' => 'sns',
-                'target_id' => $payload['TopicArn'] ?? null,
-                'metadata' => array_merge($payload, ['auto_confirmed' => $confirmed]),
-                'ip_address' => $request->ip(),
-            ]);
+            // Store a log entry for audit (best-effort; do not fail request)
+            try {
+                AdminLog::create([
+                    'user_id' => null,
+                    'action' => 'sns_subscription_confirmation',
+                    'target_type' => 'sns',
+                    // target_id is bigint; avoid writing ARN string. Leave null.
+                    'target_id' => null,
+                    'metadata' => array_merge($payload, ['auto_confirmed' => $confirmed]),
+                    'ip_address' => $request->ip(),
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('SNS subscription confirmed but log not persisted', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
             // Let SNS know we received it; actual confirm is done by hitting SubscribeURL (optional server-side fetch)
             return response()->json(['status' => 'ok']);
         }
 
         if ($type === 'Notification') {
-            $message = $payload['Message'] ?? null;
+            $rawMessage = $payload['Message'] ?? null;
+            $parsed = $this->tryDecode($rawMessage);
 
-            AdminLog::create([
-                'user_id' => null,
-                'action' => 'sns_campaign_event',
-                'target_type' => 'campaign',
-                'target_id' => $payload['Subject'] ?? null,
-                'metadata' => [
-                    'sns' => $payload,
-                    'parsed' => $this->tryDecode($message),
-                ],
-                'ip_address' => $request->ip(),
-            ]);
+            // Attempt to derive a numeric target id from parsed message (e.g., campaignId)
+            $targetId = null;
+            if (is_array($parsed)) {
+                // Accept either numeric or numeric-string campaignId
+                if (isset($parsed['campaignId']) && is_numeric($parsed['campaignId'])) {
+                    $targetId = (int) $parsed['campaignId'];
+                }
+            }
+
+            try {
+                AdminLog::create([
+                    'user_id' => null,
+                    'action' => 'sns_campaign_event',
+                    'target_type' => 'campaign',
+                    'target_id' => $targetId,
+                    'metadata' => [
+                        'sns' => $payload,
+                        'parsed' => $parsed,
+                    ],
+                    'ip_address' => $request->ip(),
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('SNS notification received but log not persisted', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             return response()->json(['status' => 'ok']);
         }
