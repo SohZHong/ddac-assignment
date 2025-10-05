@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\User;
 use App\Notifications\MeetingLinkNotification;
 use App\Services\SNSMeetingLinkService;
+use App\Services\MeetingNotificationApiService;
 use App\Events\WebRTCSignal;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -255,23 +256,50 @@ class VideoCallController extends Controller
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
 
-            $snsService = new SNSMeetingLinkService();
-            $snsResult = $snsService->sendMeetingLinkNotification([
-                'patient_id' => $validated['patient_id'],
-                'patient_name' => $validated['patient_name'],
-                'doctor_id' => $validated['doctor_id'],
-                'doctor_name' => $validated['doctor_name'],
-                'room_id' => $validated['room_id'],
-            ]);
+            // Try Lambda API first, fallback to direct SNS if unavailable
+            $lambdaApiService = new MeetingNotificationApiService();
+            $notificationResult = false;
+            $method = 'direct';
 
-            if (!$snsResult) {
+            if ($lambdaApiService->isAvailable()) {
+                $notificationResult = $lambdaApiService->sendMeetingLinkNotification([
+                    'patient_id' => $validated['patient_id'],
+                    'patient_name' => $validated['patient_name'],
+                    'doctor_id' => $validated['doctor_id'],
+                    'doctor_name' => $validated['doctor_name'],
+                    'room_id' => $validated['room_id'],
+                ]);
+                $method = $notificationResult ? 'lambda_api' : 'direct';
+            }
+
+            // Fallback to direct SNS if Lambda API is unavailable or failed
+            if (!$notificationResult) {
+                $snsService = new SNSMeetingLinkService();
+                $snsResult = $snsService->sendMeetingLinkNotification([
+                    'patient_id' => $validated['patient_id'],
+                    'patient_name' => $validated['patient_name'],
+                    'doctor_id' => $validated['doctor_id'],
+                    'doctor_name' => $validated['doctor_name'],
+                    'room_id' => $validated['room_id'],
+                ]);
+                
+                if ($snsResult) {
+                    $notificationResult = true;
+                    $method = 'sns_direct';
+                }
+            }
+
+            // Final fallback to direct notification if all else fails
+            if (!$notificationResult) {
                 $patient = User::findOrFail($validated['patient_id']);
                 $patient->notify(new MeetingLinkNotification([
                     'doctor_name' => $validated['doctor_name'],
                     'room_id' => $validated['room_id'],
                 ]));
 
-                Log::warning('SNS failed, used fallback notification', [
+                $method = 'direct';
+                
+                Log::warning('All notification methods failed, used final fallback', [
                     'patient_id' => $validated['patient_id'],
                     'doctor_id' => $validated['doctor_id'],
                     'room_id' => $validated['room_id'],
@@ -280,12 +308,12 @@ class VideoCallController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Meeting link notification sent via SNS successfully',
-                'method' => $snsResult ? 'sns' : 'direct',
+                'message' => 'Meeting link notification sent successfully',
+                'method' => $method,
                 'data' => [
                     'patient_name' => $validated['patient_name'],
                     'room_id' => $validated['room_id'],
-                    'channels' => ['email', 'sms', 'push_notification'], // SNS fan-out channels
+                    'channels' => $method === 'direct' ? ['in_app'] : ['email', 'sms', 'push_notification'],
                 ]
             ]);
 
